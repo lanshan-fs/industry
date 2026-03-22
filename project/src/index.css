@@ -1,0 +1,33 @@
+/* src/index.css */
+
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  /* 核心修复：移除 overflow: hidden 和固定的 height: 100% */
+  /* 让 body 高度随内容自动撑开，恢复浏览器原生滚动条 */
+  min-height: 100%;
+  background-color: #f0f2f5;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh; /* 保证最小高度占满屏幕 */
+  display: flex;
+  flex-direction: column;
+}
+
+/* 滚动条样式美化 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
