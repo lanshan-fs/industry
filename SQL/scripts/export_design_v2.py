@@ -22,7 +22,7 @@ def parse_init_sql(init_sql_path: Path) -> List[Dict[str, str]]:
     row_by_name: Dict[str, Dict[str, str]] = {}
 
     for line in lines:
-        create_match = re.match(r"CREATE TABLE `([^`]+)` \(", line)
+        create_match = re.match(r"CREATE TABLE `([^`]+)` \(", line, flags=re.IGNORECASE)
         if create_match:
             table_name = create_match.group(1)
             table_comment = ""
@@ -36,10 +36,11 @@ def parse_init_sql(init_sql_path: Path) -> List[Dict[str, str]]:
         column_match = re.match(
             r"\s*`([^`]+)`\s+([A-Z]+(?:\([^)]+\))?(?:\s+UNSIGNED)?|JSON|TEXT|LONGTEXT)\s*(.*)",
             line,
+            flags=re.IGNORECASE,
         )
         if column_match:
             column_name = column_match.group(1)
-            data_type = column_match.group(2)
+            data_type = column_match.group(2).upper()
             rest = column_match.group(3)
             comment_match = re.search(r"COMMENT '([^']*)'", rest)
             default_match = re.search(r"DEFAULT ([^ ]+(?:\([^)]+\))?)", rest)
@@ -50,19 +51,19 @@ def parse_init_sql(init_sql_path: Path) -> List[Dict[str, str]]:
                 "是否有获取": "",
                 "说明": comment_match.group(1) if comment_match else "",
                 "PK": "",
-                "NOT NULL": "1" if "NOT NULL" in rest else "",
+                "NOT NULL": "1" if "NOT NULL" in rest.upper() else "",
                 "UNIQUE": "",
                 "DEFAULT": default_match.group(1) if default_match else "",
                 "FK": "",
                 "CHECK": "",
-                "备注": "AUTO_INCREMENT" if "AUTO_INCREMENT" in rest else "",
+                "备注": "AUTO_INCREMENT" if "AUTO_INCREMENT" in rest.upper() else "",
                 "父记录": "",
             }
             table_rows.append(row)
             row_by_name[column_name] = row
             continue
 
-        primary_match = re.match(r"\s*PRIMARY KEY \((.+)\),?$", line)
+        primary_match = re.match(r"\s*PRIMARY KEY \((.+)\),?$", line, flags=re.IGNORECASE)
         if primary_match:
             cols = re.findall(r"`([^`]+)`", primary_match.group(1))
             for col in cols:
@@ -70,7 +71,7 @@ def parse_init_sql(init_sql_path: Path) -> List[Dict[str, str]]:
                     row_by_name[col]["PK"] = "1"
             continue
 
-        unique_match = re.match(r"\s*UNIQUE KEY `[^`]+` \((.+)\),?$", line)
+        unique_match = re.match(r"\s*UNIQUE KEY `[^`]+` \((.+)\),?$", line, flags=re.IGNORECASE)
         if unique_match:
             cols = re.findall(r"`([^`]+)`", unique_match.group(1))
             for col in cols:
@@ -81,6 +82,7 @@ def parse_init_sql(init_sql_path: Path) -> List[Dict[str, str]]:
         fk_match = re.match(
             r"\s*CONSTRAINT `[^`]+`\s+FOREIGN KEY \(`([^`]+)`\) REFERENCES `([^`]+)` \(`([^`]+)`\),?$",
             line,
+            flags=re.IGNORECASE,
         )
         if fk_match:
             col, fk_table, fk_col = fk_match.groups()
@@ -88,7 +90,7 @@ def parse_init_sql(init_sql_path: Path) -> List[Dict[str, str]]:
                 row_by_name[col]["FK"] = f"{fk_table}.{fk_col}"
             continue
 
-        check_match = re.match(r"\s*CONSTRAINT `[^`]+`\s+CHECK \((.+)\)\)?[, ]*$", line)
+        check_match = re.match(r"\s*CONSTRAINT `[^`]+`\s+CHECK \((.+)\)\)?[, ]*$", line, flags=re.IGNORECASE)
         if check_match:
             expr = check_match.group(1)
             matched_columns = re.findall(r"`([^`]+)`", expr)
@@ -104,7 +106,7 @@ def parse_init_sql(init_sql_path: Path) -> List[Dict[str, str]]:
                         row_by_name[col]["CHECK"] = expr
             continue
 
-        end_match = re.match(r"\)\s*ENGINE=.*COMMENT='([^']*)';", line)
+        end_match = re.match(r"\)\s*ENGINE=.*COMMENT='([^']*)';", line, flags=re.IGNORECASE)
         if end_match:
             table_comment = end_match.group(1)
             for row in table_rows:
