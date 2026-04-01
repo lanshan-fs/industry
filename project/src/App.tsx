@@ -15,17 +15,21 @@ import IndustryClass from "./pages/IndustryClass/IndustryClass";
 
 import IndustryProfile from "./pages/IndustryPortrait/IndustryProfile";
 import EnterpriseProfile from "./pages/IndustryPortrait/EnterpriseProfile";
+import EnterpriseScore from "./pages/ScoreManagement/EnterpriseScore";
 
 import IndustryScore from "./pages/IndustryScore/Index";
 import SmartDiag from "./pages/IndustryDiag/SmartDiag";
 
 import EnterpriseData from "./pages/SystemMgmt/Data/EnterpriseData";
 import WeightData from "./pages/SystemMgmt/Data/WeightData";
+import AnnouncementMgmt from "./pages/SystemMgmt/Data/AnnouncementMgmt";
+import UserMgmt from "./pages/SystemMgmt/User/UserMgmt";
 
 import AutoTag from "./pages/SystemMgmt/Data/Tag/AutoTag";
 import EnterpriseTag from "./pages/SystemMgmt/Data/Tag/EnterpriseTag";
 import TagLibrary from "./pages/SystemMgmt/Data/Tag/TagLibrary";
 import DimensionDetail from "./pages/SystemMgmt/Data/Tag/DimensionDetail";
+import PersonalCenter from "./pages/Profile/PersonalCenter";
 
 import AdvancedSearch from "./pages/AdvancedSearch/Index";
 
@@ -67,6 +71,7 @@ const App: React.FC = () => {
         <Route element={<MainLayout />}>
           {/* 1. 首页 */}
           <Route path="home" element={<Overview />} />
+          <Route path="profile" element={<PersonalCenter />} />
 
           <Route path="advanced-search" element={<AdvancedSearch />} />
 
@@ -78,6 +83,7 @@ const App: React.FC = () => {
             <Route index element={<Navigate to="industry-profile" replace />} />
             <Route path="industry-profile" element={<IndustryProfile />} />
             <Route path="enterprise-profile" element={<EnterpriseProfile />} />
+            <Route path="enterprise-score" element={<EnterpriseScore />} />
           </Route>
 
           {/* 4. 产业评分 */}
@@ -105,6 +111,7 @@ const App: React.FC = () => {
             />
             {/* 评分权重 */}
             <Route path="weight-data" element={<WeightData />} />
+            <Route path="announcement-mgmt" element={<AnnouncementMgmt />} />
 
             {/* 6.2 标签数据管理 (归属于数据管理) */}
             {/* 注意：路由 Path 依然保持扁平，方便 MainLayout 跳转 */}
@@ -117,12 +124,7 @@ const App: React.FC = () => {
             <Route path="auto-tag" element={<AutoTag />} />
 
             {/* 6.3 用户管理 */}
-            <Route
-              path="user-mgmt"
-              element={
-                <PlaceholderPage title="用户管理" desc="RBAC 权限管理" />
-              }
-            />
+            <Route path="user-mgmt" element={<UserMgmt />} />
           </Route>
         </Route>
 

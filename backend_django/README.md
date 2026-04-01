@@ -1,12 +1,13 @@
 # Django Auth Backend
 
-当前目录承接平台的 Django 版认证后端，只接管 `/api/auth/*`：
+当前目录承接平台的 Django 版后端，目前接管：
 
 - `POST /api/auth/register`
 - `POST /api/auth/login`
 - `POST /api/auth/send-code`
 - `POST /api/auth/reset-password`
 - `GET /api/auth/health`
+- `GET /api/dashboard/overview`
 
 ## 运行方式
 
@@ -23,6 +24,6 @@ python3 /Users/bluem/Projects/Web/industrial_chain/backend_django/manage.py runs
 
 ## 当前边界
 
-- 只重构认证模块，不接管其余 `/api/*`
-- 前端开发态通过 `project/vite.config.ts` 将 `/api/auth` 代理到 `127.0.0.1:8000`
+- Django 当前承接认证模块与首页总览接口
+- 前端开发态通过 `project/vite.config.ts` 将 `/api/auth`、`/api/dashboard` 代理到 `127.0.0.1:8000`
 - 其余 `/api` 仍由现有 Express 服务处理

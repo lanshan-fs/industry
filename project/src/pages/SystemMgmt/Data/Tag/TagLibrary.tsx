@@ -5,13 +5,10 @@ import {
   Row,
   Col,
   Statistic,
-  List,
-  Tag,
   Button,
   Typography,
   Space,
   Progress,
-  Tooltip,
   Drawer,
   Spin,
   message,
@@ -21,7 +18,6 @@ import {
   BankOutlined,
   SettingOutlined,
   FireOutlined,
-  ArrowUpOutlined,
   RightOutlined,
   InfoCircleOutlined,
 } from "@ant-design/icons";
@@ -44,7 +40,7 @@ const TagLibrary: React.FC = () => {
   const fetchStats = async () => {
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:3001/api/tags/dimensions/stats");
+      const res = await fetch("/api/tags/dimensions/stats");
       const json = await res.json();
       if (json.success) {
         setStats(json.data);

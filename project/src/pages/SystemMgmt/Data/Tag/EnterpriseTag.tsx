@@ -1,242 +1,315 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
-  Card,
-  Table,
-  Input,
   Button,
-  Space,
-  Tag,
-  message,
-  Typography,
-  Select,
-  Popover,
-  Modal,
+  Card,
   Descriptions,
-  Divider,
-  Tooltip,
+  Input,
+  Modal,
+  Popover,
+  Select,
+  Space,
+  Table,
+  Tag,
+  Typography,
+  message,
 } from "antd";
 import {
-  SearchOutlined,
-  ReloadOutlined,
-  PlusOutlined,
-  EditOutlined,
   CheckOutlined,
-  EyeOutlined,
-  TagsOutlined,
   CloseCircleFilled,
-  ExclamationCircleOutlined,
-  CheckCircleOutlined,
+  EditOutlined,
+  EyeOutlined,
+  PlusOutlined,
+  ReloadOutlined,
 } from "@ant-design/icons";
 import type { TableProps } from "antd";
 
 const { Text } = Typography;
 const { confirm } = Modal;
 
-// --- 类型定义 ---
-type DimensionKey = "basic" | "business" | "tech" | "risk" | "market";
+type DimensionKey = "basic" | "business" | "tech" | "risk" | "region" | "industry" | "scene";
 
-interface EnterpriseDimension {
+interface TagOption {
+  id: number;
+  name: string;
+}
+
+interface TagDetail {
+  id: number;
+  name: string;
+  dimensionId: number;
+  dimensionName: string;
+  subdimensionId: number;
+  subdimensionName: string;
+  taggedAt?: string;
+}
+
+interface EnterpriseDimensions {
   basic: string[];
   business: string[];
   tech: string[];
   risk: string[];
-  market: string[];
+  region: string[];
+  industry: string[];
+  scene: string[];
 }
 
-interface EnterpriseData {
-  key: string;
+interface EnterpriseRow {
+  key: number;
+  companyId: number;
   name: string;
   code: string;
-  updateTime: string;
-  dimensions: EnterpriseDimension;
+  updateTime?: string;
+  tagCount: number;
+  dimensions: EnterpriseDimensions;
+  tags: TagDetail[];
 }
 
+interface TagLibraryResponse {
+  data?: {
+    grouped?: Record<DimensionKey, TagOption[]>;
+  };
+}
+
+const DIMENSION_META: Record<DimensionKey, { label: string; color: string }> = {
+  basic: { label: "基本信息", color: "cyan" },
+  business: { label: "经营状况", color: "blue" },
+  tech: { label: "知识产权", color: "purple" },
+  risk: { label: "风险信息", color: "red" },
+  region: { label: "街道地区", color: "geekblue" },
+  industry: { label: "行业标签", color: "orange" },
+  scene: { label: "应用场景", color: "green" },
+};
+
+const EMPTY_LIBRARY: Record<DimensionKey, TagOption[]> = {
+  basic: [],
+  business: [],
+  tech: [],
+  risk: [],
+  region: [],
+  industry: [],
+  scene: [],
+};
+
 const EnterpriseTag: React.FC = () => {
-  // --- State ---
-  const [data, setData] = useState<EnterpriseData[]>([]);
+  const [data, setData] = useState<EnterpriseRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [total, setTotal] = useState(0);
   const [searchText, setSearchText] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  
-  // 真实的标签选项库 (从后端加载)
-  const [tagLibrary, setTagLibrary] = useState<Record<string, string[]>>({
-    basic: [], business: [], tech: [], risk: [], market: []
-  });
-
+  const [tagLibrary, setTagLibrary] = useState<Record<DimensionKey, TagOption[]>>(EMPTY_LIBRARY);
   const [popoverOpenState, setPopoverOpenState] = useState<Record<string, boolean>>({});
-  const [editingKeys, setEditingKeys] = useState<Set<string>>(new Set());
+  const [editingKeys, setEditingKeys] = useState<Set<number>>(new Set());
   const [viewModalOpen, setViewModalOpen] = useState(false);
-  const [currentRecord, setCurrentRecord] = useState<EnterpriseData | null>(null);
+  const [currentRecord, setCurrentRecord] = useState<EnterpriseRow | null>(null);
 
-  // --- API ---
+  const allDimensionKeys = useMemo(() => Object.keys(DIMENSION_META) as DimensionKey[], []);
 
-  // 1. 获取企业列表及标签
   const fetchData = async (page = 1, size = 10, keyword = "") => {
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:3001/api/tags/companies?page=${page}&pageSize=${size}&keyword=${keyword}`);
-      const json = await res.json();
-      if (json.success) {
-        setData(json.data.list);
-        setTotal(json.data.total);
+      const response = await fetch(
+        `/api/tags/companies?page=${page}&pageSize=${size}&keyword=${encodeURIComponent(keyword)}`,
+      );
+      const result = await response.json();
+      if (result.success) {
+        setData(result.data.list || []);
+        setTotal(result.data.total || 0);
         setCurrentPage(page);
+      } else {
+        message.error(result.message || "加载企业标签失败");
       }
-    } catch (err) {
-      message.error("加载企业列表失败");
+    } catch (error) {
+      console.error(error);
+      message.error("加载企业标签失败");
     } finally {
       setLoading(false);
     }
   };
 
-  // 2. 获取所有可选标签 (用于打标)
   const fetchTagLibrary = async () => {
     try {
-      const res = await fetch("http://localhost:3001/api/meta/all");
-      const json = await res.json();
-      if (json.success) {
-        const dict = json.data.dictionary;
-        // 映射逻辑需与后端一致
+      const response = await fetch("/api/tags/library/options");
+      const result: TagLibraryResponse & { success?: boolean; message?: string } = await response.json();
+      if (result.success) {
         setTagLibrary({
-          basic: (dict["ENT_TYPE"] || []).map((i:any) => i.value),
-          business: (json.data.scenarios || []).map((i:any) => i.value),
-          tech: (dict["TECH_ATTR"] || []).map((i:any) => i.value),
-          risk: (dict["RISK_DISHONEST"] || []).map((i:any) => i.value),
-          market: (dict["LISTING_STATUS"] || []).map((i:any) => i.value)
+          ...EMPTY_LIBRARY,
+          ...(result.data?.grouped || {}),
         });
+      } else {
+        message.error(result.message || "加载标签库失败");
       }
-    } catch (e) {
-      console.error("Fetch meta failed", e);
+    } catch (error) {
+      console.error(error);
+      message.error("加载标签库失败");
     }
   };
 
   useEffect(() => {
     fetchData(1, pageSize);
     fetchTagLibrary();
-  }, []);
-
-  // --- Handlers ---
+  }, [pageSize]);
 
   const handleSearch = (value: string) => {
     setSearchText(value);
     fetchData(1, pageSize, value);
   };
 
-  const toggleEditMode = (key: string) => {
-    const newKeys = new Set(editingKeys);
-    newKeys.has(key) ? newKeys.delete(key) : newKeys.add(key);
-    setEditingKeys(newKeys);
+  const toggleEditMode = (key: number) => {
+    const next = new Set(editingKeys);
+    if (next.has(key)) {
+      next.delete(key);
+    } else {
+      next.add(key);
+    }
+    setEditingKeys(next);
   };
 
-  const handleAddTag = async (record: EnterpriseData, dimension: DimensionKey, tagName: string) => {
+  const handleAddTag = async (record: EnterpriseRow, dimension: DimensionKey, optionId: number) => {
     const popoverKey = `${record.key}_${dimension}`;
-    setPopoverOpenState(prev => ({ ...prev, [popoverKey]: false }));
+    setPopoverOpenState((prev) => ({ ...prev, [popoverKey]: false }));
 
-    if (record.dimensions[dimension].includes(tagName)) {
+    const option = (tagLibrary[dimension] || []).find((item) => item.id === optionId);
+    if (!option) {
+      return;
+    }
+    if (record.dimensions[dimension].includes(option.name)) {
       message.warning("该标签已存在");
       return;
     }
 
     try {
-      const res = await fetch("http://localhost:3001/api/tags/add", {
+      const response = await fetch("/api/tags/add", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ companyId: record.key, tagName, dimension }),
+        body: JSON.stringify({ companyId: record.companyId, tagId: option.id }),
       });
-      if (res.ok) {
+      const result = await response.json();
+      if (result.success) {
         message.success("打标成功");
-        fetchData(currentPage, pageSize, searchText); // 重新刷新行数据
+        fetchData(currentPage, pageSize, searchText);
+      } else {
+        message.error(result.message || "打标失败");
       }
-    } catch (e) {
-      message.error("保存失败");
+    } catch (error) {
+      console.error(error);
+      message.error("打标失败");
     }
   };
 
-  const handleDeleteTagConfirm = (record: EnterpriseData, dimension: DimensionKey, tagName: string) => {
+  const handleDeleteTag = async (record: EnterpriseRow, tagName: string) => {
+    try {
+      const response = await fetch("/api/tags/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ companyId: record.companyId, tagName }),
+      });
+      const result = await response.json();
+      if (result.success) {
+        message.success("标签已删除");
+        fetchData(currentPage, pageSize, searchText);
+      } else {
+        message.error(result.message || "删除失败");
+      }
+    } catch (error) {
+      console.error(error);
+      message.error("删除失败");
+    }
+  };
+
+  const handleDeleteTagConfirm = (record: EnterpriseRow, tagName: string) => {
     confirm({
       title: `确认删除标签 "${tagName}"?`,
       okText: "确定",
       okType: "danger",
       cancelText: "取消",
-      onOk: async () => {
-        try {
-          // 这里需要后端支持删除接口，暂时调用刷新
-          message.info("删除功能待对接后端 DELETE 接口");
-          fetchData(currentPage, pageSize, searchText);
-        } catch (e) {
-          message.error("删除失败");
-        }
-      },
+      onOk: () => handleDeleteTag(record, tagName),
     });
   };
 
-  // --- Render Helpers ---
-
-  const renderDimensionCell = (tags: string[] = [], record: EnterpriseData, dimension: DimensionKey, color: string) => {
+  const renderDimensionCell = (
+    tags: string[] = [],
+    record: EnterpriseRow,
+    dimension: DimensionKey,
+  ) => {
     const editing = editingKeys.has(record.key);
     const popoverKey = `${record.key}_${dimension}`;
-    const isOpen = popoverOpenState[popoverKey] || false;
-    
-    // 确保从库中获取选项
-    const options = (tagLibrary[dimension] || []).map(t => ({ label: t, value: t }));
+    const options = (tagLibrary[dimension] || []).map((option) => ({
+      label: option.name,
+      value: option.id,
+    }));
 
     return (
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", padding: editing ? "4px" : "0" }}>
-        {tags.map((tag, idx) => (
-          <div key={idx} style={{ position: "relative" }}>
-            <Tag color={color} style={{ margin: 0 }}>{tag}</Tag>
-            {editing && (
-              <CloseCircleFilled 
-                style={{ position: "absolute", top: -5, right: -5, color: "#f5222d", cursor: "pointer", fontSize: 12, background: '#fff', borderRadius: '50%' }}
-                onClick={() => handleDeleteTagConfirm(record, dimension, tag)}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 4, minHeight: 32 }}>
+        {tags.map((tagName) => (
+          <div key={tagName} style={{ position: "relative" }}>
+            <Tag color={DIMENSION_META[dimension].color} style={{ margin: 0 }}>
+              {tagName}
+            </Tag>
+            {editing ? (
+              <CloseCircleFilled
+                style={{
+                  position: "absolute",
+                  top: -5,
+                  right: -5,
+                  color: "#f5222d",
+                  cursor: "pointer",
+                  fontSize: 12,
+                  background: "#fff",
+                  borderRadius: "50%",
+                }}
+                onClick={() => handleDeleteTagConfirm(record, tagName)}
               />
-            )}
+            ) : null}
           </div>
         ))}
-        {editing && (
+        {editing ? (
           <Popover
-            content={
-              <div style={{ width: 200 }}>
-                <Select
-                  showSearch
-                  placeholder="选择标签"
-                  style={{ width: "100%" }}
-                  options={options}
-                  onChange={(val) => handleAddTag(record, dimension, val)}
-                  defaultOpen
-                />
-              </div>
-            }
             trigger="click"
-            open={isOpen}
-            onOpenChange={(v) => setPopoverOpenState(prev => ({ ...prev, [popoverKey]: v }))}
+            open={popoverOpenState[popoverKey] || false}
+            onOpenChange={(visible) => setPopoverOpenState((prev) => ({ ...prev, [popoverKey]: visible }))}
+            content={(
+              <Select
+                showSearch
+                style={{ width: 220 }}
+                placeholder="选择标签"
+                options={options}
+                onChange={(value) => handleAddTag(record, dimension, value)}
+              />
+            )}
           >
             <Button type="dashed" size="small" icon={<PlusOutlined />} />
           </Popover>
-        )}
+        ) : null}
       </div>
     );
   };
 
-  const columns: TableProps<EnterpriseData>["columns"] = [
+  const columns: TableProps<EnterpriseRow>["columns"] = [
     {
       title: "企业基本信息",
       key: "info",
-      width: 250,
+      width: 260,
       fixed: "left",
       render: (_, record) => (
         <Space direction="vertical" size={0}>
           <Text strong>{record.name}</Text>
-          <Text type="secondary" style={{ fontSize: 12 }}>{record.code}</Text>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            {record.code}
+          </Text>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            共 {record.tagCount} 个标签
+          </Text>
         </Space>
       ),
     },
-    { title: "基本信息", dataIndex: ["dimensions", "basic"], width: 200, render: (t, r) => renderDimensionCell(t, r, "basic", "cyan") },
-    { title: "经营业务", dataIndex: ["dimensions", "business"], width: 200, render: (t, r) => renderDimensionCell(t, r, "business", "blue") },
-    { title: "科技属性", dataIndex: ["dimensions", "tech"], width: 200, render: (t, r) => renderDimensionCell(t, r, "tech", "purple") },
-    { title: "风险管控", dataIndex: ["dimensions", "risk"], width: 200, render: (t, r) => renderDimensionCell(t, r, "risk", "red") },
-    { title: "市场表现", dataIndex: ["dimensions", "market"], width: 200, render: (t, r) => renderDimensionCell(t, r, "market", "gold") },
+    ...allDimensionKeys.map((dimension) => ({
+      title: DIMENSION_META[dimension].label,
+      dataIndex: ["dimensions", dimension],
+      key: dimension,
+      width: 220,
+      render: (value: string[], record: EnterpriseRow) => renderDimensionCell(value, record, dimension),
+    })),
     {
       title: "操作",
       key: "action",
@@ -247,8 +320,21 @@ const EnterpriseTag: React.FC = () => {
         const editing = editingKeys.has(record.key);
         return (
           <Space>
-            <Button type="link" size="small" icon={<EyeOutlined />} onClick={() => { setCurrentRecord(record); setViewModalOpen(true); }} />
-            <Button type={editing ? "primary" : "link"} size="small" icon={editing ? <CheckOutlined /> : <EditOutlined />} onClick={() => toggleEditMode(record.key)}>
+            <Button
+              type="link"
+              size="small"
+              icon={<EyeOutlined />}
+              onClick={() => {
+                setCurrentRecord(record);
+                setViewModalOpen(true);
+              }}
+            />
+            <Button
+              type={editing ? "primary" : "link"}
+              size="small"
+              icon={editing ? <CheckOutlined /> : <EditOutlined />}
+              onClick={() => toggleEditMode(record.key)}
+            >
               {editing ? "完成" : "编辑"}
             </Button>
           </Space>
@@ -261,41 +347,68 @@ const EnterpriseTag: React.FC = () => {
     <div style={{ padding: 24 }}>
       <Card bordered={false} style={{ marginBottom: 16 }}>
         <Space size="large">
-          <Input.Search placeholder="搜索企业..." onSearch={handleSearch} style={{ width: 300 }} enterButton />
-          <Button type="primary" onClick={() => fetchData(currentPage, pageSize, searchText)} icon={<ReloadOutlined />}>刷新</Button>
+          <Input.Search
+            placeholder="搜索企业名称或统一社会信用代码"
+            onSearch={handleSearch}
+            style={{ width: 360 }}
+            enterButton
+          />
+          <Button
+            type="primary"
+            onClick={() => fetchData(currentPage, pageSize, searchText)}
+            icon={<ReloadOutlined />}
+          >
+            刷新
+          </Button>
         </Space>
       </Card>
 
       <Card bordered={false}>
         <Table
+          rowKey="key"
           columns={columns}
           dataSource={data}
           loading={loading}
-          rowKey="key"
+          scroll={{ x: 1800 }}
           pagination={{
-            current: currentPage, pageSize, total,
-            onChange: (p, s) => { setPageSize(s); fetchData(p, s, searchText); }
+            current: currentPage,
+            pageSize,
+            total,
+            showSizeChanger: true,
+            onChange: (nextPage, nextPageSize) => {
+              setPageSize(nextPageSize);
+              fetchData(nextPage, nextPageSize, searchText);
+            },
           }}
-          scroll={{ x: 1400 }}
         />
       </Card>
 
       <Modal
-        title={`标签全景 - ${currentRecord?.name}`}
+        title={`标签全景 - ${currentRecord?.name || ""}`}
         open={viewModalOpen}
         onCancel={() => setViewModalOpen(false)}
         footer={null}
-        width={600}
+        width={760}
       >
-        {currentRecord && (
+        {currentRecord ? (
           <Descriptions column={1} bordered size="small">
-            <Descriptions.Item label="基本信息">{currentRecord.dimensions.basic.map(t => <Tag key={t} color="cyan">{t}</Tag>)}</Descriptions.Item>
-            <Descriptions.Item label="经营业务">{currentRecord.dimensions.business.map(t => <Tag key={t} color="blue">{t}</Tag>)}</Descriptions.Item>
-            <Descriptions.Item label="科技属性">{currentRecord.dimensions.tech.map(t => <Tag key={t} color="purple">{t}</Tag>)}</Descriptions.Item>
-            <Descriptions.Item label="风险管控">{currentRecord.dimensions.risk.map(t => <Tag key={t} color="red">{t}</Tag>)}</Descriptions.Item>
-            <Descriptions.Item label="市场表现">{currentRecord.dimensions.market.map(t => <Tag key={t} color="gold">{t}</Tag>)}</Descriptions.Item>
+            {allDimensionKeys.map((dimension) => (
+              <Descriptions.Item key={dimension} label={DIMENSION_META[dimension].label}>
+                <Space size={[0, 6]} wrap>
+                  {currentRecord.dimensions[dimension].length > 0 ? (
+                    currentRecord.dimensions[dimension].map((tagName) => (
+                      <Tag color={DIMENSION_META[dimension].color} key={`${dimension}_${tagName}`}>
+                        {tagName}
+                      </Tag>
+                    ))
+                  ) : (
+                    <Text type="secondary">暂无标签</Text>
+                  )}
+                </Space>
+              </Descriptions.Item>
+            ))}
           </Descriptions>
-        )}
+        ) : null}
       </Modal>
     </div>
   );

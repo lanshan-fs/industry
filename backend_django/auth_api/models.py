@@ -51,3 +51,60 @@ class PlatformUser(models.Model):
     class Meta:
         managed = False
         db_table = "users"
+
+
+class InviteCode(models.Model):
+    code = models.CharField(max_length=50, primary_key=True, db_column="invite_code")
+    is_used = models.BooleanField(default=False, db_column="is_used")
+    created_at = models.DateTimeField(blank=True, null=True, db_column="created_at")
+
+    class Meta:
+        managed = False
+        db_table = "user_dinvite_codes"
+
+
+class Role(models.Model):
+    role_id = models.BigAutoField(primary_key=True, db_column="role_id")
+    role_name = models.CharField(max_length=30, unique=True, db_column="role_name")
+    role_description = models.TextField(blank=True, null=True, db_column="role_description")
+
+    class Meta:
+        managed = False
+        db_table = "user_roles"
+
+
+class UserRoleAssignment(models.Model):
+    association_id = models.BigAutoField(primary_key=True, db_column="association_id")
+    user = models.ForeignKey(
+        PlatformUser,
+        db_column="user_id",
+        on_delete=models.CASCADE,
+        related_name="role_assignments",
+    )
+    role = models.ForeignKey(
+        Role,
+        db_column="role_id",
+        on_delete=models.CASCADE,
+        related_name="user_assignments",
+    )
+    assigned_at = models.DateTimeField(blank=True, null=True, db_column="assigned_at")
+
+    class Meta:
+        managed = False
+        db_table = "user_and_roles"
+
+
+class OperationLog(models.Model):
+    log_id = models.BigAutoField(primary_key=True, db_column="log_id")
+    user = models.ForeignKey(
+        PlatformUser,
+        db_column="user_id",
+        on_delete=models.CASCADE,
+        related_name="operation_logs",
+    )
+    operation_time = models.DateTimeField(blank=True, null=True, db_column="operation_time")
+    action = models.CharField(max_length=50, db_column="action")
+
+    class Meta:
+        managed = False
+        db_table = "user_operation_logs"

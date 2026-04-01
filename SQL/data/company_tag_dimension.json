@@ -1,0 +1,50 @@
+[
+  {
+    "company_tag_dimension_id": 1,
+    "company_tag_dimension_name": "基本信息",
+    "company_tag_dimension_color": null,
+    "company_tag_dimension_icon": null,
+    "company_tag_dimension_des": null,
+    "sort_order": 10
+  },
+  {
+    "company_tag_dimension_id": 2,
+    "company_tag_dimension_name": "经营状况",
+    "company_tag_dimension_color": null,
+    "company_tag_dimension_icon": null,
+    "company_tag_dimension_des": null,
+    "sort_order": 20
+  },
+  {
+    "company_tag_dimension_id": 3,
+    "company_tag_dimension_name": "知识产权",
+    "company_tag_dimension_color": null,
+    "company_tag_dimension_icon": null,
+    "company_tag_dimension_des": null,
+    "sort_order": 30
+  },
+  {
+    "company_tag_dimension_id": 4,
+    "company_tag_dimension_name": "风险信息",
+    "company_tag_dimension_color": null,
+    "company_tag_dimension_icon": null,
+    "company_tag_dimension_des": null,
+    "sort_order": 40
+  },
+  {
+    "company_tag_dimension_id": 5,
+    "company_tag_dimension_name": "街道地区",
+    "company_tag_dimension_color": null,
+    "company_tag_dimension_icon": null,
+    "company_tag_dimension_des": null,
+    "sort_order": 50
+  },
+  {
+    "company_tag_dimension_id": 6,
+    "company_tag_dimension_name": "应用场景",
+    "company_tag_dimension_color": null,
+    "company_tag_dimension_icon": null,
+    "company_tag_dimension_des": null,
+    "sort_order": 60
+  }
+]

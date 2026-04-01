@@ -46,6 +46,10 @@ DROP TABLE IF EXISTS `company_trademark`;
 DROP TABLE IF EXISTS `company_basic_count`;
 DROP TABLE IF EXISTS `company_tag_dimension_library_map`;
 DROP TABLE IF EXISTS `company_tag_auto_rule`;
+DROP TABLE IF EXISTS `company_tag_llm_candidate`;
+DROP TABLE IF EXISTS `company_tag_llm_batch`;
+DROP TABLE IF EXISTS `company_tag_batch_item`;
+DROP TABLE IF EXISTS `company_tag_batch`;
 DROP TABLE IF EXISTS `company_tag_map`;
 DROP TABLE IF EXISTS `company_software_copyright`;
 DROP TABLE IF EXISTS `company_subdistrict`;
@@ -566,6 +570,111 @@ CREATE TABLE `company_tag_map` (
   CONSTRAINT `chk_company_tag_map_source` CHECK (`source` IS NULL OR `source` IN (1, 2)),
   CONSTRAINT `chk_company_tag_map_confidence` CHECK (`confidence` IS NULL OR (`confidence` >= 0 AND `confidence` <= 1))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='企业标签映射表';
+
+CREATE TABLE `company_tag_batch` (
+  `company_tag_batch_id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '企业标签批次唯一标识',
+  `batch_code` VARCHAR(64) NOT NULL COMMENT '批次编码',
+  `batch_name` VARCHAR(255) DEFAULT NULL COMMENT '批次名称',
+  `status` VARCHAR(32) NOT NULL DEFAULT 'pending' COMMENT '批次状态（pending/running/completed/failed）',
+  `requested_by_user_id` BIGINT DEFAULT NULL COMMENT '发起用户 ID',
+  `dimension_ids` JSON DEFAULT NULL COMMENT '本批次选择的标签维度 ID 列表',
+  `dimension_names` JSON DEFAULT NULL COMMENT '本批次选择的标签维度名称列表',
+  `requested_company_count` INT NOT NULL DEFAULT 0 COMMENT '本批次请求企业数',
+  `success_company_count` INT NOT NULL DEFAULT 0 COMMENT '成功企业数',
+  `failed_company_count` INT NOT NULL DEFAULT 0 COMMENT '失败企业数',
+  `summary_json` JSON DEFAULT NULL COMMENT '批次执行摘要',
+  `error_message` TEXT DEFAULT NULL COMMENT '批次错误信息',
+  `started_at` DATETIME DEFAULT NULL COMMENT '开始时间',
+  `finished_at` DATETIME DEFAULT NULL COMMENT '结束时间',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`company_tag_batch_id`),
+  UNIQUE KEY `uk_company_tag_batch_code` (`batch_code`),
+  KEY `idx_company_tag_batch_status_created` (`status`, `created_at`),
+  KEY `idx_company_tag_batch_user_created` (`requested_by_user_id`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='企业标签批次表';
+
+CREATE TABLE `company_tag_batch_item` (
+  `company_tag_batch_item_id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '企业标签批次明细唯一标识',
+  `company_tag_batch_id` BIGINT NOT NULL COMMENT '企业标签批次唯一标识',
+  `company_id` BIGINT NOT NULL COMMENT '企业唯一标识',
+  `status` VARCHAR(32) NOT NULL DEFAULT 'pending' COMMENT '明细状态（pending/success/failed）',
+  `tag_count` INT NOT NULL DEFAULT 0 COMMENT '本次命中标签数',
+  `result_json` JSON DEFAULT NULL COMMENT '明细执行结果',
+  `error_message` TEXT DEFAULT NULL COMMENT '明细错误信息',
+  `started_at` DATETIME DEFAULT NULL COMMENT '开始时间',
+  `finished_at` DATETIME DEFAULT NULL COMMENT '结束时间',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`company_tag_batch_item_id`),
+  UNIQUE KEY `uk_company_tag_batch_item` (`company_tag_batch_id`, `company_id`),
+  KEY `idx_company_tag_batch_item_company` (`company_id`),
+  KEY `idx_company_tag_batch_item_status` (`status`),
+  CONSTRAINT `fk_company_tag_batch_item_batch`
+    FOREIGN KEY (`company_tag_batch_id`) REFERENCES `company_tag_batch` (`company_tag_batch_id`)
+    ON DELETE CASCADE,
+  CONSTRAINT `fk_company_tag_batch_item_company`
+    FOREIGN KEY (`company_id`) REFERENCES `company_basic` (`company_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='企业标签批次明细表';
+
+CREATE TABLE `company_tag_llm_batch` (
+  `company_tag_llm_batch_id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '企业标签 LLM 候选批次唯一标识',
+  `batch_code` VARCHAR(64) NOT NULL COMMENT 'LLM 批次编码',
+  `batch_name` VARCHAR(255) DEFAULT NULL COMMENT '批次名称',
+  `status` VARCHAR(32) NOT NULL DEFAULT 'pending' COMMENT '批次状态（pending/running/completed/failed）',
+  `provider` VARCHAR(64) NOT NULL DEFAULT 'agent_chat' COMMENT '候选生成服务提供方',
+  `model_name` VARCHAR(128) DEFAULT NULL COMMENT '模型名称',
+  `company_tag_dimension_id` BIGINT NOT NULL COMMENT '对应的标签维度，当前固定为应用场景',
+  `requested_by_user_id` BIGINT DEFAULT NULL COMMENT '发起用户 ID',
+  `requested_company_count` INT NOT NULL DEFAULT 0 COMMENT '请求企业数',
+  `success_company_count` INT NOT NULL DEFAULT 0 COMMENT '成功生成候选的企业数',
+  `failed_company_count` INT NOT NULL DEFAULT 0 COMMENT '生成失败企业数',
+  `summary_json` JSON DEFAULT NULL COMMENT '候选生成摘要',
+  `error_message` TEXT DEFAULT NULL COMMENT '批次错误信息',
+  `started_at` DATETIME DEFAULT NULL COMMENT '开始时间',
+  `finished_at` DATETIME DEFAULT NULL COMMENT '结束时间',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`company_tag_llm_batch_id`),
+  UNIQUE KEY `uk_company_tag_llm_batch_code` (`batch_code`),
+  KEY `idx_company_tag_llm_batch_status_created` (`status`, `created_at`),
+  CONSTRAINT `fk_company_tag_llm_batch_dimension`
+    FOREIGN KEY (`company_tag_dimension_id`) REFERENCES `company_tag_dimension` (`company_tag_dimension_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='企业标签 LLM 候选批次表';
+
+CREATE TABLE `company_tag_llm_candidate` (
+  `company_tag_llm_candidate_id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '企业标签 LLM 候选唯一标识',
+  `company_tag_llm_batch_id` BIGINT NOT NULL COMMENT '所属 LLM 候选批次',
+  `company_id` BIGINT NOT NULL COMMENT '企业唯一标识',
+  `company_tag_id` BIGINT DEFAULT NULL COMMENT '映射到正式标签库的标签 ID，可为空',
+  `candidate_type` VARCHAR(32) NOT NULL COMMENT '候选类型（mapped_tag/unmapped_term）',
+  `candidate_name` VARCHAR(255) NOT NULL COMMENT '候选标签名称或候选短语',
+  `normalized_name` VARCHAR(255) DEFAULT NULL COMMENT '归一化后的标签名称',
+  `status` VARCHAR(32) NOT NULL DEFAULT 'pending' COMMENT '候选状态（pending/unmapped/applied/rejected）',
+  `confidence` DECIMAL(3, 2) DEFAULT NULL COMMENT '候选置信度',
+  `reason_text` TEXT DEFAULT NULL COMMENT '候选生成原因',
+  `evidence_json` JSON DEFAULT NULL COMMENT '候选生成证据快照',
+  `prompt_text` MEDIUMTEXT DEFAULT NULL COMMENT '发送给模型的提示词',
+  `raw_response` MEDIUMTEXT DEFAULT NULL COMMENT '模型原始响应',
+  `response_json` JSON DEFAULT NULL COMMENT '解析后的响应 JSON',
+  `created_by_user_id` BIGINT DEFAULT NULL COMMENT '发起用户 ID',
+  `reviewed_by_user_id` BIGINT DEFAULT NULL COMMENT '审核用户 ID',
+  `reviewed_at` DATETIME DEFAULT NULL COMMENT '审核时间',
+  `applied_at` DATETIME DEFAULT NULL COMMENT '采纳落库时间',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`company_tag_llm_candidate_id`),
+  UNIQUE KEY `uk_company_tag_llm_candidate_batch_name` (`company_tag_llm_batch_id`, `company_id`, `candidate_type`, `candidate_name`),
+  KEY `idx_company_tag_llm_candidate_company_status` (`company_id`, `status`),
+  KEY `idx_company_tag_llm_candidate_tag_id` (`company_tag_id`),
+  CONSTRAINT `fk_company_tag_llm_candidate_batch`
+    FOREIGN KEY (`company_tag_llm_batch_id`) REFERENCES `company_tag_llm_batch` (`company_tag_llm_batch_id`)
+    ON DELETE CASCADE,
+  CONSTRAINT `fk_company_tag_llm_candidate_company`
+    FOREIGN KEY (`company_id`) REFERENCES `company_basic` (`company_id`),
+  CONSTRAINT `fk_company_tag_llm_candidate_tag`
+    FOREIGN KEY (`company_tag_id`) REFERENCES `company_tag_library` (`company_tag_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='企业标签 LLM 场景候选表';
 
 CREATE TABLE `company_tag_auto_rule` (
   `company_tag_auto_rule_id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '打标规则唯一标识',

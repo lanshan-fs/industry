@@ -1,0 +1,350 @@
+[
+  {
+    "company_tag_subdimension_id": 1,
+    "company_tag_subdimension_name": "企业名称",
+    "company_tag_dimension_id": 1,
+    "sort_order": 10
+  },
+  {
+    "company_tag_subdimension_id": 2,
+    "company_tag_subdimension_name": "统一社会信用代码",
+    "company_tag_dimension_id": 1,
+    "sort_order": 20
+  },
+  {
+    "company_tag_subdimension_id": 3,
+    "company_tag_subdimension_name": "成立年限",
+    "company_tag_dimension_id": 1,
+    "sort_order": 30
+  },
+  {
+    "company_tag_subdimension_id": 4,
+    "company_tag_subdimension_name": "注册资本",
+    "company_tag_dimension_id": 1,
+    "sort_order": 40
+  },
+  {
+    "company_tag_subdimension_id": 5,
+    "company_tag_subdimension_name": "实缴资本",
+    "company_tag_dimension_id": 1,
+    "sort_order": 50
+  },
+  {
+    "company_tag_subdimension_id": 6,
+    "company_tag_subdimension_name": "经营状态",
+    "company_tag_dimension_id": 1,
+    "sort_order": 60
+  },
+  {
+    "company_tag_subdimension_id": 7,
+    "company_tag_subdimension_name": "企业类型",
+    "company_tag_dimension_id": 1,
+    "sort_order": 70
+  },
+  {
+    "company_tag_subdimension_id": 8,
+    "company_tag_subdimension_name": "组织类型",
+    "company_tag_dimension_id": 1,
+    "sort_order": 80
+  },
+  {
+    "company_tag_subdimension_id": 9,
+    "company_tag_subdimension_name": "投资类型",
+    "company_tag_dimension_id": 1,
+    "sort_order": 90
+  },
+  {
+    "company_tag_subdimension_id": 10,
+    "company_tag_subdimension_name": "企业规模",
+    "company_tag_dimension_id": 1,
+    "sort_order": 100
+  },
+  {
+    "company_tag_subdimension_id": 11,
+    "company_tag_subdimension_name": "分支机构数量",
+    "company_tag_dimension_id": 1,
+    "sort_order": 110
+  },
+  {
+    "company_tag_subdimension_id": 12,
+    "company_tag_subdimension_name": "分支机构名称",
+    "company_tag_dimension_id": 1,
+    "sort_order": 120
+  },
+  {
+    "company_tag_subdimension_id": 13,
+    "company_tag_subdimension_name": "地址信息",
+    "company_tag_dimension_id": 1,
+    "sort_order": 130
+  },
+  {
+    "company_tag_subdimension_id": 14,
+    "company_tag_subdimension_name": "投融资轮次",
+    "company_tag_dimension_id": 1,
+    "sort_order": 140
+  },
+  {
+    "company_tag_subdimension_id": 15,
+    "company_tag_subdimension_name": "员工人数",
+    "company_tag_dimension_id": 2,
+    "sort_order": 10
+  },
+  {
+    "company_tag_subdimension_id": 16,
+    "company_tag_subdimension_name": "社保人数",
+    "company_tag_dimension_id": 2,
+    "sort_order": 20
+  },
+  {
+    "company_tag_subdimension_id": 17,
+    "company_tag_subdimension_name": "上市状态",
+    "company_tag_dimension_id": 2,
+    "sort_order": 30
+  },
+  {
+    "company_tag_subdimension_id": 18,
+    "company_tag_subdimension_name": "国标行业",
+    "company_tag_dimension_id": 2,
+    "sort_order": 40
+  },
+  {
+    "company_tag_subdimension_id": 19,
+    "company_tag_subdimension_name": "联系方式",
+    "company_tag_dimension_id": 2,
+    "sort_order": 50
+  },
+  {
+    "company_tag_subdimension_id": 20,
+    "company_tag_subdimension_name": "同电话企业",
+    "company_tag_dimension_id": 2,
+    "sort_order": 60
+  },
+  {
+    "company_tag_subdimension_id": 21,
+    "company_tag_subdimension_name": "工商信息邮箱",
+    "company_tag_dimension_id": 2,
+    "sort_order": 70
+  },
+  {
+    "company_tag_subdimension_id": 22,
+    "company_tag_subdimension_name": "小微企业",
+    "company_tag_dimension_id": 2,
+    "sort_order": 80
+  },
+  {
+    "company_tag_subdimension_id": 23,
+    "company_tag_subdimension_name": "变更信息",
+    "company_tag_dimension_id": 2,
+    "sort_order": 90
+  },
+  {
+    "company_tag_subdimension_id": 24,
+    "company_tag_subdimension_name": "一般纳税人",
+    "company_tag_dimension_id": 2,
+    "sort_order": 100
+  },
+  {
+    "company_tag_subdimension_id": 25,
+    "company_tag_subdimension_name": "融资信息",
+    "company_tag_dimension_id": 2,
+    "sort_order": 110
+  },
+  {
+    "company_tag_subdimension_id": 26,
+    "company_tag_subdimension_name": "招投标数量",
+    "company_tag_dimension_id": 2,
+    "sort_order": 120
+  },
+  {
+    "company_tag_subdimension_id": 27,
+    "company_tag_subdimension_name": "招投标",
+    "company_tag_dimension_id": 2,
+    "sort_order": 130
+  },
+  {
+    "company_tag_subdimension_id": 28,
+    "company_tag_subdimension_name": "招聘信息数量",
+    "company_tag_dimension_id": 2,
+    "sort_order": 140
+  },
+  {
+    "company_tag_subdimension_id": 29,
+    "company_tag_subdimension_name": "招聘信息",
+    "company_tag_dimension_id": 2,
+    "sort_order": 150
+  },
+  {
+    "company_tag_subdimension_id": 30,
+    "company_tag_subdimension_name": "税务评级",
+    "company_tag_dimension_id": 2,
+    "sort_order": 160
+  },
+  {
+    "company_tag_subdimension_id": 31,
+    "company_tag_subdimension_name": "开户行",
+    "company_tag_dimension_id": 2,
+    "sort_order": 170
+  },
+  {
+    "company_tag_subdimension_id": 32,
+    "company_tag_subdimension_name": "专利类型",
+    "company_tag_dimension_id": 3,
+    "sort_order": 10
+  },
+  {
+    "company_tag_subdimension_id": 33,
+    "company_tag_subdimension_name": "企业科技属性",
+    "company_tag_dimension_id": 3,
+    "sort_order": 20
+  },
+  {
+    "company_tag_subdimension_id": 34,
+    "company_tag_subdimension_name": "资质证书",
+    "company_tag_dimension_id": 3,
+    "sort_order": 30
+  },
+  {
+    "company_tag_subdimension_id": 35,
+    "company_tag_subdimension_name": "商标信息",
+    "company_tag_dimension_id": 3,
+    "sort_order": 40
+  },
+  {
+    "company_tag_subdimension_id": 36,
+    "company_tag_subdimension_name": "专利信息",
+    "company_tag_dimension_id": 3,
+    "sort_order": 50
+  },
+  {
+    "company_tag_subdimension_id": 37,
+    "company_tag_subdimension_name": "作品著作权",
+    "company_tag_dimension_id": 3,
+    "sort_order": 60
+  },
+  {
+    "company_tag_subdimension_id": 38,
+    "company_tag_subdimension_name": "软件著作权",
+    "company_tag_dimension_id": 3,
+    "sort_order": 70
+  },
+  {
+    "company_tag_subdimension_id": 39,
+    "company_tag_subdimension_name": "高新技术企业",
+    "company_tag_dimension_id": 3,
+    "sort_order": 80
+  },
+  {
+    "company_tag_subdimension_id": 40,
+    "company_tag_subdimension_name": "微信公众号",
+    "company_tag_dimension_id": 3,
+    "sort_order": 90
+  },
+  {
+    "company_tag_subdimension_id": 41,
+    "company_tag_subdimension_name": "标准制定",
+    "company_tag_dimension_id": 3,
+    "sort_order": 100
+  },
+  {
+    "company_tag_subdimension_id": 42,
+    "company_tag_subdimension_name": "网址信息",
+    "company_tag_dimension_id": 3,
+    "sort_order": 110
+  },
+  {
+    "company_tag_subdimension_id": 43,
+    "company_tag_subdimension_name": "备案网站检测",
+    "company_tag_dimension_id": 3,
+    "sort_order": 120
+  },
+  {
+    "company_tag_subdimension_id": 44,
+    "company_tag_subdimension_name": "商业特许经营",
+    "company_tag_dimension_id": 3,
+    "sort_order": 130
+  },
+  {
+    "company_tag_subdimension_id": 45,
+    "company_tag_subdimension_name": "失信被执行",
+    "company_tag_dimension_id": 4,
+    "sort_order": 10
+  },
+  {
+    "company_tag_subdimension_id": 46,
+    "company_tag_subdimension_name": "动产抵押",
+    "company_tag_dimension_id": 4,
+    "sort_order": 20
+  },
+  {
+    "company_tag_subdimension_id": 47,
+    "company_tag_subdimension_name": "经营异常",
+    "company_tag_dimension_id": 4,
+    "sort_order": 30
+  },
+  {
+    "company_tag_subdimension_id": 48,
+    "company_tag_subdimension_name": "法律文书",
+    "company_tag_dimension_id": 4,
+    "sort_order": 40
+  },
+  {
+    "company_tag_subdimension_id": 49,
+    "company_tag_subdimension_name": "行政处罚",
+    "company_tag_dimension_id": 4,
+    "sort_order": 50
+  },
+  {
+    "company_tag_subdimension_id": 50,
+    "company_tag_subdimension_name": "破产重叠",
+    "company_tag_dimension_id": 4,
+    "sort_order": 60
+  },
+  {
+    "company_tag_subdimension_id": 51,
+    "company_tag_subdimension_name": "清算信息",
+    "company_tag_dimension_id": 4,
+    "sort_order": 70
+  },
+  {
+    "company_tag_subdimension_id": 52,
+    "company_tag_subdimension_name": "环保处罚",
+    "company_tag_dimension_id": 4,
+    "sort_order": 80
+  },
+  {
+    "company_tag_subdimension_id": 53,
+    "company_tag_subdimension_name": "股权冻结",
+    "company_tag_dimension_id": 4,
+    "sort_order": 90
+  },
+  {
+    "company_tag_subdimension_id": 54,
+    "company_tag_subdimension_name": "被执行人",
+    "company_tag_dimension_id": 4,
+    "sort_order": 100
+  },
+  {
+    "company_tag_subdimension_id": 55,
+    "company_tag_subdimension_name": "限制高消费",
+    "company_tag_dimension_id": 4,
+    "sort_order": 110
+  },
+  {
+    "company_tag_subdimension_id": 56,
+    "company_tag_subdimension_name": "街道",
+    "company_tag_dimension_id": 5,
+    "sort_order": 10
+  },
+  {
+    "company_tag_subdimension_id": 57,
+    "company_tag_subdimension_name": "地区",
+    "company_tag_dimension_id": 5,
+    "sort_order": 20
+  },
+  {
+    "company_tag_subdimension_id": 58,
+    "company_tag_subdimension_name": "应用场景",
+    "company_tag_dimension_id": 6,
+    "sort_order": 10
+  }
+]

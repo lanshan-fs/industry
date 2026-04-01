@@ -13,12 +13,14 @@ interface RankListProps {
   data: RankItem[];
   colorScale?: boolean;
   limit?: number;
+  onItemClick?: (item: RankItem) => void;
 }
 
 const RankList: React.FC<RankListProps> = ({
   data,
   colorScale = true,
   limit = 10,
+  onItemClick,
 }) => {
   return (
     <List
@@ -27,7 +29,15 @@ const RankList: React.FC<RankListProps> = ({
       split={false}
       renderItem={(item, i) => (
         <List.Item style={{ padding: "6px 0" }}>
-          <div style={{ display: "flex", alignItems: "center", width: "100%" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              width: "100%",
+              cursor: onItemClick ? "pointer" : "default",
+            }}
+            onClick={() => onItemClick?.(item)}
+          >
             <Badge
               count={i + 1}
               style={{

@@ -37,7 +37,7 @@ import {
 import { Radar } from "@ant-design/plots";
 import type { DataNode } from "antd/es/tree";
 import type { ColumnsType } from "antd/es/table";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import ReportActionButtons from "../../components/ReportActionButtons";
 
@@ -60,50 +60,59 @@ const BORDER_STYLE = `1px solid ${COLORS.borderColor}`;
 const CONTENT_BODY_HEIGHT = 320; // 统一定义内容区域高度，确保视觉对齐
 
 // 优化后的主雷达图配置
-const MAIN_RADAR_CONFIG = (data: any[]) => ({
-  data,
-  xField: "item",
-  yField: "score",
-  seriesField: "date",
-  meta: {
-    score: { min: 0, max: 100 },
-  },
-  area: {
-    style: { fillOpacity: 0.1 },
-  },
-  line: {
-    style: { lineWidth: 2 },
-  },
-  point: {
-    size: 2,
-    shape: "circle",
-  },
-  color: ["#d9d9d9", "#bfbfbf", "#8c8c8c", "#595959", "#434343", "#1890ff"],
-  legend: {
-    position: "bottom" as const,
-  },
-  height: 320,
-});
+const MAIN_RADAR_CONFIG = (data: any[]) => {
+  const maxScore =
+    Math.max(10, ...data.map((item) => Number(item.score || 0))) * 1.2;
+  return {
+    data,
+    xField: "item",
+    yField: "score",
+    seriesField: "date",
+    meta: {
+      score: { min: 0, max: Math.ceil(maxScore / 5) * 5 },
+    },
+    area: {
+      style: { fillOpacity: 0.1 },
+    },
+    line: {
+      style: { lineWidth: 2 },
+    },
+    point: {
+      size: 2,
+      shape: "circle",
+    },
+    color: ["#d9d9d9", "#bfbfbf", "#8c8c8c", "#595959", "#434343", "#1890ff"],
+    legend: {
+      position: "bottom" as const,
+    },
+    height: 320,
+  };
+};
 
-const DETAIL_RADAR_CONFIG = (data: any[]) => ({
-  data,
-  xField: "name",
-  yField: "score",
-  area: { style: { fill: "#1890ff", fillOpacity: 0.2 } },
-  line: { style: { stroke: "#1890ff", lineWidth: 2 } },
-  point: {
-    size: 3,
-    shape: "circle",
-    style: { fill: "#fff", stroke: "#1890ff" },
-  },
-  scale: { y: { min: 0, max: 100 } },
-  height: 300,
-});
+const DETAIL_RADAR_CONFIG = (data: any[]) => {
+  const maxScore =
+    Math.max(10, ...data.map((item) => Number(item.score || 0))) * 1.2;
+  return {
+    data,
+    xField: "name",
+    yField: "score",
+    area: { style: { fill: "#1890ff", fillOpacity: 0.2 } },
+    line: { style: { stroke: "#1890ff", lineWidth: 2 } },
+    point: {
+      size: 3,
+      shape: "circle",
+      style: { fill: "#fff", stroke: "#1890ff" },
+    },
+    scale: { y: { min: 0, max: Math.ceil(maxScore / 5) * 5 } },
+    height: 300,
+  };
+};
 
 const IndustryProfile: React.FC = () => {
   const screens = useBreakpoint();
   const isMobile = !screens.md;
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any>(null);
@@ -120,7 +129,7 @@ const IndustryProfile: React.FC = () => {
     const fetchTree = async () => {
       setLoadingTree(true);
       try {
-        const response = await fetch("http://localhost:3001/api/industry/tree");
+        const response = await fetch("/api/industry/tree");
         const resData = await response.json();
         if (resData.success) {
           const flatTreeData = resData.data.reduce((acc: any[], stage: any) => {
@@ -141,63 +150,23 @@ const IndustryProfile: React.FC = () => {
     fetchTree();
   }, []);
 
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const industryName = params.get("industryName");
+    if (industryName) {
+      setSelectedIndustry(industryName);
+    }
+  }, [location.search]);
+
   const fetchProfile = async (industry: string) => {
     setLoading(true);
     try {
       const response = await fetch(
-        `http://localhost:3001/api/industry/profile?industryName=${encodeURIComponent(industry)}`,
+        `/api/industry/profile?industryName=${encodeURIComponent(industry)}`,
       );
       const resData = await response.json();
       if (resData.success && resData.data) {
-        // Mock data enhancement
-        const enrichedData = {
-          ...resData.data,
-          basicInfo: {
-            ...resData.data.basicInfo,
-            department: "朝阳区科学技术和信息化局",
-            policyCount: 12,
-            growthRate: "18.5%",
-            chainLink: "上游 - 中游 - 下游",
-            description:
-              "聚焦数字化技术在医疗健康全流程的应用，涵盖数字诊疗设备、医疗大数据、远程医疗等关键领域。",
-          },
-          weakLinks: [
-            {
-              name: "科技创新短板",
-              level: "高危",
-              reason:
-                "行业内 45% 的企业无自主知识产权，低于全区平均水平，核心技术依赖度高。",
-              type: "innovation",
-            },
-            {
-              name: "资本结构失衡",
-              level: "预警",
-              reason:
-                "小微企业占比超 70%，注册资本低于 500 万的企业抗风险能力较弱。",
-              type: "capital",
-            },
-            {
-              name: "合规经营风险",
-              level: "预警",
-              reason:
-                "近一年行业内行政处罚案件同比上升 15%，主要集中在广告合规领域。",
-              type: "compliance",
-            },
-          ],
-          migrationRisks: Array.from({ length: 15 }).map((_, i) => ({
-            name: `${industry}相关企业${i + 1}有限公司`,
-            riskLevel: i < 3 ? "高" : i < 8 ? "中" : "低",
-            riskScore: 85 - i * 2,
-            labels:
-              i < 3
-                ? ["租约到期", "异地扩张"]
-                : i < 8
-                  ? ["成本敏感"]
-                  : ["政策导向"],
-            id: `ent-${i}`,
-          })),
-        };
-        setData(enrichedData);
+        setData(resData.data);
       } else {
         setData(null);
       }
@@ -224,7 +193,7 @@ const IndustryProfile: React.FC = () => {
   };
 
   const handleEnterpriseClick = (enterpriseId: string) => {
-    navigate(`/industry-portrait/enterprise/${enterpriseId}`);
+    navigate(`/industry-portrait/enterprise-profile?id=${enterpriseId}`);
   };
 
   const renderSubModelCard = (
@@ -250,7 +219,7 @@ const IndustryProfile: React.FC = () => {
         sorter: (a, b) => a.score - b.score,
         showSorterTooltip: { title: "点击排序" },
         render: (s) => (
-          <Text strong style={{ color: s < 60 ? "red" : color }}>
+          <Text strong style={{ color }}>
             {s}
           </Text>
         ),
@@ -427,7 +396,7 @@ const IndustryProfile: React.FC = () => {
                           {data.basicInfo.industryName}
                         </Title>
                         <Tag color="geekblue">朝阳区重点行业</Tag>{" "}
-                        <Tag color="success">AAA级</Tag>
+                        <Tag color="success">{data.level}级</Tag>
                       </Space>
                       <Descriptions
                         column={2}
@@ -446,9 +415,17 @@ const IndustryProfile: React.FC = () => {
                           </span>
                         </Descriptions.Item>
                         <Descriptions.Item label="同比上月">
-                          <span style={{ color: COLORS.riskHigh }}>
-                            <RiseOutlined /> {data.basicInfo.growthRate}
-                          </span>
+                          {String(data.basicInfo.growthRate || "").includes(
+                            "%",
+                          ) ? (
+                            <span style={{ color: COLORS.riskHigh }}>
+                              <RiseOutlined /> {data.basicInfo.growthRate}
+                            </span>
+                          ) : (
+                            <Text type="secondary">
+                              {data.basicInfo.growthRate || "-"}
+                            </Text>
+                          )}
                         </Descriptions.Item>
                         <Descriptions.Item label="主管部门">
                           {data.basicInfo.department}
@@ -458,7 +435,7 @@ const IndustryProfile: React.FC = () => {
                         </Descriptions.Item>
                         <Descriptions.Item label="产业链环节" span={2}>
                           <Space split={<Divider type="vertical" />}>
-                            {data.basicInfo.chainLink
+                            {String(data.basicInfo.chainLink || "-")
                               .split(" - ")
                               .map((l: string, i: number) => (
                                 <Text key={i} strong={i === 1}>
@@ -808,9 +785,7 @@ const IndustryProfile: React.FC = () => {
                       title: "注册资本",
                       dataIndex: "capital",
                       align: "right",
-                      render: (t) => (
-                        <Text>{parseFloat(t).toLocaleString()} 万</Text>
-                      ),
+                        render: (t) => <Text>{Number(t || 0).toLocaleString()} 万</Text>,
                     },
                     {
                       title: "综合评分",

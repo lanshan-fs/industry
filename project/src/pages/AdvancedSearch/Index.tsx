@@ -17,6 +17,8 @@ import {
   SaveOutlined,
   SearchOutlined,
   FilterOutlined,
+  DownOutlined,
+  UpOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 // 引入类型定义
@@ -39,12 +41,15 @@ const AdvancedSearch: React.FC = () => {
     regions: { street: [], area: [] },
   });
   const [loading, setLoading] = useState<boolean>(true);
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(
+    {},
+  );
 
   // 初始化数据
   useEffect(() => {
     const fetchMetaData = async () => {
       try {
-        const res = await fetch("http://localhost:3001/api/meta/all");
+        const res = await fetch("/api/meta/all");
         const json = await res.json();
         if (json.success) {
           setMetaData(json.data);
@@ -87,6 +92,22 @@ const AdvancedSearch: React.FC = () => {
       }
       return newState;
     });
+  };
+
+  const handleSingleOptionToggle = (
+    key: string,
+    option: string,
+    checked: boolean,
+  ) => {
+    const current = selectedFilters[key] || [];
+    const nextValues = checked
+      ? Array.from(new Set([...current, option]))
+      : current.filter((item) => item !== option);
+    handleFilterChange(key, nextValues);
+  };
+
+  const toggleGroupExpanded = (key: string) => {
+    setExpandedGroups((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
   const handleClear = () => {
@@ -132,24 +153,77 @@ const AdvancedSearch: React.FC = () => {
     }
 
     const options = getOptionsForGroup(group);
-    // 选项过多时显示滚动条
-    const isManyOptions = options.length > 20;
+    const isManyOptions = options.length > 12;
+    const isExpanded = !!expandedGroups[group.key];
+    const visibleOptions = isExpanded ? options : options.slice(0, 12);
 
     return (
-      <div
-        style={
-          isManyOptions
-            ? { maxHeight: 120, overflowY: "auto", padding: "2px 0" }
-            : { padding: "2px 0" }
-        }
-      >
+      <div style={{ padding: "2px 0" }}>
         {options.length > 0 ? (
-          <Checkbox.Group
-            options={options}
-            value={selectedFilters[group.key] || []}
-            onChange={(vals) => handleFilterChange(group.key, vals as string[])}
-            style={{ width: "100%", lineHeight: "2" }} // 紧凑行高
-          />
+          <>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                gap: 10,
+              }}
+            >
+              {visibleOptions.map((option: string) => {
+                const checked = (selectedFilters[group.key] || []).includes(
+                  option,
+                );
+                return (
+                  <div
+                    key={option}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      minHeight: 40,
+                      padding: "8px 10px",
+                      borderRadius: 10,
+                      border: checked
+                        ? `1px solid ${token.colorPrimary}`
+                        : `1px solid ${token.colorBorderSecondary}`,
+                      background: checked ? token.colorPrimaryBg : "#fafafa",
+                      transition: "all 0.2s ease",
+                    }}
+                  >
+                    <Checkbox
+                      checked={checked}
+                      onChange={(event) =>
+                        handleSingleOptionToggle(
+                          group.key,
+                          option,
+                          event.target.checked,
+                        )
+                      }
+                    >
+                      <span
+                        style={{
+                          fontSize: 13,
+                          lineHeight: 1.5,
+                          wordBreak: "break-word",
+                        }}
+                      >
+                        {option}
+                      </span>
+                    </Checkbox>
+                  </div>
+                );
+              })}
+            </div>
+            {isManyOptions && (
+              <Button
+                type="link"
+                size="small"
+                onClick={() => toggleGroupExpanded(group.key)}
+                style={{ padding: 0, marginTop: 10, fontSize: 12 }}
+              >
+                {isExpanded ? "收起" : `展开剩余 ${options.length - 12} 项`}{" "}
+                {isExpanded ? <UpOutlined /> : <DownOutlined />}
+              </Button>
+            )}
+          </>
         ) : (
           <Text type="secondary" style={{ fontSize: 12 }}>
             暂无数据

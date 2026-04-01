@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Layout, Empty, Spin, Button, message } from "antd";
+import { Layout, Empty, Spin, Button, message, Space } from "antd";
 import { ArrowLeftOutlined } from "@ant-design/icons";
 import { useNavigate, useLocation } from "react-router-dom";
 
@@ -18,6 +18,7 @@ const EnterpriseProfile: React.FC = () => {
   const queryParams = new URLSearchParams(location.search);
   const companyId = queryParams.get("id");
   const companyName = queryParams.get("company");
+  const scoreQuery = companyId ? `id=${encodeURIComponent(companyId)}` : `company=${encodeURIComponent(companyName || "")}`;
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -30,7 +31,10 @@ const EnterpriseProfile: React.FC = () => {
           return;
         }
 
-        const res = await fetch(`http://localhost:3001/api/companies/${encodeURIComponent(identifier)}`);
+        const search = companyId
+          ? `id=${encodeURIComponent(companyId)}`
+          : `company=${encodeURIComponent(companyName || "")}`;
+        const res = await fetch(`/api/scoring/enterprise-profile/?${search}`);
         const json = await res.json();
 
         if (json.success && json.data) {
@@ -82,12 +86,19 @@ const EnterpriseProfile: React.FC = () => {
               返回
             </Button>
 
-            {profile && (
-              <ReportActionButtons
-                reportTitle={`${profile.baseInfo.name}企业画像报告`}
-                targetId="enterprise-report-content"
-              />
-            )}
+            <Space>
+              {profile && (
+                <Button onClick={() => navigate(`/industry-portrait/enterprise-score?${scoreQuery}`)}>
+                  评分详情
+                </Button>
+              )}
+              {profile && (
+                <ReportActionButtons
+                  reportTitle={`${profile.baseInfo.name}企业画像报告`}
+                  targetId="enterprise-report-content"
+                />
+              )}
+            </Space>
           </div>
 
           {loading ? (

@@ -110,6 +110,33 @@ const MOCK_FINANCING_ROUNDS = [
   "战略融资",
   "未融资",
 ];
+const ADVANCED_FILTER_KEY_MAP: Record<string, string> = {
+  industryCategory: "industryCategory",
+  applicationScenario: "scenario",
+  entType: "entType",
+  orgType: "orgType",
+  scale: "scale",
+  bizStatus: "bizStatus",
+  financing: "financing",
+  street: "street",
+  district: "district",
+  taxRating: "taxRating",
+  patentType: "patentType",
+  techAttr: "techAttr",
+  techField: "techField",
+  highTechStatus: "highTechStatus",
+  riskDishonest: "riskDishonest",
+  riskMortgage: "riskMortgage",
+  riskAbnormal: "riskAbnormal",
+  riskLegal: "riskLegal",
+  riskPenalty: "riskPenalty",
+  riskBankruptcy: "riskBankruptcy",
+  riskLiquidation: "riskLiquidation",
+  riskEnv: "riskEnv",
+  riskEquity: "riskEquity",
+  riskExecutor: "riskExecutor",
+  riskLimit: "riskLimit",
+};
 
 // --- 辅助组件：可折叠的筛选行 ---
 const FilterRow: React.FC<{
@@ -207,6 +234,10 @@ const IndustryClass: React.FC = () => {
   const [searchTime, setSearchTime] = useState(0.0);
   const [totalResult, setTotalResult] = useState(0);
   const [sortLabel, setSortLabel] = useState("默认排序");
+  const [sortKey, setSortKey] = useState("default");
+  const [advancedFilterSummary, setAdvancedFilterSummary] = useState<
+    Record<string, string[]>
+  >({});
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -218,22 +249,71 @@ const IndustryClass: React.FC = () => {
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const keyword = params.get("keyword") || "";
+    const keyword = params.get("keyword") || params.get("q") || "";
     const tagId = params.get("tagId");
     const stageKey = params.get("stageKey");
+    const filterData = params.get("filterData");
+    const searchScope = params.get("searchScope") || "";
+    const directStreetFilters = params.getAll("street").filter(Boolean);
+    const directQualificationFilters = params
+      .getAll("qualification")
+      .filter(Boolean);
+    const directEcologyFilters = params.getAll("ecology").filter(Boolean);
+    const directRiskAbnormalFilters = params
+      .getAll("riskAbnormal")
+      .filter(Boolean);
 
-    if (tagId) setSelectedKeys([tagId]);
-    if (stageKey) setSelectedKeys([stageKey]);
+    setSelectedKeys(tagId ? [tagId] : stageKey ? [stageKey] : []);
 
-    const queryParams: any = { keyword, tagId, stageKey };
+    const queryParams: any = {
+      keyword,
+      tagId,
+      stageKey,
+      sort: sortKey,
+      searchScope,
+    };
+    if (directStreetFilters.length > 0) {
+      queryParams.street = directStreetFilters;
+    }
+    if (directQualificationFilters.length > 0) {
+      queryParams.qualification = directQualificationFilters;
+    }
+    if (directEcologyFilters.length > 0) {
+      queryParams.ecology = directEcologyFilters;
+    }
+    if (directRiskAbnormalFilters.length > 0) {
+      queryParams.riskAbnormal = directRiskAbnormalFilters;
+    }
+    Object.entries(activeFilters).forEach(([key, value]) => {
+      if (value) queryParams[key] = value;
+    });
+    const parsedAdvancedFilters: Record<string, string[]> = {};
+    if (params.get("advanced") === "true" && filterData) {
+      try {
+        const parsed = JSON.parse(filterData);
+        Object.entries(parsed || {}).forEach(([key, value]) => {
+          if (!ADVANCED_FILTER_KEY_MAP[key] || !Array.isArray(value)) return;
+          const cleaned = value
+            .map((item) => String(item || "").trim())
+            .filter(Boolean);
+          if (cleaned.length > 0) {
+            parsedAdvancedFilters[key] = cleaned;
+            queryParams[ADVANCED_FILTER_KEY_MAP[key]] = cleaned;
+          }
+        });
+      } catch (error) {
+        console.error("Failed to parse advanced filters", error);
+      }
+    }
+    setAdvancedFilterSummary(parsedAdvancedFilters);
     fetchCompanies(queryParams);
-  }, [location.search]);
+  }, [location.search, activeFilters, sortKey]);
 
   // 1. 获取树谱
   const fetchTree = async () => {
     setLoadingTree(true);
     try {
-      const res = await fetch("http://localhost:3001/api/industry/tree");
+      const res = await fetch("/api/industry/tree");
       const json = await res.json();
       if (json.success) {
         setTreeData(json.data);
@@ -252,7 +332,7 @@ const IndustryClass: React.FC = () => {
   // 2. 获取筛选元数据
   const fetchMeta = async () => {
     try {
-      const res = await fetch("http://localhost:3001/api/meta/all");
+      const res = await fetch("/api/meta/all");
       const json = await res.json();
       if (json.success) setMetaData(json.data);
     } catch (e) {
@@ -266,12 +346,15 @@ const IndustryClass: React.FC = () => {
     try {
       const query = new URLSearchParams();
       Object.keys(params).forEach((key) => {
-        if (params[key]) query.append(key, params[key]);
+        if (!params[key]) return;
+        if (Array.isArray(params[key])) {
+          params[key].forEach((value: string) => query.append(key, value));
+          return;
+        }
+        query.append(key, params[key]);
       });
 
-      const res = await fetch(
-        `http://localhost:3001/api/industry/companies?${query.toString()}`,
-      );
+      const res = await fetch(`/api/industry/companies?${query.toString()}`);
       const json = await res.json();
 
       if (json.success) {
@@ -417,15 +500,19 @@ const IndustryClass: React.FC = () => {
     switch (e.key) {
       case "default":
         setSortLabel("默认排序");
+        setSortKey("default");
         break;
       case "capital_desc":
         setSortLabel("注册资本 (高->低)");
+        setSortKey("capital_desc");
         break;
       case "date_desc":
         setSortLabel("成立日期 (晚->早)");
+        setSortKey("date_desc");
         break;
       case "score_desc":
         setSortLabel("评分 (高->低)");
+        setSortKey("score_desc");
         break;
     }
   };
@@ -661,7 +748,7 @@ const IndustryClass: React.FC = () => {
                       成立日期
                     </Text>
                     <Text strong style={{ color: "#1f1f1f" }}>
-                      2015-05
+                      {item.establishmentDate?.substring(0, 7) || "-"}
                     </Text>
                   </Col>
                 </Row>
@@ -819,7 +906,7 @@ const IndustryClass: React.FC = () => {
                 </Row>
                 <div style={{ fontSize: 13, color: "#8c8c8c" }}>
                   <EnvironmentOutlined style={{ marginRight: 6 }} />
-                  注册地址：北京市朝阳区望京街道...
+                  注册地址：{item.address || "-"}
                 </div>
               </div>
             </div>
@@ -1037,6 +1124,25 @@ const IndustryClass: React.FC = () => {
         {renderFilterSection()}
 
         <div style={{ flex: 1, background: "#fff", padding: "0 24px" }}>
+          {Object.keys(advancedFilterSummary).length > 0 && (
+            <div
+              style={{
+                padding: "16px 0 8px",
+                borderBottom: "1px solid #f5f5f5",
+              }}
+            >
+              <Space wrap size={[8, 8]}>
+                <Text type="secondary">高级筛选已生效：</Text>
+                {Object.entries(advancedFilterSummary).map(([key, values]) => (
+                  <Tag key={key} color="blue" bordered={false}>
+                    {values.length > 2
+                      ? `${key}: ${values[0]} 等${values.length}项`
+                      : `${key}: ${values.join("、")}`}
+                  </Tag>
+                ))}
+              </Space>
+            </div>
+          )}
           <div
             style={{
               padding: "16px 0",

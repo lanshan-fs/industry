@@ -13,12 +13,14 @@ interface SuggestionListProps {
   data: SuggestionItem[];
   icon: React.ReactNode;
   iconColor: string;
+  onItemClick?: (item: SuggestionItem) => void;
 }
 
 const SuggestionList: React.FC<SuggestionListProps> = ({
   data,
   icon,
   iconColor,
+  onItemClick,
 }) => {
   return (
     <List
@@ -27,7 +29,12 @@ const SuggestionList: React.FC<SuggestionListProps> = ({
       dataSource={data.slice(0, 5)}
       renderItem={(item) => (
         <List.Item
-          style={{ padding: "10px 0", borderBottom: "1px dashed #f0f0f0" }}
+          style={{
+            padding: "10px 0",
+            borderBottom: "1px dashed #f0f0f0",
+            cursor: onItemClick ? "pointer" : "default",
+          }}
+          onClick={() => onItemClick?.(item)}
         >
           <Row style={{ width: "100%", alignItems: "center" }}>
             <Col span={1}>

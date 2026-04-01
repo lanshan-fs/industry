@@ -297,7 +297,7 @@ const EnterpriseOverviewTab: React.FC<EnterpriseOverviewTabProps> = ({
                 <Title level={3} style={{ margin: 0 }}>
                   {profile.baseInfo.name}
                 </Title>
-                <Tag color="success">在业</Tag>
+                <Tag color="success">{profile.baseInfo.status || "未知"}</Tag>
                 <Tag color="blue">{profile.baseInfo.type}</Tag>
               </Space>
               <Space size={24} style={{ color: COLORS.textSecondary }}>
@@ -393,7 +393,9 @@ const EnterpriseOverviewTab: React.FC<EnterpriseOverviewTabProps> = ({
               <Descriptions.Item label="所属行业">
                 {profile.baseInfo.industry}
               </Descriptions.Item>
-              <Descriptions.Item label="参保人数">124 人</Descriptions.Item>
+              <Descriptions.Item label="参保人数">
+                {profile.baseInfo.insuredCount ?? "-"} 人
+              </Descriptions.Item>
               <Descriptions.Item label="注册地址" span={2}>
                 {profile.baseInfo.address}
               </Descriptions.Item>

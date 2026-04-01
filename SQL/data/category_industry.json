@@ -1,0 +1,3602 @@
+[
+  {
+    "category_id": 1,
+    "category_name": "数字医疗",
+    "category_level": 0,
+    "category_level_code": "01",
+    "category_level_code_parent": null,
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 2,
+    "category_name": "智慧医疗",
+    "category_level": 1,
+    "category_level_code": "0101",
+    "category_level_code_parent": "01",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 3,
+    "category_name": "智慧CDSS",
+    "category_level": 2,
+    "category_level_code": "010101",
+    "category_level_code_parent": "0101",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 4,
+    "category_name": "主动干预：临床诊断与治疗",
+    "category_level": 3,
+    "category_level_code": "01010101",
+    "category_level_code_parent": "010101",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 5,
+    "category_name": "合理用药管理",
+    "category_level": 3,
+    "category_level_code": "01010102",
+    "category_level_code_parent": "010101",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 6,
+    "category_name": "被动检索：知识库",
+    "category_level": 3,
+    "category_level_code": "01010103",
+    "category_level_code_parent": "010101",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 7,
+    "category_name": "智慧电子病历",
+    "category_level": 2,
+    "category_level_code": "010102",
+    "category_level_code_parent": "0101",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 8,
+    "category_name": "信息化企业",
+    "category_level": 3,
+    "category_level_code": "01010201",
+    "category_level_code_parent": "010102",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 9,
+    "category_name": "云服务提供商",
+    "category_level": 3,
+    "category_level_code": "01010202",
+    "category_level_code_parent": "010102",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 10,
+    "category_name": "健康医疗大数据",
+    "category_level": 2,
+    "category_level_code": "010103",
+    "category_level_code_parent": "0101",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 11,
+    "category_name": "信息化厂商",
+    "category_level": 3,
+    "category_level_code": "01010301",
+    "category_level_code_parent": "010103",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 12,
+    "category_name": "数据处理服务商",
+    "category_level": 3,
+    "category_level_code": "01010302",
+    "category_level_code_parent": "010103",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 13,
+    "category_name": "数据安全服务提供商",
+    "category_level": 3,
+    "category_level_code": "01010303",
+    "category_level_code_parent": "010103",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 14,
+    "category_name": "智能硬件厂商",
+    "category_level": 3,
+    "category_level_code": "01010304",
+    "category_level_code_parent": "010103",
+    "field_belong": 1,
+    "sort_order": 40
+  },
+  {
+    "category_id": 15,
+    "category_name": "物联网厂商",
+    "category_level": 3,
+    "category_level_code": "01010305",
+    "category_level_code_parent": "010103",
+    "field_belong": 1,
+    "sort_order": 50
+  },
+  {
+    "category_id": 16,
+    "category_name": "智慧病理",
+    "category_level": 2,
+    "category_level_code": "010104",
+    "category_level_code_parent": "0101",
+    "field_belong": 1,
+    "sort_order": 40
+  },
+  {
+    "category_id": 17,
+    "category_name": "全切片成像系统与设备",
+    "category_level": 3,
+    "category_level_code": "01010401",
+    "category_level_code_parent": "010104",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 18,
+    "category_name": "独立病理中心",
+    "category_level": 3,
+    "category_level_code": "01010402",
+    "category_level_code_parent": "010104",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 19,
+    "category_name": "辅助病理诊断",
+    "category_level": 3,
+    "category_level_code": "01010403",
+    "category_level_code_parent": "010104",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 20,
+    "category_name": "远程医疗",
+    "category_level": 2,
+    "category_level_code": "010105",
+    "category_level_code_parent": "0101",
+    "field_belong": 1,
+    "sort_order": 50
+  },
+  {
+    "category_id": 21,
+    "category_name": "信息化系统厂商",
+    "category_level": 3,
+    "category_level_code": "01010501",
+    "category_level_code_parent": "010105",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 22,
+    "category_name": "硬件设备生产商",
+    "category_level": 3,
+    "category_level_code": "01010502",
+    "category_level_code_parent": "010105",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 23,
+    "category_name": "通信服务商",
+    "category_level": 3,
+    "category_level_code": "01010503",
+    "category_level_code_parent": "010105",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 24,
+    "category_name": "智慧医学影像",
+    "category_level": 2,
+    "category_level_code": "010106",
+    "category_level_code_parent": "0101",
+    "field_belong": 1,
+    "sort_order": 60
+  },
+  {
+    "category_id": 25,
+    "category_name": "人工智能辅助/线上诊断分析平台",
+    "category_level": 3,
+    "category_level_code": "01010601",
+    "category_level_code_parent": "010106",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 26,
+    "category_name": "医学影像存储系统PACS供应商",
+    "category_level": 3,
+    "category_level_code": "01010602",
+    "category_level_code_parent": "010106",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 27,
+    "category_name": "智慧CT",
+    "category_level": 3,
+    "category_level_code": "01010603",
+    "category_level_code_parent": "010106",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 28,
+    "category_name": "智慧DR",
+    "category_level": 3,
+    "category_level_code": "01010604",
+    "category_level_code_parent": "010106",
+    "field_belong": 1,
+    "sort_order": 40
+  },
+  {
+    "category_id": 29,
+    "category_name": "智慧MRI",
+    "category_level": 3,
+    "category_level_code": "01010605",
+    "category_level_code_parent": "010106",
+    "field_belong": 1,
+    "sort_order": 50
+  },
+  {
+    "category_id": 30,
+    "category_name": "智慧OCT",
+    "category_level": 3,
+    "category_level_code": "01010606",
+    "category_level_code_parent": "010106",
+    "field_belong": 1,
+    "sort_order": 60
+  },
+  {
+    "category_id": 31,
+    "category_name": "智慧内窥镜",
+    "category_level": 3,
+    "category_level_code": "01010607",
+    "category_level_code_parent": "010106",
+    "field_belong": 1,
+    "sort_order": 70
+  },
+  {
+    "category_id": 32,
+    "category_name": "智慧超声",
+    "category_level": 3,
+    "category_level_code": "01010608",
+    "category_level_code_parent": "010106",
+    "field_belong": 1,
+    "sort_order": 80
+  },
+  {
+    "category_id": 33,
+    "category_name": "独立医学影像中心",
+    "category_level": 3,
+    "category_level_code": "01010609",
+    "category_level_code_parent": "010106",
+    "field_belong": 1,
+    "sort_order": 90
+  },
+  {
+    "category_id": 34,
+    "category_name": "智慧护理",
+    "category_level": 2,
+    "category_level_code": "010107",
+    "category_level_code_parent": "0101",
+    "field_belong": 1,
+    "sort_order": 70
+  },
+  {
+    "category_id": 35,
+    "category_name": "专项护理-养老",
+    "category_level": 3,
+    "category_level_code": "01010701",
+    "category_level_code_parent": "010107",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 36,
+    "category_name": "专项护理-慢病管理",
+    "category_level": 3,
+    "category_level_code": "01010702",
+    "category_level_code_parent": "010107",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 37,
+    "category_name": "专项护理-母婴",
+    "category_level": 3,
+    "category_level_code": "01010703",
+    "category_level_code_parent": "010107",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 38,
+    "category_name": "护理资源调配平台",
+    "category_level": 3,
+    "category_level_code": "01010704",
+    "category_level_code_parent": "010107",
+    "field_belong": 1,
+    "sort_order": 40
+  },
+  {
+    "category_id": 39,
+    "category_name": "智能硬件+护理服务",
+    "category_level": 3,
+    "category_level_code": "01010705",
+    "category_level_code_parent": "010107",
+    "field_belong": 1,
+    "sort_order": 50
+  },
+  {
+    "category_id": 40,
+    "category_name": "综合家庭护理",
+    "category_level": 3,
+    "category_level_code": "01010706",
+    "category_level_code_parent": "010107",
+    "field_belong": 1,
+    "sort_order": 60
+  },
+  {
+    "category_id": 41,
+    "category_name": "智慧区域卫生",
+    "category_level": 2,
+    "category_level_code": "010108",
+    "category_level_code_parent": "0101",
+    "field_belong": 1,
+    "sort_order": 80
+  },
+  {
+    "category_id": 42,
+    "category_name": "区域医疗数据信息中心",
+    "category_level": 3,
+    "category_level_code": "01010801",
+    "category_level_code_parent": "010108",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 43,
+    "category_name": "医疗大数据共享与交换平台",
+    "category_level": 3,
+    "category_level_code": "01010802",
+    "category_level_code_parent": "010108",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 44,
+    "category_name": "医疗线上平台应用系统",
+    "category_level": 3,
+    "category_level_code": "01010803",
+    "category_level_code_parent": "010108",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 45,
+    "category_name": "综合卫生监管平台",
+    "category_level": 3,
+    "category_level_code": "01010804",
+    "category_level_code_parent": "010108",
+    "field_belong": 1,
+    "sort_order": 40
+  },
+  {
+    "category_id": 46,
+    "category_name": "互联网+健康",
+    "category_level": 1,
+    "category_level_code": "0102",
+    "category_level_code_parent": "01",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 47,
+    "category_name": "互联网医院",
+    "category_level": 2,
+    "category_level_code": "010201",
+    "category_level_code_parent": "0102",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 48,
+    "category_name": "信息化服务商",
+    "category_level": 3,
+    "category_level_code": "01020101",
+    "category_level_code_parent": "010201",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 49,
+    "category_name": "处方流转平台",
+    "category_level": 3,
+    "category_level_code": "01020102",
+    "category_level_code_parent": "010201",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 50,
+    "category_name": "患者管理平台",
+    "category_level": 3,
+    "category_level_code": "01020103",
+    "category_level_code_parent": "010201",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 51,
+    "category_name": "药品流通商",
+    "category_level": 3,
+    "category_level_code": "01020104",
+    "category_level_code_parent": "010201",
+    "field_belong": 1,
+    "sort_order": 40
+  },
+  {
+    "category_id": 52,
+    "category_name": "互联网保险",
+    "category_level": 2,
+    "category_level_code": "010202",
+    "category_level_code_parent": "0102",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 53,
+    "category_name": "IOT",
+    "category_level": 3,
+    "category_level_code": "01020201",
+    "category_level_code_parent": "010202",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 54,
+    "category_name": "企业团险",
+    "category_level": 3,
+    "category_level_code": "01020202",
+    "category_level_code_parent": "010202",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 55,
+    "category_name": "保单和理赔服务",
+    "category_level": 3,
+    "category_level_code": "01020203",
+    "category_level_code_parent": "010202",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 56,
+    "category_name": "健康险企",
+    "category_level": 3,
+    "category_level_code": "01020204",
+    "category_level_code_parent": "010202",
+    "field_belong": 1,
+    "sort_order": 40
+  },
+  {
+    "category_id": 57,
+    "category_name": "比价/线上销售平台",
+    "category_level": 3,
+    "category_level_code": "01020205",
+    "category_level_code_parent": "010202",
+    "field_belong": 1,
+    "sort_order": 50
+  },
+  {
+    "category_id": 58,
+    "category_name": "网络互助保险平台",
+    "category_level": 3,
+    "category_level_code": "01020206",
+    "category_level_code_parent": "010202",
+    "field_belong": 1,
+    "sort_order": 60
+  },
+  {
+    "category_id": 59,
+    "category_name": "公共卫生服务",
+    "category_level": 2,
+    "category_level_code": "010203",
+    "category_level_code_parent": "0102",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 60,
+    "category_name": "公卫服务相关智能设备",
+    "category_level": 3,
+    "category_level_code": "01020301",
+    "category_level_code_parent": "010203",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 61,
+    "category_name": "大数据与公卫服务",
+    "category_level": 3,
+    "category_level_code": "01020302",
+    "category_level_code_parent": "010203",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 62,
+    "category_name": "疾病知识科普",
+    "category_level": 3,
+    "category_level_code": "01020303",
+    "category_level_code_parent": "010203",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 63,
+    "category_name": "检验检测",
+    "category_level": 2,
+    "category_level_code": "010204",
+    "category_level_code_parent": "0102",
+    "field_belong": 1,
+    "sort_order": 40
+  },
+  {
+    "category_id": 64,
+    "category_name": "互联网公司",
+    "category_level": 3,
+    "category_level_code": "01020401",
+    "category_level_code_parent": "010204",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 65,
+    "category_name": "医院内检验机构",
+    "category_level": 3,
+    "category_level_code": "01020402",
+    "category_level_code_parent": "010204",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 66,
+    "category_name": "第三方检验中心",
+    "category_level": 3,
+    "category_level_code": "01020403",
+    "category_level_code_parent": "010204",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 67,
+    "category_name": "医药电商",
+    "category_level": 2,
+    "category_level_code": "010205",
+    "category_level_code_parent": "0102",
+    "field_belong": 1,
+    "sort_order": 50
+  },
+  {
+    "category_id": 68,
+    "category_name": "B2B",
+    "category_level": 3,
+    "category_level_code": "01020501",
+    "category_level_code_parent": "010205",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 69,
+    "category_name": "B2C",
+    "category_level": 3,
+    "category_level_code": "01020502",
+    "category_level_code_parent": "010205",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 70,
+    "category_name": "O2O",
+    "category_level": 3,
+    "category_level_code": "01020503",
+    "category_level_code_parent": "010205",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 71,
+    "category_name": "患者教育",
+    "category_level": 2,
+    "category_level_code": "010206",
+    "category_level_code_parent": "0102",
+    "field_belong": 1,
+    "sort_order": 60
+  },
+  {
+    "category_id": 72,
+    "category_name": "其他疾病患教",
+    "category_level": 3,
+    "category_level_code": "01020601",
+    "category_level_code_parent": "010206",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 73,
+    "category_name": "图文在线健康科普",
+    "category_level": 3,
+    "category_level_code": "01020602",
+    "category_level_code_parent": "010206",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 74,
+    "category_name": "患者社区",
+    "category_level": 3,
+    "category_level_code": "01020603",
+    "category_level_code_parent": "010206",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 75,
+    "category_name": "用药指导",
+    "category_level": 3,
+    "category_level_code": "01020604",
+    "category_level_code_parent": "010206",
+    "field_belong": 1,
+    "sort_order": 40
+  },
+  {
+    "category_id": 76,
+    "category_name": "糖尿病患教",
+    "category_level": 3,
+    "category_level_code": "01020605",
+    "category_level_code_parent": "010206",
+    "field_belong": 1,
+    "sort_order": 50
+  },
+  {
+    "category_id": 77,
+    "category_name": "肿瘤患教",
+    "category_level": 3,
+    "category_level_code": "01020606",
+    "category_level_code_parent": "010206",
+    "field_belong": 1,
+    "sort_order": 60
+  },
+  {
+    "category_id": 78,
+    "category_name": "视/音频健康科普",
+    "category_level": 3,
+    "category_level_code": "01020607",
+    "category_level_code_parent": "010206",
+    "field_belong": 1,
+    "sort_order": 70
+  },
+  {
+    "category_id": 79,
+    "category_name": "家庭医生",
+    "category_level": 2,
+    "category_level_code": "010207",
+    "category_level_code_parent": "0102",
+    "field_belong": 1,
+    "sort_order": 70
+  },
+  {
+    "category_id": 80,
+    "category_name": "医生在线预约平台",
+    "category_level": 3,
+    "category_level_code": "01020701",
+    "category_level_code_parent": "010207",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 81,
+    "category_name": "家庭医生信息化厂商和签约服务平台",
+    "category_level": 3,
+    "category_level_code": "01020702",
+    "category_level_code_parent": "010207",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 82,
+    "category_name": "诊所与家庭医生",
+    "category_level": 3,
+    "category_level_code": "01020703",
+    "category_level_code_parent": "010207",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 83,
+    "category_name": "数字营销",
+    "category_level": 2,
+    "category_level_code": "010208",
+    "category_level_code_parent": "0102",
+    "field_belong": 1,
+    "sort_order": 80
+  },
+  {
+    "category_id": 84,
+    "category_name": "医药企业",
+    "category_level": 3,
+    "category_level_code": "01020801",
+    "category_level_code_parent": "010208",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 85,
+    "category_name": "数字营销-以医生为导向",
+    "category_level": 3,
+    "category_level_code": "01020802",
+    "category_level_code_parent": "010208",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 86,
+    "category_name": "数字营销-以患者和消费者为导向",
+    "category_level": 3,
+    "category_level_code": "01020803",
+    "category_level_code_parent": "010208",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 87,
+    "category_name": "硬件和云服务",
+    "category_level": 3,
+    "category_level_code": "01020804",
+    "category_level_code_parent": "010208",
+    "field_belong": 1,
+    "sort_order": 40
+  },
+  {
+    "category_id": 88,
+    "category_name": "数字疗法",
+    "category_level": 1,
+    "category_level_code": "0103",
+    "category_level_code_parent": "01",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 89,
+    "category_name": "可穿戴设备",
+    "category_level": 2,
+    "category_level_code": "010301",
+    "category_level_code_parent": "0103",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 90,
+    "category_name": "其他可穿戴设备",
+    "category_level": 3,
+    "category_level_code": "01030101",
+    "category_level_code_parent": "010301",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 91,
+    "category_name": "头戴式设备",
+    "category_level": 3,
+    "category_level_code": "01030102",
+    "category_level_code_parent": "010301",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 92,
+    "category_name": "智能手环",
+    "category_level": 3,
+    "category_level_code": "01030103",
+    "category_level_code_parent": "010301",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 93,
+    "category_name": "智能手表",
+    "category_level": 3,
+    "category_level_code": "01030104",
+    "category_level_code_parent": "010301",
+    "field_belong": 1,
+    "sort_order": 40
+  },
+  {
+    "category_id": 94,
+    "category_name": "智能服饰",
+    "category_level": 3,
+    "category_level_code": "01030105",
+    "category_level_code_parent": "010301",
+    "field_belong": 1,
+    "sort_order": 50
+  },
+  {
+    "category_id": 95,
+    "category_name": "智能眼镜",
+    "category_level": 3,
+    "category_level_code": "01030106",
+    "category_level_code_parent": "010301",
+    "field_belong": 1,
+    "sort_order": 60
+  },
+  {
+    "category_id": 96,
+    "category_name": "耳戴式设备",
+    "category_level": 3,
+    "category_level_code": "01030107",
+    "category_level_code_parent": "010301",
+    "field_belong": 1,
+    "sort_order": 70
+  },
+  {
+    "category_id": 97,
+    "category_name": "胸贴式设备",
+    "category_level": 3,
+    "category_level_code": "01030108",
+    "category_level_code_parent": "010301",
+    "field_belong": 1,
+    "sort_order": 80
+  },
+  {
+    "category_id": 98,
+    "category_name": "臂戴式设备",
+    "category_level": 3,
+    "category_level_code": "01030109",
+    "category_level_code_parent": "010301",
+    "field_belong": 1,
+    "sort_order": 90
+  },
+  {
+    "category_id": 99,
+    "category_name": "糖尿病",
+    "category_level": 2,
+    "category_level_code": "010302",
+    "category_level_code_parent": "0103",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 100,
+    "category_name": "其他黑科技",
+    "category_level": 3,
+    "category_level_code": "01030201",
+    "category_level_code_parent": "010302",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 101,
+    "category_name": "智能胰岛素泵",
+    "category_level": 3,
+    "category_level_code": "01030202",
+    "category_level_code_parent": "010302",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 102,
+    "category_name": "糖尿病患者服务平台",
+    "category_level": 3,
+    "category_level_code": "01030203",
+    "category_level_code_parent": "010302",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 103,
+    "category_name": "糖尿病管理App",
+    "category_level": 3,
+    "category_level_code": "01030204",
+    "category_level_code_parent": "010302",
+    "field_belong": 1,
+    "sort_order": 40
+  },
+  {
+    "category_id": 104,
+    "category_name": "血糖监测系统",
+    "category_level": 3,
+    "category_level_code": "01030205",
+    "category_level_code_parent": "010302",
+    "field_belong": 1,
+    "sort_order": 50
+  },
+  {
+    "category_id": 105,
+    "category_name": "肥胖症",
+    "category_level": 2,
+    "category_level_code": "010303",
+    "category_level_code_parent": "0103",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 106,
+    "category_name": "体重管理App及管理平台",
+    "category_level": 3,
+    "category_level_code": "01030301",
+    "category_level_code_parent": "010303",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 107,
+    "category_name": "智能可穿戴设备及其他智能减肥设备",
+    "category_level": 3,
+    "category_level_code": "01030302",
+    "category_level_code_parent": "010303",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 108,
+    "category_name": "肥胖症治疗器械",
+    "category_level": 3,
+    "category_level_code": "01030303",
+    "category_level_code_parent": "010303",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 109,
+    "category_name": "哮喘/COPD",
+    "category_level": 2,
+    "category_level_code": "010304",
+    "category_level_code_parent": "0103",
+    "field_belong": 1,
+    "sort_order": 40
+  },
+  {
+    "category_id": 110,
+    "category_name": "呼吸监测设备",
+    "category_level": 3,
+    "category_level_code": "01030401",
+    "category_level_code_parent": "010304",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 111,
+    "category_name": "哮喘/COPD吸入器传感器",
+    "category_level": 3,
+    "category_level_code": "01030402",
+    "category_level_code_parent": "010304",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 112,
+    "category_name": "哮喘/COPD相关App、线上平台",
+    "category_level": 3,
+    "category_level_code": "01030403",
+    "category_level_code_parent": "010304",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 113,
+    "category_name": "抑郁症",
+    "category_level": 2,
+    "category_level_code": "010305",
+    "category_level_code_parent": "0103",
+    "field_belong": 1,
+    "sort_order": 50
+  },
+  {
+    "category_id": 114,
+    "category_name": "抑郁症诊断和分析",
+    "category_level": 3,
+    "category_level_code": "01030501",
+    "category_level_code_parent": "010305",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 115,
+    "category_name": "线上轻量级咨询",
+    "category_level": 3,
+    "category_level_code": "01030502",
+    "category_level_code_parent": "010305",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 116,
+    "category_name": "黑科技数字疗法",
+    "category_level": 3,
+    "category_level_code": "01030503",
+    "category_level_code_parent": "010305",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 117,
+    "category_name": "高血压",
+    "category_level": 2,
+    "category_level_code": "010306",
+    "category_level_code_parent": "0103",
+    "field_belong": 1,
+    "sort_order": 60
+  },
+  {
+    "category_id": 118,
+    "category_name": "App、线上服务",
+    "category_level": 3,
+    "category_level_code": "01030601",
+    "category_level_code_parent": "010306",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 119,
+    "category_name": "血压监测分析系统",
+    "category_level": 3,
+    "category_level_code": "01030602",
+    "category_level_code_parent": "010306",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 120,
+    "category_name": "智能血压计",
+    "category_level": 3,
+    "category_level_code": "01030603",
+    "category_level_code_parent": "010306",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 121,
+    "category_name": "自闭症",
+    "category_level": 2,
+    "category_level_code": "010307",
+    "category_level_code_parent": "0103",
+    "field_belong": 1,
+    "sort_order": 70
+  },
+  {
+    "category_id": 122,
+    "category_name": "AI及VR/AR治疗",
+    "category_level": 3,
+    "category_level_code": "01030701",
+    "category_level_code_parent": "010307",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 123,
+    "category_name": "自闭症APP管理",
+    "category_level": 3,
+    "category_level_code": "01030702",
+    "category_level_code_parent": "010307",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 124,
+    "category_name": "自闭症患者社区",
+    "category_level": 3,
+    "category_level_code": "01030703",
+    "category_level_code_parent": "010307",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 125,
+    "category_name": "语言/行为康复治疗",
+    "category_level": 3,
+    "category_level_code": "01030704",
+    "category_level_code_parent": "010307",
+    "field_belong": 1,
+    "sort_order": 40
+  },
+  {
+    "category_id": 126,
+    "category_name": "前沿技术",
+    "category_level": 0,
+    "category_level_code": "02",
+    "category_level_code_parent": null,
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 127,
+    "category_name": "前沿技术融合",
+    "category_level": 1,
+    "category_level_code": "0201",
+    "category_level_code_parent": "02",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 128,
+    "category_name": "脑机接口(BCI)",
+    "category_level": 2,
+    "category_level_code": "020101",
+    "category_level_code_parent": "0201",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 129,
+    "category_name": "侵入式脑机接口",
+    "category_level": 3,
+    "category_level_code": "02010101",
+    "category_level_code_parent": "020101",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 130,
+    "category_name": "半侵入式/介入式脑机接口",
+    "category_level": 3,
+    "category_level_code": "02010102",
+    "category_level_code_parent": "020101",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 131,
+    "category_name": "非侵入式脑机接口",
+    "category_level": 3,
+    "category_level_code": "02010103",
+    "category_level_code_parent": "020101",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 132,
+    "category_name": "人工智能",
+    "category_level": 2,
+    "category_level_code": "020102",
+    "category_level_code_parent": "0201",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 133,
+    "category_name": "AI临床试验解决方案",
+    "category_level": 3,
+    "category_level_code": "02010201",
+    "category_level_code_parent": "020102",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 134,
+    "category_name": "AI健康管理平台",
+    "category_level": 3,
+    "category_level_code": "02010202",
+    "category_level_code_parent": "020102",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 135,
+    "category_name": "医疗垂直大模型",
+    "category_level": 3,
+    "category_level_code": "02010203",
+    "category_level_code_parent": "020102",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 136,
+    "category_name": "价值导向型医疗生态系统构建",
+    "category_level": 3,
+    "category_level_code": "02010204",
+    "category_level_code_parent": "020102",
+    "field_belong": 1,
+    "sort_order": 40
+  },
+  {
+    "category_id": 137,
+    "category_name": "医疗器械",
+    "category_level": 0,
+    "category_level_code": "03",
+    "category_level_code_parent": null,
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 138,
+    "category_name": "体外诊断 (IVD)",
+    "category_level": 1,
+    "category_level_code": "0301",
+    "category_level_code_parent": "03",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 139,
+    "category_name": "生化",
+    "category_level": 2,
+    "category_level_code": "030101",
+    "category_level_code_parent": "0301",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 140,
+    "category_name": "生化分析仪、试剂等",
+    "category_level": 3,
+    "category_level_code": "03010101",
+    "category_level_code_parent": "030101",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 141,
+    "category_name": "免疫",
+    "category_level": 2,
+    "category_level_code": "030102",
+    "category_level_code_parent": "0301",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 142,
+    "category_name": "免疫分析仪、试剂等",
+    "category_level": 3,
+    "category_level_code": "03010201",
+    "category_level_code_parent": "030102",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 143,
+    "category_name": "分子",
+    "category_level": 2,
+    "category_level_code": "030103",
+    "category_level_code_parent": "0301",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 144,
+    "category_name": "PCR仪、基因测序设备等",
+    "category_level": 3,
+    "category_level_code": "03010301",
+    "category_level_code_parent": "030103",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 145,
+    "category_name": "微生物",
+    "category_level": 2,
+    "category_level_code": "030104",
+    "category_level_code_parent": "0301",
+    "field_belong": 1,
+    "sort_order": 40
+  },
+  {
+    "category_id": 146,
+    "category_name": "微生物检测系统、培养箱等",
+    "category_level": 3,
+    "category_level_code": "03010401",
+    "category_level_code_parent": "030104",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 147,
+    "category_name": "血液、体液",
+    "category_level": 2,
+    "category_level_code": "030105",
+    "category_level_code_parent": "0301",
+    "field_belong": 1,
+    "sort_order": 50
+  },
+  {
+    "category_id": 148,
+    "category_name": "血球仪、尿液分析仪等",
+    "category_level": 3,
+    "category_level_code": "03010501",
+    "category_level_code_parent": "030105",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 149,
+    "category_name": "POCT",
+    "category_level": 2,
+    "category_level_code": "030106",
+    "category_level_code_parent": "0301",
+    "field_belong": 1,
+    "sort_order": 60
+  },
+  {
+    "category_id": 150,
+    "category_name": "便携式血糖仪、快速检测卡等",
+    "category_level": 3,
+    "category_level_code": "03010601",
+    "category_level_code_parent": "030106",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 151,
+    "category_name": "影像设备",
+    "category_level": 1,
+    "category_level_code": "0302",
+    "category_level_code_parent": "03",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 152,
+    "category_name": "X射线成像设备",
+    "category_level": 2,
+    "category_level_code": "030201",
+    "category_level_code_parent": "0302",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 153,
+    "category_name": "CT、DR",
+    "category_level": 3,
+    "category_level_code": "03020101",
+    "category_level_code_parent": "030201",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 154,
+    "category_name": "DSA",
+    "category_level": 3,
+    "category_level_code": "03020102",
+    "category_level_code_parent": "030201",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 155,
+    "category_name": "超声诊断设备",
+    "category_level": 2,
+    "category_level_code": "030202",
+    "category_level_code_parent": "0302",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 156,
+    "category_name": "超声影像诊断设备",
+    "category_level": 3,
+    "category_level_code": "03020201",
+    "category_level_code_parent": "030202",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 157,
+    "category_name": "超声血管流量计",
+    "category_level": 3,
+    "category_level_code": "03020202",
+    "category_level_code_parent": "030202",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 158,
+    "category_name": "核磁共振设备",
+    "category_level": 2,
+    "category_level_code": "030203",
+    "category_level_code_parent": "0302",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 159,
+    "category_name": "MRI",
+    "category_level": 3,
+    "category_level_code": "03020301",
+    "category_level_code_parent": "030203",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 160,
+    "category_name": "核医学检查设备",
+    "category_level": 2,
+    "category_level_code": "030204",
+    "category_level_code_parent": "0302",
+    "field_belong": 1,
+    "sort_order": 40
+  },
+  {
+    "category_id": 161,
+    "category_name": "PET-CT",
+    "category_level": 3,
+    "category_level_code": "03020401",
+    "category_level_code_parent": "030204",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 162,
+    "category_name": "内窥镜检查设备",
+    "category_level": 2,
+    "category_level_code": "030205",
+    "category_level_code_parent": "0302",
+    "field_belong": 1,
+    "sort_order": 50
+  },
+  {
+    "category_id": 163,
+    "category_name": "医用内窥镜",
+    "category_level": 3,
+    "category_level_code": "03020501",
+    "category_level_code_parent": "030205",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 164,
+    "category_name": "血管内超声诊断设备",
+    "category_level": 3,
+    "category_level_code": "03020502",
+    "category_level_code_parent": "030205",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 165,
+    "category_name": "电凝切割内窥镜",
+    "category_level": 3,
+    "category_level_code": "03020503",
+    "category_level_code_parent": "030205",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 166,
+    "category_name": "治疗设备",
+    "category_level": 1,
+    "category_level_code": "0303",
+    "category_level_code_parent": "03",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 167,
+    "category_name": "手术机器人",
+    "category_level": 2,
+    "category_level_code": "030301",
+    "category_level_code_parent": "0303",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 168,
+    "category_name": "腔镜手术机器人",
+    "category_level": 3,
+    "category_level_code": "03030101",
+    "category_level_code_parent": "030301",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 169,
+    "category_name": "骨科手术机器人",
+    "category_level": 3,
+    "category_level_code": "03030102",
+    "category_level_code_parent": "030301",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 170,
+    "category_name": "泛血管介入手术机器人",
+    "category_level": 3,
+    "category_level_code": "03030103",
+    "category_level_code_parent": "030301",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 171,
+    "category_name": "经自然腔道手术机器人",
+    "category_level": 3,
+    "category_level_code": "03030104",
+    "category_level_code_parent": "030301",
+    "field_belong": 1,
+    "sort_order": 40
+  },
+  {
+    "category_id": 172,
+    "category_name": "经皮穿刺手术机器人",
+    "category_level": 3,
+    "category_level_code": "03030105",
+    "category_level_code_parent": "030301",
+    "field_belong": 1,
+    "sort_order": 50
+  },
+  {
+    "category_id": 173,
+    "category_name": "能量源设备",
+    "category_level": 2,
+    "category_level_code": "030302",
+    "category_level_code_parent": "0303",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 174,
+    "category_name": "高频手术设备",
+    "category_level": 3,
+    "category_level_code": "03030201",
+    "category_level_code_parent": "030302",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 175,
+    "category_name": "激光治疗设备",
+    "category_level": 3,
+    "category_level_code": "03030202",
+    "category_level_code_parent": "030302",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 176,
+    "category_name": "射频治疗设备",
+    "category_level": 3,
+    "category_level_code": "03030203",
+    "category_level_code_parent": "030302",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 177,
+    "category_name": "脉冲电场消融设备",
+    "category_level": 3,
+    "category_level_code": "03030204",
+    "category_level_code_parent": "030302",
+    "field_belong": 1,
+    "sort_order": 40
+  },
+  {
+    "category_id": 178,
+    "category_name": "超声波治疗设备",
+    "category_level": 3,
+    "category_level_code": "03030205",
+    "category_level_code_parent": "030302",
+    "field_belong": 1,
+    "sort_order": 50
+  },
+  {
+    "category_id": 179,
+    "category_name": "放射设备",
+    "category_level": 2,
+    "category_level_code": "030303",
+    "category_level_code_parent": "0303",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 180,
+    "category_name": "放疗设备",
+    "category_level": 3,
+    "category_level_code": "03030301",
+    "category_level_code_parent": "030303",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 181,
+    "category_name": "生命信息支持设备",
+    "category_level": 1,
+    "category_level_code": "0304",
+    "category_level_code_parent": "03",
+    "field_belong": 1,
+    "sort_order": 40
+  },
+  {
+    "category_id": 182,
+    "category_name": "监护仪",
+    "category_level": 2,
+    "category_level_code": "030401",
+    "category_level_code_parent": "0304",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 183,
+    "category_name": "监护设备",
+    "category_level": 3,
+    "category_level_code": "03040101",
+    "category_level_code_parent": "030401",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 184,
+    "category_name": "呼吸机",
+    "category_level": 2,
+    "category_level_code": "030402",
+    "category_level_code_parent": "0304",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 185,
+    "category_name": "呼吸机",
+    "category_level": 3,
+    "category_level_code": "03040201",
+    "category_level_code_parent": "030402",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 186,
+    "category_name": "麻醉机",
+    "category_level": 2,
+    "category_level_code": "030403",
+    "category_level_code_parent": "0304",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 187,
+    "category_name": "麻醉机",
+    "category_level": 3,
+    "category_level_code": "03040301",
+    "category_level_code_parent": "030403",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 188,
+    "category_name": "ECMO",
+    "category_level": 2,
+    "category_level_code": "030404",
+    "category_level_code_parent": "0304",
+    "field_belong": 1,
+    "sort_order": 40
+  },
+  {
+    "category_id": 189,
+    "category_name": "体外膜肺氧合设备",
+    "category_level": 3,
+    "category_level_code": "03040401",
+    "category_level_code_parent": "030404",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 190,
+    "category_name": "康复设备",
+    "category_level": 1,
+    "category_level_code": "0305",
+    "category_level_code_parent": "03",
+    "field_belong": 1,
+    "sort_order": 50
+  },
+  {
+    "category_id": 191,
+    "category_name": "康复机器人",
+    "category_level": 2,
+    "category_level_code": "030501",
+    "category_level_code_parent": "0305",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 192,
+    "category_name": "运动康复、视听障碍康复",
+    "category_level": 3,
+    "category_level_code": "03050101",
+    "category_level_code_parent": "030501",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 193,
+    "category_name": "物理治疗设备",
+    "category_level": 2,
+    "category_level_code": "030502",
+    "category_level_code_parent": "0305",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 194,
+    "category_name": "声、光、电、磁疗",
+    "category_level": 3,
+    "category_level_code": "03050201",
+    "category_level_code_parent": "030502",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 195,
+    "category_name": "辅助设备",
+    "category_level": 1,
+    "category_level_code": "0306",
+    "category_level_code_parent": "03",
+    "field_belong": 1,
+    "sort_order": 60
+  },
+  {
+    "category_id": 196,
+    "category_name": "诊断辅助软件",
+    "category_level": 2,
+    "category_level_code": "030601",
+    "category_level_code_parent": "0306",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 197,
+    "category_name": "AI影像处理软件",
+    "category_level": 3,
+    "category_level_code": "03060101",
+    "category_level_code_parent": "030601",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 198,
+    "category_name": "AI决策支持软件",
+    "category_level": 3,
+    "category_level_code": "03060102",
+    "category_level_code_parent": "030601",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 199,
+    "category_name": "AI手术计划软件",
+    "category_level": 3,
+    "category_level_code": "03060103",
+    "category_level_code_parent": "030601",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 200,
+    "category_name": "采用脑机接口技术的医疗器械",
+    "category_level": 3,
+    "category_level_code": "03060104",
+    "category_level_code_parent": "030601",
+    "field_belong": 1,
+    "sort_order": 40
+  },
+  {
+    "category_id": 201,
+    "category_name": "应用纳米材料的医疗器械",
+    "category_level": 3,
+    "category_level_code": "03060105",
+    "category_level_code_parent": "030601",
+    "field_belong": 1,
+    "sort_order": 50
+  },
+  {
+    "category_id": 202,
+    "category_name": "医疗器械软件（SaMD）",
+    "category_level": 3,
+    "category_level_code": "03060106",
+    "category_level_code_parent": "030601",
+    "field_belong": 1,
+    "sort_order": 60
+  },
+  {
+    "category_id": 203,
+    "category_name": "家用医疗设备",
+    "category_level": 1,
+    "category_level_code": "0307",
+    "category_level_code_parent": "03",
+    "field_belong": 1,
+    "sort_order": 70
+  },
+  {
+    "category_id": 204,
+    "category_name": "呼吸治疗",
+    "category_level": 2,
+    "category_level_code": "030701",
+    "category_level_code_parent": "0307",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 205,
+    "category_name": "制氧机、呼吸机",
+    "category_level": 3,
+    "category_level_code": "03070101",
+    "category_level_code_parent": "030701",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 206,
+    "category_name": "血糖监测",
+    "category_level": 2,
+    "category_level_code": "030702",
+    "category_level_code_parent": "0307",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 207,
+    "category_name": "血糖仪",
+    "category_level": 3,
+    "category_level_code": "03070201",
+    "category_level_code_parent": "030702",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 208,
+    "category_name": "健康检测",
+    "category_level": 2,
+    "category_level_code": "030703",
+    "category_level_code_parent": "0307",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 209,
+    "category_name": "电子血压计",
+    "category_level": 3,
+    "category_level_code": "03070301",
+    "category_level_code_parent": "030703",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 210,
+    "category_name": "助听设备",
+    "category_level": 2,
+    "category_level_code": "030704",
+    "category_level_code_parent": "0307",
+    "field_belong": 1,
+    "sort_order": 40
+  },
+  {
+    "category_id": 211,
+    "category_name": "助听器",
+    "category_level": 3,
+    "category_level_code": "03070401",
+    "category_level_code_parent": "030704",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 212,
+    "category_name": "高值医用耗材",
+    "category_level": 1,
+    "category_level_code": "0308",
+    "category_level_code_parent": "03",
+    "field_belong": 1,
+    "sort_order": 80
+  },
+  {
+    "category_id": 213,
+    "category_name": "血管介入类",
+    "category_level": 2,
+    "category_level_code": "030801",
+    "category_level_code_parent": "0308",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 214,
+    "category_name": "冠脉介入球囊/支架",
+    "category_level": 3,
+    "category_level_code": "03080101",
+    "category_level_code_parent": "030801",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 215,
+    "category_name": "外周血管介入",
+    "category_level": 3,
+    "category_level_code": "03080102",
+    "category_level_code_parent": "030801",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 216,
+    "category_name": "神经血管介入",
+    "category_level": 3,
+    "category_level_code": "03080103",
+    "category_level_code_parent": "030801",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 217,
+    "category_name": "肺动脉血栓取出系统",
+    "category_level": 3,
+    "category_level_code": "03080104",
+    "category_level_code_parent": "030801",
+    "field_belong": 1,
+    "sort_order": 40
+  },
+  {
+    "category_id": 218,
+    "category_name": "非血管介入类",
+    "category_level": 2,
+    "category_level_code": "030802",
+    "category_level_code_parent": "0308",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 219,
+    "category_name": "内窥镜下耗材",
+    "category_level": 3,
+    "category_level_code": "03080201",
+    "category_level_code_parent": "030802",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 220,
+    "category_name": "其他介入耗材",
+    "category_level": 3,
+    "category_level_code": "03080202",
+    "category_level_code_parent": "030802",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 221,
+    "category_name": "植入器械/材料",
+    "category_level": 1,
+    "category_level_code": "0309",
+    "category_level_code_parent": "03",
+    "field_belong": 1,
+    "sort_order": 90
+  },
+  {
+    "category_id": 222,
+    "category_name": "有源植入物",
+    "category_level": 2,
+    "category_level_code": "030901",
+    "category_level_code_parent": "0309",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 223,
+    "category_name": "心脏起搏器",
+    "category_level": 3,
+    "category_level_code": "03090101",
+    "category_level_code_parent": "030901",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 224,
+    "category_name": "植入式心律转复除颤器",
+    "category_level": 3,
+    "category_level_code": "03090102",
+    "category_level_code_parent": "030901",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 225,
+    "category_name": "心室辅助装置",
+    "category_level": 3,
+    "category_level_code": "03090103",
+    "category_level_code_parent": "030901",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 226,
+    "category_name": "脑深部电刺激器",
+    "category_level": 3,
+    "category_level_code": "03090104",
+    "category_level_code_parent": "030901",
+    "field_belong": 1,
+    "sort_order": 40
+  },
+  {
+    "category_id": 227,
+    "category_name": "脊髓刺激器",
+    "category_level": 3,
+    "category_level_code": "03090105",
+    "category_level_code_parent": "030901",
+    "field_belong": 1,
+    "sort_order": 50
+  },
+  {
+    "category_id": 228,
+    "category_name": "听觉植入物",
+    "category_level": 3,
+    "category_level_code": "03090106",
+    "category_level_code_parent": "030901",
+    "field_belong": 1,
+    "sort_order": 60
+  },
+  {
+    "category_id": 229,
+    "category_name": "无源植入物",
+    "category_level": 2,
+    "category_level_code": "030902",
+    "category_level_code_parent": "0309",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 230,
+    "category_name": "心脏瓣膜",
+    "category_level": 3,
+    "category_level_code": "03090201",
+    "category_level_code_parent": "030902",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 231,
+    "category_name": "封堵器",
+    "category_level": 3,
+    "category_level_code": "03090202",
+    "category_level_code_parent": "030902",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 232,
+    "category_name": "关节植入物",
+    "category_level": 3,
+    "category_level_code": "03090203",
+    "category_level_code_parent": "030902",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 233,
+    "category_name": "脊柱植入物",
+    "category_level": 3,
+    "category_level_code": "03090204",
+    "category_level_code_parent": "030902",
+    "field_belong": 1,
+    "sort_order": 40
+  },
+  {
+    "category_id": 234,
+    "category_name": "创伤植入物",
+    "category_level": 3,
+    "category_level_code": "03090205",
+    "category_level_code_parent": "030902",
+    "field_belong": 1,
+    "sort_order": 50
+  },
+  {
+    "category_id": 235,
+    "category_name": "运动医学植入器械",
+    "category_level": 3,
+    "category_level_code": "03090206",
+    "category_level_code_parent": "030902",
+    "field_belong": 1,
+    "sort_order": 60
+  },
+  {
+    "category_id": 236,
+    "category_name": "整形外科植入物",
+    "category_level": 3,
+    "category_level_code": "03090207",
+    "category_level_code_parent": "030902",
+    "field_belong": 1,
+    "sort_order": 70
+  },
+  {
+    "category_id": 237,
+    "category_name": "眼科植入物",
+    "category_level": 3,
+    "category_level_code": "03090208",
+    "category_level_code_parent": "030902",
+    "field_belong": 1,
+    "sort_order": 80
+  },
+  {
+    "category_id": 238,
+    "category_name": "其他植入物",
+    "category_level": 3,
+    "category_level_code": "03090209",
+    "category_level_code_parent": "030902",
+    "field_belong": 1,
+    "sort_order": 90
+  },
+  {
+    "category_id": 239,
+    "category_name": "低值医用耗材",
+    "category_level": 1,
+    "category_level_code": "0310",
+    "category_level_code_parent": "03",
+    "field_belong": 1,
+    "sort_order": 100
+  },
+  {
+    "category_id": 240,
+    "category_name": "注射穿刺类",
+    "category_level": 2,
+    "category_level_code": "031001",
+    "category_level_code_parent": "0310",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 241,
+    "category_name": "注射器、输液器",
+    "category_level": 3,
+    "category_level_code": "03100101",
+    "category_level_code_parent": "031001",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 242,
+    "category_name": "医用卫生材料",
+    "category_level": 2,
+    "category_level_code": "031002",
+    "category_level_code_parent": "0310",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 243,
+    "category_name": "敷料、口罩",
+    "category_level": 3,
+    "category_level_code": "03100201",
+    "category_level_code_parent": "031002",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 244,
+    "category_name": "医用高分子制品",
+    "category_level": 2,
+    "category_level_code": "031003",
+    "category_level_code_parent": "0310",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 245,
+    "category_name": "导管、引流袋",
+    "category_level": 3,
+    "category_level_code": "03100301",
+    "category_level_code_parent": "031003",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 246,
+    "category_name": "装备制造",
+    "category_level": 1,
+    "category_level_code": "0311",
+    "category_level_code_parent": "03",
+    "field_belong": 1,
+    "sort_order": 110
+  },
+  {
+    "category_id": 247,
+    "category_name": "制药装备",
+    "category_level": 2,
+    "category_level_code": "031101",
+    "category_level_code_parent": "0311",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 248,
+    "category_name": "生物反应器/系统",
+    "category_level": 3,
+    "category_level_code": "03110101",
+    "category_level_code_parent": "031101",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 249,
+    "category_name": "实验室自动化",
+    "category_level": 3,
+    "category_level_code": "03110102",
+    "category_level_code_parent": "031101",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 250,
+    "category_name": "智慧工厂方案",
+    "category_level": 3,
+    "category_level_code": "03110103",
+    "category_level_code_parent": "031101",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 251,
+    "category_name": "医疗服务",
+    "category_level": 0,
+    "category_level_code": "04",
+    "category_level_code_parent": null,
+    "field_belong": 1,
+    "sort_order": 40
+  },
+  {
+    "category_id": 252,
+    "category_name": "医药商业 / 流通",
+    "category_level": 1,
+    "category_level_code": "0401",
+    "category_level_code_parent": "04",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 253,
+    "category_name": "医药配送企业",
+    "category_level": 2,
+    "category_level_code": "040101",
+    "category_level_code_parent": "0401",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 254,
+    "category_name": "医药即时零售",
+    "category_level": 2,
+    "category_level_code": "040102",
+    "category_level_code_parent": "0401",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 255,
+    "category_name": "平台型",
+    "category_level": 3,
+    "category_level_code": "04010201",
+    "category_level_code_parent": "040102",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 256,
+    "category_name": "连锁药店 O2O",
+    "category_level": 3,
+    "category_level_code": "04010202",
+    "category_level_code_parent": "040102",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 257,
+    "category_name": "药企线上渠道 / 合作",
+    "category_level": 2,
+    "category_level_code": "040103",
+    "category_level_code_parent": "0401",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 258,
+    "category_name": "新品首发 / 旗舰店 / 营销",
+    "category_level": 3,
+    "category_level_code": "04010301",
+    "category_level_code_parent": "040103",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 259,
+    "category_name": "医药跨境供应链",
+    "category_level": 2,
+    "category_level_code": "040104",
+    "category_level_code_parent": "0401",
+    "field_belong": 1,
+    "sort_order": 40
+  },
+  {
+    "category_id": 260,
+    "category_name": "医疗零售",
+    "category_level": 1,
+    "category_level_code": "0402",
+    "category_level_code_parent": "04",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 261,
+    "category_name": "实体药店",
+    "category_level": 2,
+    "category_level_code": "040201",
+    "category_level_code_parent": "0402",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 262,
+    "category_name": "连锁药店",
+    "category_level": 3,
+    "category_level_code": "04020101",
+    "category_level_code_parent": "040201",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 263,
+    "category_name": "DTP 药房 / 特药房",
+    "category_level": 3,
+    "category_level_code": "04020102",
+    "category_level_code_parent": "040201",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 264,
+    "category_name": "医药电商",
+    "category_level": 2,
+    "category_level_code": "040202",
+    "category_level_code_parent": "0402",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 265,
+    "category_name": "B2B",
+    "category_level": 3,
+    "category_level_code": "04020201",
+    "category_level_code_parent": "040202",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 266,
+    "category_name": "B2C",
+    "category_level": 3,
+    "category_level_code": "04020202",
+    "category_level_code_parent": "040202",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 267,
+    "category_name": "O2O",
+    "category_level": 3,
+    "category_level_code": "04020203",
+    "category_level_code_parent": "040202",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 268,
+    "category_name": "药店业务拓展",
+    "category_level": 2,
+    "category_level_code": "040203",
+    "category_level_code_parent": "0402",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 269,
+    "category_name": "医美服务",
+    "category_level": 3,
+    "category_level_code": "04020301",
+    "category_level_code_parent": "040203",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 270,
+    "category_name": "中医诊所",
+    "category_level": 3,
+    "category_level_code": "04020302",
+    "category_level_code_parent": "040203",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 271,
+    "category_name": "严肃医疗",
+    "category_level": 1,
+    "category_level_code": "0403",
+    "category_level_code_parent": "04",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 272,
+    "category_name": "公立三级",
+    "category_level": 2,
+    "category_level_code": "040301",
+    "category_level_code_parent": "0403",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 273,
+    "category_name": "公立二级",
+    "category_level": 2,
+    "category_level_code": "040302",
+    "category_level_code_parent": "0403",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 274,
+    "category_name": "基层公卫",
+    "category_level": 2,
+    "category_level_code": "040303",
+    "category_level_code_parent": "0403",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 275,
+    "category_name": "民营医院",
+    "category_level": 2,
+    "category_level_code": "040304",
+    "category_level_code_parent": "0403",
+    "field_belong": 1,
+    "sort_order": 40
+  },
+  {
+    "category_id": 276,
+    "category_name": "综合医院",
+    "category_level": 3,
+    "category_level_code": "04030401",
+    "category_level_code_parent": "040304",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 277,
+    "category_name": "专科医院（肿瘤）",
+    "category_level": 3,
+    "category_level_code": "04030402",
+    "category_level_code_parent": "040304",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 278,
+    "category_name": "专科医院（辅助生殖）",
+    "category_level": 3,
+    "category_level_code": "04030403",
+    "category_level_code_parent": "040304",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 279,
+    "category_name": "消费医疗",
+    "category_level": 1,
+    "category_level_code": "0404",
+    "category_level_code_parent": "04",
+    "field_belong": 1,
+    "sort_order": 40
+  },
+  {
+    "category_id": 280,
+    "category_name": "口腔诊所 / 连锁",
+    "category_level": 2,
+    "category_level_code": "040401",
+    "category_level_code_parent": "0404",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 281,
+    "category_name": "体检中心 / 健康管理",
+    "category_level": 2,
+    "category_level_code": "040402",
+    "category_level_code_parent": "0404",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 282,
+    "category_name": "眼科诊所 / 连锁",
+    "category_level": 2,
+    "category_level_code": "040403",
+    "category_level_code_parent": "0404",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 283,
+    "category_name": "综合眼科集团",
+    "category_level": 3,
+    "category_level_code": "04040301",
+    "category_level_code_parent": "040403",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 284,
+    "category_name": "垂直眼视光 / 少儿眼科",
+    "category_level": 3,
+    "category_level_code": "04040302",
+    "category_level_code_parent": "040403",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 285,
+    "category_name": "产后中心 / 母婴护理",
+    "category_level": 2,
+    "category_level_code": "040404",
+    "category_level_code_parent": "0404",
+    "field_belong": 1,
+    "sort_order": 40
+  },
+  {
+    "category_id": 286,
+    "category_name": "生殖中心 / 门诊",
+    "category_level": 2,
+    "category_level_code": "040405",
+    "category_level_code_parent": "0404",
+    "field_belong": 1,
+    "sort_order": 50
+  },
+  {
+    "category_id": 287,
+    "category_name": "中医诊所 / 连锁",
+    "category_level": 2,
+    "category_level_code": "040406",
+    "category_level_code_parent": "0404",
+    "field_belong": 1,
+    "sort_order": 60
+  },
+  {
+    "category_id": 288,
+    "category_name": "医美诊所 / 服务",
+    "category_level": 2,
+    "category_level_code": "040407",
+    "category_level_code_parent": "0404",
+    "field_belong": 1,
+    "sort_order": 70
+  },
+  {
+    "category_id": 289,
+    "category_name": "专科诊所 / 连锁（其他）",
+    "category_level": 2,
+    "category_level_code": "040408",
+    "category_level_code_parent": "0404",
+    "field_belong": 1,
+    "sort_order": 80
+  },
+  {
+    "category_id": 290,
+    "category_name": "骨科与肌肉健康（数字疗法）",
+    "category_level": 3,
+    "category_level_code": "04040801",
+    "category_level_code_parent": "040408",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 291,
+    "category_name": "互联网医疗",
+    "category_level": 1,
+    "category_level_code": "0405",
+    "category_level_code_parent": "04",
+    "field_belong": 1,
+    "sort_order": 50
+  },
+  {
+    "category_id": 292,
+    "category_name": "综合平台 / 在线诊疗",
+    "category_level": 2,
+    "category_level_code": "040501",
+    "category_level_code_parent": "0405",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 293,
+    "category_name": "互联网医院",
+    "category_level": 3,
+    "category_level_code": "04050101",
+    "category_level_code_parent": "040501",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 294,
+    "category_name": "AI 医疗应用",
+    "category_level": 3,
+    "category_level_code": "04050102",
+    "category_level_code_parent": "040501",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 295,
+    "category_name": "垂直服务平台",
+    "category_level": 2,
+    "category_level_code": "040502",
+    "category_level_code_parent": "0405",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 296,
+    "category_name": "互联网 + 护理服务",
+    "category_level": 3,
+    "category_level_code": "04050201",
+    "category_level_code_parent": "040502",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 297,
+    "category_name": "数字慢病 / 专病管理",
+    "category_level": 3,
+    "category_level_code": "04050202",
+    "category_level_code_parent": "040502",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 298,
+    "category_name": "第三方中心",
+    "category_level": 1,
+    "category_level_code": "0406",
+    "category_level_code_parent": "04",
+    "field_belong": 1,
+    "sort_order": 60
+  },
+  {
+    "category_id": 299,
+    "category_name": "检验中心",
+    "category_level": 2,
+    "category_level_code": "040601",
+    "category_level_code_parent": "0406",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 300,
+    "category_name": "影像中心",
+    "category_level": 2,
+    "category_level_code": "040602",
+    "category_level_code_parent": "0406",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 301,
+    "category_name": "病理中心",
+    "category_level": 2,
+    "category_level_code": "040603",
+    "category_level_code_parent": "0406",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 302,
+    "category_name": "消毒中心",
+    "category_level": 2,
+    "category_level_code": "040604",
+    "category_level_code_parent": "0406",
+    "field_belong": 1,
+    "sort_order": 40
+  },
+  {
+    "category_id": 303,
+    "category_name": "第三方消毒供应",
+    "category_level": 3,
+    "category_level_code": "04060401",
+    "category_level_code_parent": "040604",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 304,
+    "category_name": "血透中心",
+    "category_level": 2,
+    "category_level_code": "040605",
+    "category_level_code_parent": "0406",
+    "field_belong": 1,
+    "sort_order": 50
+  },
+  {
+    "category_id": 305,
+    "category_name": "其他第三方服务",
+    "category_level": 2,
+    "category_level_code": "040606",
+    "category_level_code_parent": "0406",
+    "field_belong": 1,
+    "sort_order": 60
+  },
+  {
+    "category_id": 306,
+    "category_name": "居家护理 / 上门检测",
+    "category_level": 3,
+    "category_level_code": "04060601",
+    "category_level_code_parent": "040606",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 307,
+    "category_name": "保险支付",
+    "category_level": 1,
+    "category_level_code": "0407",
+    "category_level_code_parent": "04",
+    "field_belong": 1,
+    "sort_order": 70
+  },
+  {
+    "category_id": 308,
+    "category_name": "商业保险",
+    "category_level": 2,
+    "category_level_code": "040701",
+    "category_level_code_parent": "0407",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 309,
+    "category_name": "健康险产品 / 公司",
+    "category_level": 3,
+    "category_level_code": "04070101",
+    "category_level_code_parent": "040701",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 310,
+    "category_name": "TPA / 保险科技",
+    "category_level": 2,
+    "category_level_code": "040702",
+    "category_level_code_parent": "0407",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 311,
+    "category_name": "保险科技平台 / 服务",
+    "category_level": 3,
+    "category_level_code": "04070201",
+    "category_level_code_parent": "040702",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 312,
+    "category_name": "药品",
+    "category_level": 0,
+    "category_level_code": "05",
+    "category_level_code_parent": null,
+    "field_belong": 1,
+    "sort_order": 50
+  },
+  {
+    "category_id": 313,
+    "category_name": "化学制药",
+    "category_level": 1,
+    "category_level_code": "0501",
+    "category_level_code_parent": "05",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 314,
+    "category_name": "化学制剂",
+    "category_level": 2,
+    "category_level_code": "050101",
+    "category_level_code_parent": "0501",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 315,
+    "category_name": "创新小分子药",
+    "category_level": 3,
+    "category_level_code": "05010101",
+    "category_level_code_parent": "050101",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 316,
+    "category_name": "改良型新药",
+    "category_level": 3,
+    "category_level_code": "05010102",
+    "category_level_code_parent": "050101",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 317,
+    "category_name": "仿制药",
+    "category_level": 3,
+    "category_level_code": "05010103",
+    "category_level_code_parent": "050101",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 318,
+    "category_name": "减重领域小分子药",
+    "category_level": 3,
+    "category_level_code": "05010104",
+    "category_level_code_parent": "050101",
+    "field_belong": 1,
+    "sort_order": 40
+  },
+  {
+    "category_id": 319,
+    "category_name": "肿瘤靶向小分子药",
+    "category_level": 3,
+    "category_level_code": "05010105",
+    "category_level_code_parent": "050101",
+    "field_belong": 1,
+    "sort_order": 50
+  },
+  {
+    "category_id": 320,
+    "category_name": "自免领域小分子药",
+    "category_level": 3,
+    "category_level_code": "05010106",
+    "category_level_code_parent": "050101",
+    "field_belong": 1,
+    "sort_order": 60
+  },
+  {
+    "category_id": 321,
+    "category_name": "原料药",
+    "category_level": 2,
+    "category_level_code": "050102",
+    "category_level_code_parent": "0501",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 322,
+    "category_name": "高端原料药",
+    "category_level": 3,
+    "category_level_code": "05010201",
+    "category_level_code_parent": "050102",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 323,
+    "category_name": "特色原料药",
+    "category_level": 3,
+    "category_level_code": "05010202",
+    "category_level_code_parent": "050102",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 324,
+    "category_name": "大宗原料药",
+    "category_level": 3,
+    "category_level_code": "05010203",
+    "category_level_code_parent": "050102",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 325,
+    "category_name": "多肽原料药",
+    "category_level": 3,
+    "category_level_code": "05010204",
+    "category_level_code_parent": "050102",
+    "field_belong": 1,
+    "sort_order": 40
+  },
+  {
+    "category_id": 326,
+    "category_name": "生物制品",
+    "category_level": 1,
+    "category_level_code": "0502",
+    "category_level_code_parent": "05",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 327,
+    "category_name": "血液制品",
+    "category_level": 2,
+    "category_level_code": "050201",
+    "category_level_code_parent": "0502",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 328,
+    "category_name": "人血白蛋白",
+    "category_level": 3,
+    "category_level_code": "05020101",
+    "category_level_code_parent": "050201",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 329,
+    "category_name": "免疫球蛋白",
+    "category_level": 3,
+    "category_level_code": "05020102",
+    "category_level_code_parent": "050201",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 330,
+    "category_name": "凝血因子",
+    "category_level": 3,
+    "category_level_code": "05020103",
+    "category_level_code_parent": "050201",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 331,
+    "category_name": "疫苗",
+    "category_level": 2,
+    "category_level_code": "050202",
+    "category_level_code_parent": "0502",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 332,
+    "category_name": "预防性疫苗",
+    "category_level": 3,
+    "category_level_code": "05020201",
+    "category_level_code_parent": "050202",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 333,
+    "category_name": "治疗性疫苗",
+    "category_level": 3,
+    "category_level_code": "05020202",
+    "category_level_code_parent": "050202",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 334,
+    "category_name": "mRNA 疫苗",
+    "category_level": 3,
+    "category_level_code": "05020203",
+    "category_level_code_parent": "050202",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 335,
+    "category_name": "乙肝治疗性疫苗",
+    "category_level": 3,
+    "category_level_code": "05020204",
+    "category_level_code_parent": "050202",
+    "field_belong": 1,
+    "sort_order": 40
+  },
+  {
+    "category_id": 336,
+    "category_name": "抗体药物",
+    "category_level": 2,
+    "category_level_code": "050203",
+    "category_level_code_parent": "0502",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 337,
+    "category_name": "双特异性抗体",
+    "category_level": 3,
+    "category_level_code": "05020301",
+    "category_level_code_parent": "050203",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 338,
+    "category_name": "ADC（抗体偶联药物）",
+    "category_level": 3,
+    "category_level_code": "05020302",
+    "category_level_code_parent": "050203",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 339,
+    "category_name": "双抗 ADC",
+    "category_level": 3,
+    "category_level_code": "05020303",
+    "category_level_code_parent": "050203",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 340,
+    "category_name": "双载荷 ADC",
+    "category_level": 3,
+    "category_level_code": "05020304",
+    "category_level_code_parent": "050203",
+    "field_belong": 1,
+    "sort_order": 40
+  },
+  {
+    "category_id": 341,
+    "category_name": "单克隆抗体",
+    "category_level": 3,
+    "category_level_code": "05020305",
+    "category_level_code_parent": "050203",
+    "field_belong": 1,
+    "sort_order": 50
+  },
+  {
+    "category_id": 342,
+    "category_name": "髓系细胞衔接器（MCE）",
+    "category_level": 3,
+    "category_level_code": "05020306",
+    "category_level_code_parent": "050203",
+    "field_belong": 1,
+    "sort_order": 60
+  },
+  {
+    "category_id": 343,
+    "category_name": "蛋白药物",
+    "category_level": 2,
+    "category_level_code": "050204",
+    "category_level_code_parent": "0502",
+    "field_belong": 1,
+    "sort_order": 40
+  },
+  {
+    "category_id": 344,
+    "category_name": "重组蛋白药物",
+    "category_level": 3,
+    "category_level_code": "05020401",
+    "category_level_code_parent": "050204",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 345,
+    "category_name": "酶替代疗法",
+    "category_level": 3,
+    "category_level_code": "05020402",
+    "category_level_code_parent": "050204",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 346,
+    "category_name": "细胞因子",
+    "category_level": 3,
+    "category_level_code": "05020403",
+    "category_level_code_parent": "050204",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 347,
+    "category_name": "基因治疗",
+    "category_level": 2,
+    "category_level_code": "050205",
+    "category_level_code_parent": "0502",
+    "field_belong": 1,
+    "sort_order": 50
+  },
+  {
+    "category_id": 348,
+    "category_name": "CAR-T（自体 / 通用型 / 体内 CAR-T）",
+    "category_level": 3,
+    "category_level_code": "05020501",
+    "category_level_code_parent": "050205",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 349,
+    "category_name": "TIL 疗法",
+    "category_level": 3,
+    "category_level_code": "05020502",
+    "category_level_code_parent": "050205",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 350,
+    "category_name": "核酸药物",
+    "category_level": 3,
+    "category_level_code": "05020503",
+    "category_level_code_parent": "050205",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 351,
+    "category_name": "基因编辑疗法",
+    "category_level": 3,
+    "category_level_code": "05020504",
+    "category_level_code_parent": "050205",
+    "field_belong": 1,
+    "sort_order": 40
+  },
+  {
+    "category_id": 352,
+    "category_name": "现货型细胞疗法",
+    "category_level": 3,
+    "category_level_code": "05020505",
+    "category_level_code_parent": "050205",
+    "field_belong": 1,
+    "sort_order": 50
+  },
+  {
+    "category_id": 353,
+    "category_name": "中药",
+    "category_level": 1,
+    "category_level_code": "0503",
+    "category_level_code_parent": "05",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 354,
+    "category_name": "中药饮片",
+    "category_level": 2,
+    "category_level_code": "050301",
+    "category_level_code_parent": "0503",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 355,
+    "category_name": "传统饮片",
+    "category_level": 3,
+    "category_level_code": "05030101",
+    "category_level_code_parent": "050301",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 356,
+    "category_name": "配方颗粒",
+    "category_level": 3,
+    "category_level_code": "05030102",
+    "category_level_code_parent": "050301",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 357,
+    "category_name": "破壁饮片",
+    "category_level": 3,
+    "category_level_code": "05030103",
+    "category_level_code_parent": "050301",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 358,
+    "category_name": "中成药",
+    "category_level": 2,
+    "category_level_code": "050302",
+    "category_level_code_parent": "0503",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 359,
+    "category_name": "心脑血管类",
+    "category_level": 3,
+    "category_level_code": "05030201",
+    "category_level_code_parent": "050302",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 360,
+    "category_name": "呼吸系统类",
+    "category_level": 3,
+    "category_level_code": "05030202",
+    "category_level_code_parent": "050302",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 361,
+    "category_name": "抗肿瘤辅助类",
+    "category_level": 3,
+    "category_level_code": "05030203",
+    "category_level_code_parent": "050302",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 362,
+    "category_name": "AI 药物研",
+    "category_level": 0,
+    "category_level_code": "06",
+    "category_level_code_parent": null,
+    "field_belong": 1,
+    "sort_order": 60
+  },
+  {
+    "category_id": 363,
+    "category_name": "AI 药物研发平台",
+    "category_level": 1,
+    "category_level_code": "0601",
+    "category_level_code_parent": "06",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 364,
+    "category_name": "小分子 / AI 药物研发平台等",
+    "category_level": 2,
+    "category_level_code": "060101",
+    "category_level_code_parent": "0601",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 365,
+    "category_name": "小分子 / AI 药物研发平台",
+    "category_level": 3,
+    "category_level_code": "06010101",
+    "category_level_code_parent": "060101",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 366,
+    "category_name": "DNA 编码化合物库技术",
+    "category_level": 3,
+    "category_level_code": "06010102",
+    "category_level_code_parent": "060101",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 367,
+    "category_name": "一站式 AI 赋能新药研发平台",
+    "category_level": 3,
+    "category_level_code": "06010103",
+    "category_level_code_parent": "060101",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 368,
+    "category_name": "计算设计平台",
+    "category_level": 3,
+    "category_level_code": "06010104",
+    "category_level_code_parent": "060101",
+    "field_belong": 1,
+    "sort_order": 40
+  },
+  {
+    "category_id": 369,
+    "category_name": "AI + 疫苗研发平台",
+    "category_level": 3,
+    "category_level_code": "06010105",
+    "category_level_code_parent": "060101",
+    "field_belong": 1,
+    "sort_order": 50
+  },
+  {
+    "category_id": 370,
+    "category_name": "AI CRO / 技术服务商",
+    "category_level": 1,
+    "category_level_code": "0602",
+    "category_level_code_parent": "06",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 371,
+    "category_name": "AI 驱动的口服小分子药物等",
+    "category_level": 2,
+    "category_level_code": "060201",
+    "category_level_code_parent": "0602",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 372,
+    "category_name": "AI 驱动的口服小分子药物",
+    "category_level": 3,
+    "category_level_code": "06020101",
+    "category_level_code_parent": "060201",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 373,
+    "category_name": "代谢增强型细胞疗法",
+    "category_level": 3,
+    "category_level_code": "06020102",
+    "category_level_code_parent": "060201",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 374,
+    "category_name": "AI 驱动的大分子药物",
+    "category_level": 3,
+    "category_level_code": "06020103",
+    "category_level_code_parent": "060201",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 375,
+    "category_name": "AI 设计的减重 / 代谢类药物",
+    "category_level": 3,
+    "category_level_code": "06020104",
+    "category_level_code_parent": "060201",
+    "field_belong": 1,
+    "sort_order": 40
+  },
+  {
+    "category_id": 376,
+    "category_name": "AI 辅助临床试验设计",
+    "category_level": 3,
+    "category_level_code": "06020105",
+    "category_level_code_parent": "060201",
+    "field_belong": 1,
+    "sort_order": 50
+  },
+  {
+    "category_id": 377,
+    "category_name": "数字化 CRO 服务",
+    "category_level": 3,
+    "category_level_code": "06020106",
+    "category_level_code_parent": "060201",
+    "field_belong": 1,
+    "sort_order": 60
+  },
+  {
+    "category_id": 378,
+    "category_name": "AI 自研管线企业",
+    "category_level": 1,
+    "category_level_code": "0603",
+    "category_level_code_parent": "06",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 379,
+    "category_name": "AI 药物研发 SaaS 平台等",
+    "category_level": 2,
+    "category_level_code": "060301",
+    "category_level_code_parent": "0603",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 380,
+    "category_name": "AI 药物研发 SaaS 平台",
+    "category_level": 3,
+    "category_level_code": "06030101",
+    "category_level_code_parent": "060301",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 381,
+    "category_name": "AI 智能体",
+    "category_level": 3,
+    "category_level_code": "06030102",
+    "category_level_code_parent": "060301",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 382,
+    "category_name": "AI 蛋白质设计平台",
+    "category_level": 3,
+    "category_level_code": "06030103",
+    "category_level_code_parent": "060301",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 383,
+    "category_name": "AI 设计的抗肿瘤药物",
+    "category_level": 3,
+    "category_level_code": "06030104",
+    "category_level_code_parent": "060301",
+    "field_belong": 1,
+    "sort_order": 40
+  },
+  {
+    "category_id": 384,
+    "category_name": "AI 优化的代谢类药物",
+    "category_level": 3,
+    "category_level_code": "06030105",
+    "category_level_code_parent": "060301",
+    "field_belong": 1,
+    "sort_order": 50
+  },
+  {
+    "category_id": 385,
+    "category_name": "AI 驱动的神经免疫疗法",
+    "category_level": 3,
+    "category_level_code": "06030106",
+    "category_level_code_parent": "060301",
+    "field_belong": 1,
+    "sort_order": 60
+  },
+  {
+    "category_id": 386,
+    "category_name": "AI 软件 / 工具平台",
+    "category_level": 1,
+    "category_level_code": "0604",
+    "category_level_code_parent": "06",
+    "field_belong": 1,
+    "sort_order": 40
+  },
+  {
+    "category_id": 387,
+    "category_name": "AI + 神经免疫疗法等",
+    "category_level": 2,
+    "category_level_code": "060401",
+    "category_level_code_parent": "0604",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 388,
+    "category_name": "AI + 神经免疫疗法",
+    "category_level": 3,
+    "category_level_code": "06040101",
+    "category_level_code_parent": "060401",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 389,
+    "category_name": "AI + 疫苗研发",
+    "category_level": 3,
+    "category_level_code": "06040102",
+    "category_level_code_parent": "060401",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 390,
+    "category_name": "AI + 多肽药物发现平台",
+    "category_level": 3,
+    "category_level_code": "06040103",
+    "category_level_code_parent": "060401",
+    "field_belong": 1,
+    "sort_order": 30
+  },
+  {
+    "category_id": 391,
+    "category_name": "AI + 新型 ADC 化合物库开发",
+    "category_level": 3,
+    "category_level_code": "06040104",
+    "category_level_code_parent": "060401",
+    "field_belong": 1,
+    "sort_order": 40
+  },
+  {
+    "category_id": 392,
+    "category_name": "AI 药物发现平台",
+    "category_level": 3,
+    "category_level_code": "06040105",
+    "category_level_code_parent": "060401",
+    "field_belong": 1,
+    "sort_order": 50
+  },
+  {
+    "category_id": 393,
+    "category_name": "AI 蛋白质设计平台",
+    "category_level": 3,
+    "category_level_code": "06040106",
+    "category_level_code_parent": "060401",
+    "field_belong": 1,
+    "sort_order": 60
+  },
+  {
+    "category_id": 394,
+    "category_name": "AI 临床试验优化平台",
+    "category_level": 3,
+    "category_level_code": "06040107",
+    "category_level_code_parent": "060401",
+    "field_belong": 1,
+    "sort_order": 70
+  },
+  {
+    "category_id": 395,
+    "category_name": "AI 智能体平台",
+    "category_level": 3,
+    "category_level_code": "06040108",
+    "category_level_code_parent": "060401",
+    "field_belong": 1,
+    "sort_order": 80
+  },
+  {
+    "category_id": 396,
+    "category_name": "AI + 特定领域研发",
+    "category_level": 1,
+    "category_level_code": "0605",
+    "category_level_code_parent": "06",
+    "field_belong": 1,
+    "sort_order": 50
+  },
+  {
+    "category_id": 397,
+    "category_name": "小分子及抗体类新药研发平台授权等",
+    "category_level": 2,
+    "category_level_code": "060501",
+    "category_level_code_parent": "0605",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 398,
+    "category_name": "小分子及抗体类新药研发平台授权",
+    "category_level": 3,
+    "category_level_code": "06050101",
+    "category_level_code_parent": "060501",
+    "field_belong": 1,
+    "sort_order": 10
+  },
+  {
+    "category_id": 399,
+    "category_name": "AI 驱动的药物选择平台授权",
+    "category_level": 3,
+    "category_level_code": "06050102",
+    "category_level_code_parent": "060501",
+    "field_belong": 1,
+    "sort_order": 20
+  },
+  {
+    "category_id": 400,
+    "category_name": "AI 平台用于大分子药物研发",
+    "category_level": 3,
+    "category_level_code": "06050103",
+    "category_level_code_parent": "060501",
+    "field_belong": 1,
+    "sort_order": 30
+  }
+]

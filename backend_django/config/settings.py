@@ -21,6 +21,12 @@ INSTALLED_APPS = [
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "auth_api",
+    "dashboard_api",
+    "industry_api",
+    "system_api",
+    "tag_api",
+    "weights_api",
+    "scoring_api",
 ]
 
 MIDDLEWARE = [

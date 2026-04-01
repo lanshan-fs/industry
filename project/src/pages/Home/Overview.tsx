@@ -47,6 +47,7 @@ import {
   CopyrightOutlined,
   GithubOutlined,
   InfoCircleOutlined,
+  BellOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import type { ColumnsType } from "antd/es/table";
@@ -82,30 +83,35 @@ interface RecommendEnterpriseDetail {
   tags: string[];
 }
 
+interface NoticeItem {
+  id: number;
+  title: string;
+  type: string;
+  date: string;
+  content: string;
+}
+
 // ================== 静态数据准备 ==================
 
 // 1. 顶部驾驶舱关键指标
-const keyMetrics = [
-  { label: "收录总数", value: 2853, suffix: "家", color: "#fff" },
-  { label: "综合评分", value: 85.2, suffix: "分", color: "#73d13d" },
-  { label: "协同效率", value: 78.5, suffix: "%", color: "#ffec3d" },
+const DEFAULT_KEY_METRICS = [
+  { label: "收录总数", value: 0, suffix: "家", color: "#fff" },
+  { label: "综合评分", value: 0, suffix: "分", color: "#73d13d" },
+  { label: "协同效率", value: 0, suffix: "%", color: "#ffec3d" },
 ];
 
 // 2. 企业资质分布
-const chaoyangStatsRaw = [
+const QUALIFICATION_STATS_META = [
   { label: "上市企业", value: 35, icon: <GlobalOutlined />, color: "#cf1322" },
   { label: "外资企业", value: 128, icon: <GlobalOutlined />, color: "#d48806" },
   { label: "独角兽", value: 12, icon: <CrownOutlined />, color: "#eb2f96" },
   { label: "专精特新", value: 185, icon: <TrophyOutlined />, color: "#722ed1" },
   { label: "高新技术", value: 456, icon: <RocketOutlined />, color: "#1890ff" },
   { label: "科技中小", value: 890, icon: <ShopOutlined />, color: "#52c41a" },
-  { label: "上市企业", value: 35, icon: <GlobalOutlined />, color: "#cf1322" },
-  { label: "外资企业", value: 128, icon: <GlobalOutlined />, color: "#d48806" },
-  { label: "独角兽", value: 12, icon: <CrownOutlined />, color: "#eb2f96" },
 ];
 
 // 3. 热门区域分布
-const hotspotStreets: RankItem[] = [
+const DEFAULT_HOTSPOT_STREETS: RankItem[] = [
   { name: "酒仙桥街道", count: 156, percent: 85 },
   { name: "望京街道", count: 132, percent: 72 },
   { name: "朝外街道", count: 98, percent: 54 },
@@ -120,47 +126,57 @@ const hotspotStreets: RankItem[] = [
 ];
 
 // 4. 平台公告
-const notices = [
+const DEFAULT_NOTICES: NoticeItem[] = [
   {
     id: 1,
     title: "关于2026年第一季度高新技术企业申报的预通知",
     type: "通知",
     date: "2026-01-29",
+    content:
+      "平台现已同步本地企业资质数据，可用于提前梳理高新技术企业申报对象。建议相关企业优先核查知识产权、研发投入和人员结构信息，以便后续正式申报时直接复用。",
   },
   {
     id: 2,
     title: "朝阳区新增3家国家级专精特新“小巨人”企业名单公示",
     type: "动态",
     date: "2026-01-28",
+    content:
+      "本批次公示企业已纳入本地企业画像与评分体系，可在产业分类、企业画像和评分详情页中查看对应企业的资质标签、风险状态与行业位置。",
   },
   {
     id: 3,
     title: "产业链平台将于本周日凌晨 02:00 进行系统维护升级",
     type: "系统",
     date: "2026-01-27",
+    content:
+      "维护窗口预计持续 30 分钟，期间首页总览、行业画像与高级搜索功能可能出现短时不可用。评分结果与企业数据不会受影响。",
   },
   {
     id: 4,
     title: "2025年度全区数字经济产业发展报告已发布",
     type: "报告",
     date: "2026-01-25",
+    content:
+      "报告聚焦数字医疗、严肃医疗与医疗零售等重点方向，结合企业分布、评分结果和重点风险，给出当前产业链结构和未来补链建议。",
   },
   {
     id: 5,
     title: "关于举办“数据要素×”产业沙龙的邀请函",
     type: "活动",
     date: "2026-01-24",
+    content:
+      "活动将围绕产业数据治理、企业画像构建与场景落地展开，平台用户可结合高级搜索结果和企业评分报告准备交流材料。",
   },
 ];
 
 // 5. 热搜数据
-const hotSearches = {
-  industries: ["数字医疗", "工业互联网", "人工智能", "光子计算"],
+const DEFAULT_HOT_SEARCHES = {
+  industries: ["数字医疗", "严肃医疗", "消费医疗", "医疗零售"],
   enterprises: ["京东方", "阿里云", "美团", "泡泡玛特"],
 };
 
 // 6. 热门产业标签
-const hotTagsData: RankItem[] = [
+const DEFAULT_HOT_TAGS: RankItem[] = [
   { name: "生物医药", count: 320, percent: 90 },
   { name: "跨境电商", count: 280, percent: 82 },
   { name: "元宇宙", count: 210, percent: 70 },
@@ -181,9 +197,6 @@ const ecologyCategoriesRaw = [
   { name: "孵化器", icon: <BulbOutlined />, count: 26 },
   { name: "专业园区", icon: <EnvironmentOutlined />, count: 18 },
   { name: "概念验证", icon: <ExperimentOutlined />, count: 9 },
-  { name: "科研院校", icon: <BankOutlined />, count: 42 },
-  { name: "行业协会", icon: <ClusterOutlined />, count: 15 },
-  { name: "投资基金", icon: <RiseOutlined />, count: 88 },
 ];
 
 // ================== 主页面组件 ==================
@@ -195,6 +208,24 @@ const Overview: React.FC = () => {
   // 状态管理
   const [loading, setLoading] = useState(true);
   const [chainData, setChainData] = useState<any[]>([]);
+  const [searchInput, setSearchInput] = useState("");
+  const [keyMetricsData, setKeyMetricsData] =
+    useState(DEFAULT_KEY_METRICS);
+  const [hotspotStreetsData, setHotspotStreetsData] = useState<RankItem[]>(
+    DEFAULT_HOTSPOT_STREETS,
+  );
+  const [hotTagsRankData, setHotTagsRankData] =
+    useState<RankItem[]>(DEFAULT_HOT_TAGS);
+  const [hotSearchData, setHotSearchData] =
+    useState(DEFAULT_HOT_SEARCHES);
+  const [qualificationStatsRaw, setQualificationStatsRaw] = useState<
+    { label: string; value: number }[]
+  >([]);
+  const [ecologyStatsRaw, setEcologyStatsRaw] = useState<
+    { label: string; value: number }[]
+  >([]);
+  const [noticeItems, setNoticeItems] = useState<NoticeItem[]>(DEFAULT_NOTICES);
+  const [selectedNotice, setSelectedNotice] = useState<NoticeItem | null>(null);
 
   // 首页展示用的简略数据
   const [weakLinksFull, setWeakLinksFull] = useState<SuggestionItem[]>([]);
@@ -214,15 +245,17 @@ const Overview: React.FC = () => {
   // 弹窗控制
   const [isWeakLinksModalVisible, setIsWeakLinksModalVisible] = useState(false);
   const [isRecModalVisible, setIsRecModalVisible] = useState(false);
+  const [isNoticeModalVisible, setIsNoticeModalVisible] = useState(false);
 
   // 企业资质统计
-  const chaoyangStatsData: StatItem[] = chaoyangStatsRaw.map((item) => ({
+  const chaoyangStatsData: StatItem[] = QUALIFICATION_STATS_META.map((item) => ({
     icon: item.icon,
-    value: item.value,
+    value:
+      qualificationStatsRaw.find((stat) => stat.label === item.label)?.value ??
+      0,
     label: item.label,
     color: item.color,
     onClick: () => {
-      message.loading(`正在筛选：${item.label}`);
       navigate(
         `/industry-class?qualification=${encodeURIComponent(item.label)}`,
       );
@@ -232,156 +265,244 @@ const Overview: React.FC = () => {
   // 生态圈统计
   const ecologyStatsData: StatItem[] = ecologyCategoriesRaw.map((item) => ({
     icon: item.icon,
-    value: item.count,
+    value:
+      ecologyStatsRaw.find((stat) => stat.label === item.name)?.value ??
+      item.count,
     label: item.name,
     color: "#1890ff",
     onClick: () =>
-      navigate(`/industry-class?ecology=${encodeURIComponent(item.name)}`),
+      navigate(
+        `/industry-class?ecology=${encodeURIComponent(item.name)}&searchScope=ecology`,
+      ),
   }));
 
-  // 初始化数据 - 恢复原接口逻辑
+  const openNotice = (notice: NoticeItem, index?: number) => {
+    setSelectedNotice(notice);
+    setIsNoticeModalVisible(true);
+    if (typeof index === "number") {
+      setActiveNoticeIndex(index);
+      carouselRef.current?.goTo(index);
+    }
+  };
+
+  const openIndustryProfile = (industryName: string) => {
+    navigate(
+      `/industry-portrait/industry-profile?industryName=${encodeURIComponent(industryName)}`,
+    );
+  };
+
+  const openEnterpriseProfile = (companyName: string) => {
+    navigate(
+      `/industry-portrait/enterprise-profile?company=${encodeURIComponent(companyName)}`,
+    );
+  };
+
+  // 初始化数据
   useEffect(() => {
+    const fallbackChainData = [
+      {
+        title: "上游 · 研发与技术",
+        type: "upstream",
+        total: 120,
+        subTags: [
+          { name: "芯片设计", count: 40 },
+          { name: "算法模型", count: 30, isWeak: true },
+          { name: "EDA工具", count: 12 },
+          { name: "IP核", count: 8, isWeak: true },
+        ],
+      },
+      {
+        title: "中游 · 产品与制造",
+        type: "midstream",
+        total: 340,
+        subTags: [
+          { name: "智能硬件", count: 150 },
+          { name: "系统集成", count: 190 },
+        ],
+      },
+      {
+        title: "下游 · 应用与服务",
+        type: "downstream",
+        total: 560,
+        subTags: [
+          { name: "智慧医疗", count: 200 },
+          { name: "智慧金融", count: 360 },
+        ],
+      },
+    ];
+
+    const buildWeakLinkDetails = (basicLinks: SuggestionItem[]) =>
+      basicLinks.map((item, index) => ({
+        id: String(index + 1),
+        name: item.name,
+        layer: index % 2 === 0 ? "上游-核心组件" : "中游-关键设备",
+        urgency: index < 3 ? 5 : 4,
+        count: index,
+      }));
+
+    const fallbackRecommendations: RecommendEnterpriseDetail[] = [
+      {
+        id: "1",
+        name: "北京神州生物原料有限公司",
+        matchScore: 98,
+        location: "北京·海淀",
+        tags: ["生物医药", "专精特新"],
+      },
+      {
+        id: "2",
+        name: "中关村工业软件研发院",
+        matchScore: 95,
+        location: "北京·海淀",
+        tags: ["工业软件", "国资背景"],
+      },
+      {
+        id: "3",
+        name: "京北医药冷链物流集团",
+        matchScore: 92,
+        location: "北京·顺义",
+        tags: ["物流服务", "独角兽"],
+      },
+      {
+        id: "4",
+        name: "智谱AI科技有限公司",
+        matchScore: 90,
+        location: "北京·海淀",
+        tags: ["人工智能", "大模型"],
+      },
+      {
+        id: "5",
+        name: "寒武纪科技股份有限公司",
+        matchScore: 89,
+        location: "北京·海淀",
+        tags: ["芯片设计", "上市企业"],
+      },
+    ];
+
+    const applyDashboardData = (data: any) => {
+      const nextChainData = data?.chainData?.length
+        ? data.chainData
+        : fallbackChainData;
+      setChainData(nextChainData);
+
+      const computedWeakLinks = nextChainData.flatMap((layer: any) =>
+        (layer.subTags || [])
+          .filter((tag: any) => tag.isWeak)
+          .map((tag: any) => ({
+            name: tag.name,
+            highlight: true,
+            desc: tag.count ? `${tag.count}家` : undefined,
+          })),
+      );
+      const weakLinks = computedWeakLinks.length
+        ? computedWeakLinks
+        : [
+            { name: "高性能传感器", highlight: true },
+            { name: "AI 药物研发平台", highlight: true },
+            { name: "精密减速器", highlight: true },
+          ];
+      setWeakLinksFull(weakLinks);
+      setWeakLinksDetail(buildWeakLinkDetails(weakLinks));
+
+      const recommendations =
+        data?.recommendedEnterprises?.length
+          ? data.recommendedEnterprises
+          : fallbackRecommendations;
+      setRecEnterprisesDetail(
+        recommendations.map((item: any) => ({
+          id: String(item.id),
+          name: item.name,
+          matchScore: Number(item.matchScore || 0),
+          location: item.location || "北京市",
+          tags: Array.isArray(item.tags) ? item.tags : [],
+        })),
+      );
+      setRecommendEnterprisesFull(
+        recommendations.map((item: any) => ({
+          name: item.name,
+          desc: `匹配度 ${Number(item.matchScore || 0)}%`,
+        })),
+      );
+
+      setKeyMetricsData([
+        {
+          label: "收录总数",
+          value: Number(data?.metrics?.totalCompanies ?? data?.totalCompanies ?? 0),
+          suffix: "家",
+          color: "#fff",
+        },
+        {
+          label: "综合评分",
+          value: Number(data?.metrics?.averageScore ?? 0),
+          suffix: "分",
+          color: "#73d13d",
+        },
+        {
+          label: "协同效率",
+          value: Number(data?.metrics?.synergyRate ?? 0),
+          suffix: "%",
+          color: "#ffec3d",
+        },
+      ]);
+      setQualificationStatsRaw(
+        Array.isArray(data?.qualificationStats) ? data.qualificationStats : [],
+      );
+      setEcologyStatsRaw(
+        Array.isArray(data?.ecologyStats) ? data.ecologyStats : [],
+      );
+      setHotspotStreetsData(
+        Array.isArray(data?.hotspotStreets) && data.hotspotStreets.length
+          ? data.hotspotStreets
+          : DEFAULT_HOTSPOT_STREETS,
+      );
+      setHotTagsRankData(
+        Array.isArray(data?.hotTags) && data.hotTags.length
+          ? data.hotTags
+          : DEFAULT_HOT_TAGS,
+      );
+      setHotSearchData({
+        industries:
+          Array.isArray(data?.hotSearches?.industries) &&
+          data.hotSearches.industries.length
+            ? data.hotSearches.industries
+            : DEFAULT_HOT_SEARCHES.industries,
+        enterprises:
+          Array.isArray(data?.hotSearches?.enterprises) &&
+          data.hotSearches.enterprises.length
+            ? data.hotSearches.enterprises
+            : DEFAULT_HOT_SEARCHES.enterprises,
+      });
+      setNoticeItems(
+        Array.isArray(data?.notices) && data.notices.length
+          ? data.notices
+          : DEFAULT_NOTICES,
+      );
+    };
+
     const fetchData = async () => {
       setLoading(true);
       try {
-        // 1. 尝试调用真实接口
-        const response = await fetch(
-          "http://localhost:3001/api/dashboard/overview",
-        );
+        const response = await fetch("/api/dashboard/overview");
         const json = await response.json();
-
-        if (json.success) {
-          setChainData(json.data.chainData);
-          // 计算补链建议（从接口数据衍生）
-          const computedWeakLinks = json.data.chainData.flatMap((layer: any) =>
-            layer.subTags
-              .filter((t: any) => t.isWeak)
-              .map((t: any) => ({ name: t.name, highlight: true })),
-          );
-          setWeakLinksFull(computedWeakLinks);
-
-          // 如果接口返回了详细数据则使用，否则使用模拟数据填充弹窗
-          generateModalData(computedWeakLinks);
+        if (json.success && json.data) {
+          applyDashboardData(json.data);
+        } else {
+          applyDashboardData({});
         }
       } catch (error) {
         console.error("Fetch error:", error);
-        // 2. 接口失败，使用 Fallback 数据 (原封不动拿回)
-        const fallbackChainData = [
-          {
-            title: "上游 · 研发与技术",
-            type: "upstream",
-            total: 120,
-            subTags: [
-              { name: "芯片设计", count: 40 },
-              { name: "算法模型", count: 30, isWeak: true },
-              { name: "EDA工具", count: 12 },
-              { name: "IP核", count: 8, isWeak: true },
-            ],
-          },
-          {
-            title: "中游 · 产品与制造",
-            type: "midstream",
-            total: 340,
-            subTags: [
-              { name: "智能硬件", count: 150 },
-              { name: "系统集成", count: 190 },
-            ],
-          },
-          {
-            title: "下游 · 应用与服务",
-            type: "downstream",
-            total: 560,
-            subTags: [
-              { name: "智慧医疗", count: 200 },
-              { name: "智慧金融", count: 360 },
-            ],
-          },
-        ];
-        setChainData(fallbackChainData);
-
-        const fallbackWeakLinks = [
-          { name: "光刻机零部件", highlight: true },
-          { name: "工业级操作系统", highlight: true },
-          { name: "高性能传感器", highlight: true },
-          { name: "车规级芯片", highlight: true },
-          { name: "精密减速器", highlight: true },
-        ];
-        setWeakLinksFull(fallbackWeakLinks);
-        generateModalData(fallbackWeakLinks);
+        applyDashboardData({});
       } finally {
         setLoading(false);
       }
     };
 
-    // 生成弹窗所需的详细数据 (模拟扩展，避免过于复杂)
-    const generateModalData = (basicLinks: any[]) => {
-      // 补链弹窗数据
-      const details = basicLinks.map((item: any, index: number) => ({
-        id: String(index),
-        name: item.name,
-        layer: index % 2 === 0 ? "上游-核心组件" : "中游-关键设备",
-        urgency: index < 3 ? 5 : 4,
-        count: Math.floor(Math.random() * 10),
-      }));
-      setWeakLinksDetail(details);
-
-      // 引育弹窗数据 (静态模拟)
-      setRecEnterprisesDetail([
-        {
-          id: "1",
-          name: "北京神州生物原料有限公司",
-          matchScore: 98,
-          location: "北京·海淀",
-          tags: ["生物医药", "专精特新"],
-        },
-        {
-          id: "2",
-          name: "中关村工业软件研发院",
-          matchScore: 95,
-          location: "北京·海淀",
-          tags: ["工业软件", "国资背景"],
-        },
-        {
-          id: "3",
-          name: "京北医药冷链物流集团",
-          matchScore: 92,
-          location: "北京·顺义",
-          tags: ["物流服务", "独角兽"],
-        },
-        {
-          id: "4",
-          name: "智谱AI科技有限公司",
-          matchScore: 90,
-          location: "北京·海淀",
-          tags: ["人工智能", "大模型"],
-        },
-        {
-          id: "5",
-          name: "寒武纪科技股份有限公司",
-          matchScore: 89,
-          location: "北京·海淀",
-          tags: ["芯片设计", "上市企业"],
-        },
-      ]);
-    };
-
     fetchData();
-
-    // 首页展示的简略推荐企业
-    setRecommendEnterprisesFull([
-      { name: "北京神州生物原料有限公司", desc: "匹配度 98%" },
-      { name: "中关村工业软件研发院", desc: "匹配度 95%" },
-      { name: "京北医药冷链物流集团", desc: "匹配度 92%" },
-      { name: "智谱AI科技有限公司", desc: "匹配度 90%" },
-      { name: "寒武纪科技股份有限公司", desc: "匹配度 89%" },
-    ]);
   }, []);
 
   const handleListNoticeClick = (index: number) => {
-    if (carouselRef.current) {
-      carouselRef.current.goTo(index);
+    if (noticeItems[index]) {
+      openNotice(noticeItems[index], index);
     }
-    setActiveNoticeIndex(index);
   };
 
   const styles = {
@@ -456,9 +577,26 @@ const Overview: React.FC = () => {
     },
   };
 
-  const handleSearch = (value: string) => {
-    message.info(`正在搜索 [${searchScope}]：${value}`);
-    navigate(`/industry-class?q=${value}`);
+  const handleSearch = (value?: string) => {
+    const trimmed = String(value ?? searchInput).trim();
+    if (!trimmed) {
+      message.warning("请输入搜索关键词");
+      return;
+    }
+
+    if (searchScope === "industry") {
+      openIndustryProfile(trimmed);
+      return;
+    }
+
+    if (searchScope === "company") {
+      openEnterpriseProfile(trimmed);
+      return;
+    }
+
+    navigate(
+      `/industry-class?keyword=${encodeURIComponent(trimmed)}&searchScope=${encodeURIComponent(searchScope)}`,
+    );
   };
 
   // 弹窗表格列定义 (简化版)
@@ -506,7 +644,7 @@ const Overview: React.FC = () => {
         <Button
           type="link"
           size="small"
-          onClick={() => navigate(`/industry-class?tag=${record.name}`)}
+          onClick={() => openIndustryProfile(record.name)}
         >
           查看
         </Button>
@@ -576,7 +714,19 @@ const Overview: React.FC = () => {
               >
                 <Input
                   size="large"
-                  placeholder={`请输入${searchScope === "industry" ? "行业" : "企业"}名称、关键词...`}
+                  placeholder={`请输入${
+                    searchScope === "industry"
+                      ? "行业"
+                      : searchScope === "company"
+                        ? "企业"
+                        : searchScope === "person"
+                          ? "负责人"
+                          : searchScope === "risk"
+                            ? "风险"
+                            : "资质"
+                  }名称、关键词...`}
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
                   style={{
                     height: 56,
                     fontSize: 16,
@@ -612,7 +762,7 @@ const Overview: React.FC = () => {
                     background: "#1890ff",
                   }}
                   icon={<SearchOutlined />}
-                  onClick={() => handleSearch("")}
+                  onClick={() => handleSearch()}
                 >
                   搜索
                 </Button>
@@ -628,7 +778,7 @@ const Overview: React.FC = () => {
               >
                 <FireOutlined style={{ marginRight: 8, color: "#ffec3d" }} />
                 <span style={{ marginRight: 8 }}>热搜行业：</span>
-                {hotSearches.industries.map((item) => (
+                {hotSearchData.industries.map((item) => (
                   <Tag
                     key={item}
                     bordered={false}
@@ -638,14 +788,14 @@ const Overview: React.FC = () => {
                       cursor: "pointer",
                       border: "none",
                     }}
-                    onClick={() => navigate("/industry-class")}
+                    onClick={() => openIndustryProfile(item)}
                   >
                     {item}
                   </Tag>
                 ))}
                 <span style={{ margin: "0 16px", opacity: 0.5 }}>|</span>
                 <span style={{ marginRight: 8 }}>热搜企业：</span>
-                {hotSearches.enterprises.map((item) => (
+                {hotSearchData.enterprises.map((item) => (
                   <span
                     key={item}
                     style={{
@@ -653,7 +803,7 @@ const Overview: React.FC = () => {
                       cursor: "pointer",
                       borderBottom: "1px dashed rgba(255,255,255,0.5)",
                     }}
-                    onClick={() => navigate("/industry-class")}
+                    onClick={() => openEnterpriseProfile(item)}
                   >
                     {item}
                   </span>
@@ -695,7 +845,7 @@ const Overview: React.FC = () => {
                 lineHeight: "40px",
               }}
             >
-              {notices.map((n) => (
+              {noticeItems.map((n, index) => (
                 <div key={n.id} style={{ width: "100%", height: 40 }}>
                   <div
                     style={{
@@ -705,11 +855,7 @@ const Overview: React.FC = () => {
                       cursor: "pointer",
                       paddingRight: 16,
                     }}
-                    onClick={() =>
-                      document
-                        .getElementById("notice-section")
-                        ?.scrollIntoView({ behavior: "smooth" })
-                    }
+                    onClick={() => openNotice(n, index)}
                   >
                     <Tag
                       color="orange"
@@ -743,11 +889,7 @@ const Overview: React.FC = () => {
             </Carousel>
           </div>
           <a
-            onClick={() =>
-              document
-                .getElementById("notice-section")
-                ?.scrollIntoView({ behavior: "smooth" })
-            }
+            onClick={() => noticeItems[activeNoticeIndex] && openNotice(noticeItems[activeNoticeIndex], activeNoticeIndex)}
             style={{
               color: "#1890ff",
               fontSize: 13,
@@ -786,7 +928,7 @@ const Overview: React.FC = () => {
                 }}
               >
                 <Row gutter={24}>
-                  {keyMetrics.map((m, idx) => (
+                  {keyMetricsData.map((m, idx) => (
                     <Col
                       span={8}
                       key={idx}
@@ -870,7 +1012,7 @@ const Overview: React.FC = () => {
                                 ...(tag.isWeak ? styles.tagCardWeak : {}),
                               }}
                               onClick={() =>
-                                navigate(`/industry-class?tag=${tag.name}`)
+                                openIndustryProfile(tag.name)
                               }
                             >
                               <div
@@ -942,6 +1084,7 @@ const Overview: React.FC = () => {
                     data={weakLinksFull}
                     icon={<ThunderboltFilled />}
                     iconColor="#fa8c16"
+                    onItemClick={(item) => openIndustryProfile(item.name)}
                   />
                 </Col>
 
@@ -966,6 +1109,7 @@ const Overview: React.FC = () => {
                     data={recommendEnterprisesFull}
                     icon={<ShopOutlined />}
                     iconColor="#1890ff"
+                    onItemClick={(item) => openEnterpriseProfile(item.name)}
                   />
                 </Col>
               </Row>
@@ -997,16 +1141,25 @@ const Overview: React.FC = () => {
                 {/* 3. 热门产业标签 */}
                 <div style={styles.panelRightItem}>
                   <div style={styles.panelHeader}>热门产业标签</div>
-                  <RankList data={hotTagsData} colorScale={true} />
+                  <RankList
+                    data={hotTagsRankData}
+                    colorScale={true}
+                    onItemClick={(item) => openIndustryProfile(item.name)}
+                  />
                 </div>
 
                 {/* 4. 热门区域分布 */}
                 <div style={{ ...styles.panelRightItem, borderBottom: "none" }}>
                   <div style={styles.panelHeader}>热门区域分布</div>
                   <RankList
-                    data={hotspotStreets}
+                    data={hotspotStreetsData}
                     colorScale={true}
                     limit={10}
+                    onItemClick={(item) =>
+                      navigate(
+                        `/industry-class?street=${encodeURIComponent(item.name)}`,
+                      )
+                    }
                   />
                 </div>
               </div>
@@ -1027,7 +1180,10 @@ const Overview: React.FC = () => {
             <Button
               type="link"
               style={{ padding: 0, height: "auto" }}
-              onClick={() => message.info("查看全部公告")}
+              onClick={() =>
+                noticeItems[activeNoticeIndex] &&
+                openNotice(noticeItems[activeNoticeIndex], activeNoticeIndex)
+              }
             >
               查看全部 <ArrowRightOutlined />
             </Button>
@@ -1035,7 +1191,7 @@ const Overview: React.FC = () => {
 
           <List
             grid={{ gutter: 60, column: 2 }}
-            dataSource={notices}
+            dataSource={noticeItems}
             renderItem={(item, index) => (
               <List.Item style={{ marginBottom: 12 }}>
                 <div
@@ -1189,8 +1345,16 @@ const Overview: React.FC = () => {
           >
             <span></span>
             <Space size="large">
-              <GithubOutlined style={{ fontSize: 20, cursor: "pointer" }} />
-              <GlobalOutlined style={{ fontSize: 20, cursor: "pointer" }} />
+              <GithubOutlined
+                style={{ fontSize: 20, cursor: "pointer" }}
+                onClick={() =>
+                  window.open("https://github.com/yunnuo-score/dcpt-f", "_blank")
+                }
+              />
+              <GlobalOutlined
+                style={{ fontSize: 20, cursor: "pointer" }}
+                onClick={() => navigate("/industry-portrait")}
+              />
             </Space>
           </div>
         </div>
@@ -1201,11 +1365,16 @@ const Overview: React.FC = () => {
         style={{ right: 24, bottom: 80 }}
         icon={<RobotOutlined />}
       >
-        <FloatButton tooltip="风险预警" icon={<SafetyCertificateOutlined />} />
+        <FloatButton
+          tooltip="风险预警"
+          icon={<SafetyCertificateOutlined />}
+          onClick={() => navigate("/industry-class?riskAbnormal=1")}
+        />
         <FloatButton
           tooltip="AI 产业链助手"
           icon={<RobotOutlined />}
           type="primary"
+          onClick={() => navigate("/industry-diag")}
         />
       </FloatButton.Group>
 
@@ -1341,6 +1510,40 @@ const Overview: React.FC = () => {
             </List.Item>
           )}
         />
+      </Modal>
+
+      <Modal
+        title={
+          <Space>
+            <BellOutlined style={{ color: "#1890ff" }} />
+            <span style={{ fontSize: 16, fontWeight: 600 }}>公告详情</span>
+          </Space>
+        }
+        open={isNoticeModalVisible}
+        onCancel={() => setIsNoticeModalVisible(false)}
+        footer={[
+          <Button key="close" onClick={() => setIsNoticeModalVisible(false)}>
+            关闭
+          </Button>,
+        ]}
+        width={720}
+      >
+        {selectedNotice && (
+          <div>
+            <div style={{ marginBottom: 16 }}>
+              <Space size={12} wrap>
+                <Tag color="blue">{selectedNotice.type}</Tag>
+                <Text type="secondary">{selectedNotice.date}</Text>
+              </Space>
+            </div>
+            <Title level={4} style={{ marginBottom: 16 }}>
+              {selectedNotice.title}
+            </Title>
+            <Text style={{ color: "#595959", lineHeight: 1.9 }}>
+              {selectedNotice.content}
+            </Text>
+          </div>
+        )}
       </Modal>
     </div>
   );

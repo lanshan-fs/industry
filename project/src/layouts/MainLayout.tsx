@@ -27,6 +27,7 @@ import {
   SafetyCertificateOutlined,
   BuildOutlined,
   ControlOutlined,
+  NotificationOutlined,
 } from "@ant-design/icons";
 
 const { Header, Content, Sider } = Layout;
@@ -92,6 +93,11 @@ const SIDER_CONFIG: Record<string, MenuProps["items"]> = {
           label: "评分权重管理",
           icon: <SafetyCertificateOutlined />,
         },
+        {
+          key: "announcement-mgmt",
+          label: "平台公告管理",
+          icon: <NotificationOutlined />,
+        },
       ],
     },
     { key: "user-mgmt", icon: <TeamOutlined />, label: "用户管理" },
@@ -100,9 +106,11 @@ const SIDER_CONFIG: Record<string, MenuProps["items"]> = {
 
 const BREADCRUMB_MAP: Record<string, string> = {
   home: "首页",
+  profile: "个人中心",
   "industry-class": "产业分类",
   "industry-profile": "行业画像",
   "enterprise-profile": "企业画像",
+  "enterprise-score": "企业评分",
   "industry-score": "产业评分",
   "smart-diag": "智能助手",
   "system-mgmt": "系统管理",
@@ -113,6 +121,7 @@ const BREADCRUMB_MAP: Record<string, string> = {
   "tag-library": "标签体系库",
   "auto-tag": "自动打标签",
   "weight-data": "评分权重管理",
+  "announcement-mgmt": "平台公告管理",
   "user-mgmt": "用户管理",
 };
 
@@ -172,6 +181,8 @@ const MainLayout: React.FC = () => {
       localStorage.removeItem("token");
       localStorage.setItem("user", "{}");
       navigate("/login");
+    } else if (e.key === "center") {
+      navigate("/profile");
     } else if (e.key === "system-mgmt") {
       navigate("/system-mgmt");
     }

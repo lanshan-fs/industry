@@ -101,10 +101,14 @@ const EnterpriseBasicInfoTab: React.FC<EnterpriseBasicInfoTabProps> = ({
         <Descriptions.Item label="所属行业">
           {baseInfo.industry}
         </Descriptions.Item>
-        <Descriptions.Item label="参保人数">219 人</Descriptions.Item>
-        <Descriptions.Item label="核准日期">2023-11-15</Descriptions.Item>
+        <Descriptions.Item label="参保人数">
+          {baseInfo.insuredCount ?? "-"} 人
+        </Descriptions.Item>
+        <Descriptions.Item label="核准日期">
+          {baseInfo.approvedDate || "-"}
+        </Descriptions.Item>
         <Descriptions.Item label="登记机关">
-          北京市朝阳区市场监督管理局
+          {baseInfo.registrationAuthority || "-"}
         </Descriptions.Item>
         <Descriptions.Item label="注册地址" span={3}>
           {baseInfo.address}
