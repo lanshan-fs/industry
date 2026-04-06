@@ -46,5 +46,13 @@
     "company_tag_dimension_icon": null,
     "company_tag_dimension_des": null,
     "sort_order": 60
+  },
+  {
+    "company_tag_dimension_id": 10,
+    "company_tag_dimension_name": "行业标签",
+    "company_tag_dimension_color": null,
+    "company_tag_dimension_icon": null,
+    "company_tag_dimension_des": "产业链与行业分类标签",
+    "sort_order": 61
   }
 ]

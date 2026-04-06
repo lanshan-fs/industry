@@ -1,0 +1,2 @@
+company_name,credit_code,establish_date,register_capital,paid_capital,employee_count,insured_count,contact_phone,email_business,register_address,register_address_detail,business_scope,qualification_label,industry_belong,subdistrict
+"示例科技有限公司","91110105MA12345678","2021-06-18","1000","500","25","18","13800000000","demo@example.com","北京市朝阳区酒仙桥路1号","北京市朝阳区酒仙桥街道产业园A座","技术开发；软件服务；健康管理服务；医疗信息咨询。","高新技术企业","数字医疗、健康管理","酒仙桥街道"

@@ -23,6 +23,7 @@ from .models import InviteCode, OperationLog, PlatformUser, Role, UserDomain, Us
 
 
 FIXED_INVITE_CODE = "CY2026"
+RESERVED_ADMIN_USERNAME = "admin"
 JWT_SECRET = os.getenv("JWT_SECRET", "chaoyang_industrial_secret_2026")
 EMAIL_HOST = (os.getenv("EMAIL_HOST") or "smtp.163.com").replace("\r", "").strip()
 EMAIL_PORT = int((os.getenv("EMAIL_PORT") or "465").replace("\r", "").strip())
@@ -186,6 +187,10 @@ def _ordered_roles() -> list[Role]:
     return [existing[item["name"]] for item in ROLE_DEFINITIONS if item["name"] in existing]
 
 
+def _is_reserved_admin_username(username: str) -> bool:
+    return _normalize_text(username).lower() == RESERVED_ADMIN_USERNAME
+
+
 def _canonical_role_name(role_name: str) -> str:
     normalized = _normalize_text(role_name)
     if normalized == "ADMIN":
@@ -196,6 +201,8 @@ def _canonical_role_name(role_name: str) -> str:
 
 
 def _role_name_from_user(user: PlatformUser) -> str:
+    if _is_reserved_admin_username(user.user_name):
+        return "ADMIN"
     assignment = next(iter(getattr(user, "role_assignments", []).all()), None) if hasattr(user, "role_assignments") else None
     if assignment and assignment.role and assignment.role.role_name:
         return assignment.role.role_name
@@ -206,15 +213,55 @@ def _role_name_from_user(user: PlatformUser) -> str:
     return "ordinary_user"
 
 
+def _ensure_reserved_admin_privileges(user: PlatformUser):
+    if not _is_reserved_admin_username(user.user_name):
+        return
+
+    roles = {role.role_name: role for role in _ordered_roles()}
+    admin_role = roles.get("ADMIN")
+    now = timezone.now()
+
+    update_fields: list[str] = []
+    if user.user_role != "ADMIN":
+        user.user_role = "ADMIN"
+        update_fields.append("user_role")
+    if not user.is_superuser:
+        user.is_superuser = True
+        update_fields.append("is_superuser")
+    user.updated_at = now
+    update_fields.append("updated_at")
+    user.save(update_fields=update_fields)
+
+    if not admin_role:
+        return
+
+    assignment = UserRoleAssignment.objects.filter(user=user).first()
+    if assignment:
+        assignment_updates: list[str] = []
+        if assignment.role_id != admin_role.role_id:
+            assignment.role = admin_role
+            assignment_updates.append("role")
+        if assignment.assigned_at is None:
+            assignment.assigned_at = now
+            assignment_updates.append("assigned_at")
+        if assignment_updates:
+            assignment.save(update_fields=assignment_updates)
+        UserRoleAssignment.objects.filter(user=user).exclude(association_id=assignment.association_id).delete()
+    else:
+        UserRoleAssignment.objects.create(user=user, role=admin_role, assigned_at=now)
+
+
 def _build_auth_user(user: PlatformUser) -> dict:
     domain_key = None
     if user.domain_id and user.domain:
         domain_key = DOMAIN_NAME_TO_KEY.get(user.domain.domain_name)
 
+    role_name = _role_name_from_user(user)
     return {
         "id": user.user_id,
         "username": user.user_name,
-        "role": _role_name_from_user(user),
+        "role": role_name,
+        "isAdmin": role_name == "ADMIN" or user.is_superuser,
         "realName": user.user_real_name or user.user_name,
         "domain": domain_key,
         "organization": user.organization or user.org_name,
@@ -252,6 +299,7 @@ def _authenticated_user(request) -> PlatformUser | None:
     )
     if not user or user.user_status == 0:
         return None
+    _ensure_reserved_admin_privileges(user)
     return user
 
 
@@ -397,6 +445,7 @@ def login(request):
     )
     if not user:
         return _json_error("用户不存在")
+    _ensure_reserved_admin_privileges(user)
     if user.user_status == 0:
         return _json_error("账号已被禁用", status=403)
 
@@ -691,6 +740,8 @@ def user_profile(request):
                 "position": user.position or user.dept_name,
                 "domain_name": user.domain.domain_name if user.domain else None,
                 "role_name": ROLE_LABEL_MAP.get(role_name, role_name),
+                "role": role_name,
+                "is_superuser": bool(user.is_superuser or role_name == "ADMIN"),
                 "registered_at": user.registered_at.strftime("%Y-%m-%d %H:%M:%S") if user.registered_at else None,
             },
         }

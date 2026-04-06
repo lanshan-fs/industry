@@ -2,13 +2,14 @@
 from __future__ import annotations
 
 import argparse
-import os
 import subprocess
 import sys
 from pathlib import Path
 from typing import Dict, Iterable, List, Sequence, Tuple
 
 from openpyxl import load_workbook
+
+from _import_utils import chunked, escape_sql, parse_env, run_mysql_sql
 
 
 SHEET_MAPPINGS: Dict[str, Dict[str, object]] = {
@@ -19,31 +20,40 @@ SHEET_MAPPINGS: Dict[str, Dict[str, object]] = {
             ("企业名称", "company_name"),
             ("统一社会信用代码", "credit_code"),
             ("成立年限", "establish_info"),
-            ("注册资本（统一人民币为单位）", "register_capital_raw"),
-            ("实缴资本（统一人民币为单位）", "paid_capital_raw"),
+            ("注册资本（万元）", "register_capital_raw"),
+            ("实缴资本（万元）", "paid_capital_raw"),
             ("企业类型", "company_type_raw"),
             ("组织类型", "org_type_raw"),
-            ("投资类型", "investment_type_raw"),
             ("企业规模", "company_scale_raw"),
+            ("是否有分支机构", "has_branch_raw"),
             ("分支机构数量", "branch_count_raw"),
-            ("分支机构名称", "branch_names_raw"),
             ("地址信息", "address_info_raw"),
             ("投融资轮次", "financing_round_raw"),
-            ("企业资质", "qualification_raw"),
             ("法定代表人", "legal_representative"),
+            ("社保人数", "insured_count_raw"),
             ("注册号", "register_number"),
             ("组织机构代码", "org_code"),
             ("所属行业", "industry_name_raw"),
             ("经营范围", "business_scope_raw"),
-            ("邮箱（工商信息）_x", "email_business"),
-            ("邮箱（企业认证信息）", "email_auth"),
+            ("邮箱（工商信息）", "email_business"),
             ("股东", "shareholder_raw"),
-            ("联系电话", "contact_phone_1"),
+            ("联系电话", "contact_phone_0"),
+            ("联系电话1", "contact_phone_1"),
             ("联系电话2", "contact_phone_2"),
             ("联系电话3", "contact_phone_3"),
             ("联系电话4", "contact_phone_4"),
             ("联系电话5", "contact_phone_5"),
-            ("推荐电话", "recommended_phone"),
+        ],
+    },
+    "分支机构": {
+        "table": "raw_import_company_branch",
+        "columns": [
+            ("企业名称", "company_name"),
+            ("分支机构企业名称", "branch_company_name"),
+            ("负责人", "branch_leader"),
+            ("地区", "branch_region"),
+            ("成立日期", "branch_establish_date_raw"),
+            ("登记状态", "branch_status_raw"),
         ],
     },
     "企业经营信息": {
@@ -64,12 +74,79 @@ SHEET_MAPPINGS: Dict[str, Dict[str, object]] = {
             ("有无融资信息", "has_financing_info_raw"),
             ("有无招投标", "has_bidding_raw"),
             ("招投标数量", "bidding_count_raw"),
+            ("有无供应商", "has_supplier_raw"),
+            ("供应商数量", "supplier_count_raw"),
             ("有无招聘", "has_recruitment_raw"),
             ("招聘信息数量", "recruit_count_raw"),
             ("是否有客户信息", "has_customer_info_raw"),
             ("客户数量", "customer_count_raw"),
             ("是否有上榜榜单", "has_ranking_raw"),
             ("上榜榜单数量", "ranking_count_raw"),
+            ("是否有许可", "has_license_raw"),
+            ("许可数量", "license_count_raw"),
+            ("是否有资质", "has_qualification_raw"),
+            ("资质数量", "qualification_count_raw"),
+            ("税务评级", "taxpayer_credit_rating_raw"),
+        ],
+    },
+    "客户信息": {
+        "table": "raw_import_company_customer",
+        "columns": [
+            ("序号", "sheet_row_no"),
+            ("公司名称", "company_name"),
+            ("客户名称", "customer_name"),
+            ("销售占比", "sales_ratio_raw"),
+            ("销售金额", "sales_amount_raw"),
+            ("报告期", "report_period_raw"),
+            ("数据来源", "data_source"),
+        ],
+    },
+    "上榜榜单信息": {
+        "table": "raw_import_company_ranking",
+        "columns": [
+            ("企业名称", "company_name"),
+            ("榜单名称", "ranking_name"),
+            ("榜单类型", "ranking_type"),
+            ("来源", "ranking_source"),
+            ("榜内位置", "ranking_position_raw"),
+            ("榜内名称", "ranking_alias"),
+            ("发布年份", "publish_year_raw"),
+        ],
+    },
+    "招聘信息": {
+        "table": "raw_import_company_recruit",
+        "columns": [
+            ("公司名称", "company_name"),
+            ("招聘职位", "position_name"),
+            ("薪资", "salary_raw"),
+            ("地区", "work_place"),
+            ("工作经验", "work_year_raw"),
+            ("学历", "edu_req_raw"),
+            ("发布时间", "recruit_time_raw"),
+        ],
+    },
+    "许可": {
+        "table": "raw_import_company_license",
+        "columns": [
+            ("企业名称", "company_name"),
+            ("许可文件编号", "license_number"),
+            ("许可文件名称", "license_name"),
+            ("许可状态", "license_status"),
+            ("来源", "data_source"),
+            ("有效期", "validity_period_raw"),
+            ("许可机关", "issuing_authority"),
+        ],
+    },
+    "资质": {
+        "table": "raw_import_company_qualification",
+        "columns": [
+            ("企业名称", "company_name"),
+            ("证书名称", "qualification_name"),
+            ("证书编号", "qualification_number"),
+            ("证书类型", "qualification_type"),
+            ("证书状态", "qualification_status"),
+            ("发证日期", "issued_at_raw"),
+            ("截止日期", "expires_at_raw"),
         ],
     },
     "知识产权": {
@@ -96,51 +173,26 @@ SHEET_MAPPINGS: Dict[str, Dict[str, object]] = {
         "table": "raw_import_software_copyright",
         "columns": [
             ("序号", "sheet_row_no"),
-            ("著作权人", "company_name"),
             ("软件名称", "software_name"),
             ("登记号", "register_number"),
             ("软件简称", "software_short_name"),
             ("登记批准日期", "register_date_raw"),
             ("状态", "status_raw"),
             ("取得方式", "obtain_method_raw"),
-        ],
-    },
-    "上榜榜单信息": {
-        "table": "raw_import_company_ranking",
-        "columns": [
-            ("企业名称", "company_name"),
-            ("榜单名称", "ranking_name"),
-            ("榜单类型", "ranking_type"),
-            ("来源", "ranking_source"),
-            ("榜内位置", "ranking_position_raw"),
-            ("榜内名称", "ranking_alias"),
-            ("发布年份", "publish_year_raw"),
-        ],
-    },
-    "客户信息": {
-        "table": "raw_import_company_customer",
-        "columns": [
-            ("序号", "sheet_row_no"),
-            ("公司名称", "company_name"),
-            ("客户名称", "customer_name"),
-            ("销售占比", "sales_ratio_raw"),
-            ("销售金额", "sales_amount_raw"),
-            ("报告期", "report_period_raw"),
-            ("数据来源", "data_source"),
+            ("著作权人", "company_name"),
         ],
     },
     "作品著作权": {
         "table": "raw_import_company_work_copyright",
         "columns": [
             ("序号", "sheet_row_no"),
-            ("企业名称", "company_name"),
             ("作品名称", "work_name"),
             ("登记号", "register_number"),
             ("类别", "work_type_raw"),
             ("首次发布日期", "first_publish_date_raw"),
             ("登记日期", "register_date_raw"),
             ("状态", "status_raw"),
-            ("作者", "author_raw"),
+            ("企业名称", "company_name"),
         ],
     },
     "专利信息": {
@@ -152,38 +204,22 @@ SHEET_MAPPINGS: Dict[str, Dict[str, object]] = {
             ("专利名称", "patent_name"),
             ("专利类型", "patent_type_raw"),
             ("申请日", "application_date_raw"),
-            ("申请公布日", "auth_publish_date_raw"),
+            ("申请公布日", "publication_date_raw"),
         ],
     },
-    "经营风险": {
+    "扣分项": {
         "table": "raw_import_company_risk",
         "columns": [
             ("企业名称", "company_name"),
-            ("原始行号", "source_row_no"),
-            ("法律文书_司法案件数量", "legal_doc_case_count_raw"),
-            ("法律文书_裁判文书", "legal_doc_judgement_count_raw"),
-            ("有无法律文书", "has_legal_document_raw"),
-            ("法律文书_合计", "legal_doc_total_count_raw"),
-            ("有无失信被执行", "has_dishonest_execution_raw"),
-            ("失信被执行", "dishonest_execution_count_raw"),
-            ("有无动产抵押", "has_chattel_mortgage_raw"),
-            ("动产抵押数量", "chattel_mortgage_count_raw"),
-            ("有无经营异常", "has_business_abnormal_raw"),
-            ("经营异常数量", "business_abnormal_count_raw"),
-            ("有无行政处罚", "has_admin_penalty_raw"),
-            ("行政处罚", "admin_penalty_count_raw"),
-            ("有无破产重叠", "has_bankruptcy_overlap_raw"),
-            ("破产重叠", "bankruptcy_overlap_count_raw"),
-            ("有无清算信息", "has_liquidation_info_raw"),
-            ("清算信息", "liquidation_info_count_raw"),
-            ("有无环保处罚", "has_env_penalty_raw"),
-            ("环保处罚", "env_penalty_count_raw"),
-            ("有无股权冻结", "has_equity_freeze_raw"),
-            ("股权冻结", "equity_freeze_count_raw"),
-            ("有无被执行人", "has_executed_person_raw"),
+            ("严重违法", "serious_illegal_count_raw"),
+            ("司法案件", "judicial_case_count_raw"),
+            ("合作风险", "cooperation_risk_count_raw"),
+            ("失信被执行人", "dishonest_execution_count_raw"),
+            ("破产案件", "bankruptcy_case_count_raw"),
             ("被执行人", "executed_person_count_raw"),
-            ("有无限制高消费", "has_consumption_restriction_raw"),
             ("限制高消费", "consumption_restriction_count_raw"),
+            ("经营异常", "business_abnormal_count_raw"),
+            ("集群注册", "cluster_registration_count_raw"),
         ],
     },
     "街道信息": {
@@ -191,96 +227,23 @@ SHEET_MAPPINGS: Dict[str, Dict[str, object]] = {
         "columns": [
             ("序号", "sheet_row_no"),
             ("企业名称", "company_name"),
+            ("地址", "address_raw"),
             ("街道", "street_name"),
             ("地区", "region_name"),
-        ],
-    },
-    "招聘信息": {
-        "table": "raw_import_company_recruit",
-        "columns": [
-            ("序号", "sheet_row_no"),
-            ("公司", "company_name"),
-            ("职位", "position_name"),
-            ("薪资", "salary_raw"),
-            ("工作年限", "work_year_raw"),
-            ("工作地点", "work_place"),
-            ("学历", "edu_req_raw"),
-            ("招聘时间", "recruit_time_raw"),
         ],
     },
 }
 
 
-def parse_env(env_path: Path) -> Dict[str, str]:
-    env: Dict[str, str] = {}
-    for line in env_path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, value = line.split("=", 1)
-        env[key.strip()] = value.strip()
-    return env
-
-
-def mysql_command(env: Dict[str, str], with_database: bool = True) -> Tuple[List[str], Dict[str, str]]:
-    host = env.get("DB_HOST", "127.0.0.1")
-    if host == "localhost":
-        host = "127.0.0.1"
-    cmd = [
-        "mysql",
-        "-h",
-        host,
-        "-P",
-        env.get("DB_PORT", "3306"),
-        "-u",
-        env.get("DB_USER", "root"),
-        "--default-character-set=utf8mb4",
-    ]
-    if with_database:
-        cmd.extend(["-D", env.get("DB_NAME", "industrial_chain")])
-    child_env = os.environ.copy()
-    if env.get("DB_PASSWORD"):
-        child_env["MYSQL_PWD"] = env["DB_PASSWORD"]
-    return cmd, child_env
-
-
-def run_mysql_sql(sql: str, env: Dict[str, str], with_database: bool = True) -> None:
-    cmd, child_env = mysql_command(env, with_database=with_database)
-    subprocess.run(
-        cmd,
-        input=sql,
-        text=True,
-        env=child_env,
-        check=True,
-    )
-
-
-def escape_sql(value: object) -> str:
-    if value is None:
-        return "NULL"
-    text = str(value)
-    if text == "":
-        return "NULL"
-    text = text.replace("\\", "\\\\")
-    text = text.replace("'", "''")
-    text = text.replace("\x00", "")
-    return f"'{text}'"
-
-
-def chunked(rows: Sequence[Tuple[object, ...]], size: int) -> Iterable[Sequence[Tuple[object, ...]]]:
-    for i in range(0, len(rows), size):
-        yield rows[i : i + size]
-
-
 def load_sheet_rows(xlsx_path: Path, sheet_name: str, columns: Sequence[Tuple[str, str]]) -> List[Tuple[object, ...]]:
-    wb = load_workbook(xlsx_path, read_only=True, data_only=True)
-    ws = wb[sheet_name]
-    rows = ws.iter_rows(values_only=True)
+    workbook = load_workbook(xlsx_path, read_only=True, data_only=True)
+    worksheet = workbook[sheet_name]
+    rows = worksheet.iter_rows(values_only=True)
     headers = list(next(rows))
     header_map = {header: idx for idx, header in enumerate(headers)}
-
     missing = [excel_name for excel_name, _ in columns if excel_name not in header_map]
     if missing:
+        workbook.close()
         raise KeyError(f"{sheet_name} 缺少列: {missing}")
 
     results: List[Tuple[object, ...]] = []
@@ -289,7 +252,7 @@ def load_sheet_rows(xlsx_path: Path, sheet_name: str, columns: Sequence[Tuple[st
         if all(value is None or str(value).strip() == "" for value in values):
             continue
         results.append(values)
-    wb.close()
+    workbook.close()
     return results
 
 
@@ -298,13 +261,12 @@ def import_sheet(xlsx_path: Path, env: Dict[str, str], sheet_name: str, batch_si
     table = str(config["table"])
     columns = list(config["columns"])  # type: ignore[arg-type]
     rows = load_sheet_rows(xlsx_path, sheet_name, columns)
-
     column_sql = ", ".join(f"`{column_name}`" for _, column_name in columns)
+
     for batch in chunked(rows, batch_size):
         values_sql = []
         for row in batch:
-            escaped = ", ".join(escape_sql(value) for value in row)
-            values_sql.append(f"({escaped})")
+            values_sql.append("(" + ", ".join(escape_sql(value) for value in row) + ")")
         sql = f"INSERT INTO `{table}` ({column_sql}) VALUES\n" + ",\n".join(values_sql) + ";\n"
         run_mysql_sql(sql, env)
     return len(rows)
@@ -328,13 +290,13 @@ def ensure_raw_schema(raw_schema_sql_path: Path, env: Dict[str, str]) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Import workbook sheets into raw_import_* tables.")
-    parser.add_argument("--xlsx", default="data/unclean/前4800家企业数据汇总.xlsx", help="Path to source xlsx file")
+    parser.add_argument("--xlsx", default="data/unclean/4.3全部企业数据汇总.xlsx", help="Path to source xlsx file")
     parser.add_argument("--env-file", default=".env", help="Path to .env file")
     parser.add_argument("--init-sql", default="SQL/sql/init.sql", help="Path to init.sql")
-    parser.add_argument("--raw-schema-sql", default="SQL/sql/raw_import_staging.sql", help="Path to raw import staging schema SQL")
+    parser.add_argument("--raw-schema-sql", default="SQL/sql/raw_import_staging.sql", help="Path to raw staging schema SQL")
     parser.add_argument("--apply-init", action="store_true", help="Apply init.sql before import")
     parser.add_argument("--no-truncate", action="store_true", help="Do not truncate raw_import_* tables before import")
-    parser.add_argument("--batch-size", type=int, default=300, help="INSERT batch size")
+    parser.add_argument("--batch-size", type=int, default=400, help="INSERT batch size")
     args = parser.parse_args()
 
     xlsx_path = Path(args.xlsx)
@@ -348,6 +310,7 @@ def main() -> int:
         raise FileNotFoundError(f".env 文件不存在: {env_path}")
 
     env = parse_env(env_path)
+
     if args.apply_init:
         print(f"[schema] applying {init_sql_path}")
         apply_init_sql(init_sql_path, env)

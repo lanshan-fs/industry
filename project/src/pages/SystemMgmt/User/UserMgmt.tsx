@@ -37,6 +37,7 @@ import {
   UserAddOutlined,
   UserOutlined,
 } from "@ant-design/icons";
+import { getAuthToken, resolveAdminStatus } from "../../../utils/auth";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -84,16 +85,12 @@ const UserMgmt: React.FC = () => {
   const [createLoading, setCreateLoading] = useState(false);
 
   useEffect(() => {
-    const userJson = localStorage.getItem("user");
-    if (!userJson) {
-      setIsAdmin(false);
-      return;
-    }
-
-    try {
-      const user = JSON.parse(userJson);
-      const role = String(user.role || "").toUpperCase();
-      if (role === "ADMIN") {
+    let active = true;
+    void resolveAdminStatus().then((admin) => {
+      if (!active) {
+        return;
+      }
+      if (admin) {
         setIsAdmin(true);
         void fetchRoles();
         void fetchUsers();
@@ -101,15 +98,13 @@ const UserMgmt: React.FC = () => {
       } else {
         setIsAdmin(false);
       }
-    } catch {
-      setIsAdmin(false);
-    }
+    });
+    return () => {
+      active = false;
+    };
   }, []);
 
-  const getToken = () => {
-    const token = localStorage.getItem("token") || "";
-    return token.trim().replace(/^["']+|["']+$/g, "");
-  };
+  const getToken = () => getAuthToken();
 
   const fetchRoles = async () => {
     const token = getToken();

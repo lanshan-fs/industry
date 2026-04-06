@@ -1762,5 +1762,362 @@
     "company_tag_subdimension_id": 58,
     "company_tag_level": null,
     "sort_order": 380
+  },
+  {
+    "company_tag_id": 315,
+    "company_tag_name": "智慧医疗",
+    "company_tag_subdimension_id": 63,
+    "company_tag_level": null,
+    "sort_order": 1
+  },
+  {
+    "company_tag_id": 316,
+    "company_tag_name": "互联网+健康",
+    "company_tag_subdimension_id": 63,
+    "company_tag_level": null,
+    "sort_order": 2
+  },
+  {
+    "company_tag_id": 317,
+    "company_tag_name": "数字疗法",
+    "company_tag_subdimension_id": 63,
+    "company_tag_level": null,
+    "sort_order": 3
+  },
+  {
+    "company_tag_id": 318,
+    "company_tag_name": "前沿技术融合",
+    "company_tag_subdimension_id": 63,
+    "company_tag_level": null,
+    "sort_order": 4
+  },
+  {
+    "company_tag_id": 319,
+    "company_tag_name": "AI 药物研发平台",
+    "company_tag_subdimension_id": 63,
+    "company_tag_level": null,
+    "sort_order": 5
+  },
+  {
+    "company_tag_id": 320,
+    "company_tag_name": "AI CRO / 技术服务商",
+    "company_tag_subdimension_id": 63,
+    "company_tag_level": null,
+    "sort_order": 6
+  },
+  {
+    "company_tag_id": 321,
+    "company_tag_name": "AI 自研管线企业",
+    "company_tag_subdimension_id": 63,
+    "company_tag_level": null,
+    "sort_order": 7
+  },
+  {
+    "company_tag_id": 322,
+    "company_tag_name": "AI 软件 / 工具平台",
+    "company_tag_subdimension_id": 63,
+    "company_tag_level": null,
+    "sort_order": 8
+  },
+  {
+    "company_tag_id": 323,
+    "company_tag_name": "AI + 特定领域研发",
+    "company_tag_subdimension_id": 63,
+    "company_tag_level": null,
+    "sort_order": 9
+  },
+  {
+    "company_tag_id": 324,
+    "company_tag_name": "体外诊断 (IVD)",
+    "company_tag_subdimension_id": 63,
+    "company_tag_level": null,
+    "sort_order": 10
+  },
+  {
+    "company_tag_id": 325,
+    "company_tag_name": "影像设备",
+    "company_tag_subdimension_id": 63,
+    "company_tag_level": null,
+    "sort_order": 11
+  },
+  {
+    "company_tag_id": 326,
+    "company_tag_name": "治疗设备",
+    "company_tag_subdimension_id": 63,
+    "company_tag_level": null,
+    "sort_order": 12
+  },
+  {
+    "company_tag_id": 327,
+    "company_tag_name": "生命信息支持设备",
+    "company_tag_subdimension_id": 63,
+    "company_tag_level": null,
+    "sort_order": 13
+  },
+  {
+    "company_tag_id": 328,
+    "company_tag_name": "康复设备",
+    "company_tag_subdimension_id": 63,
+    "company_tag_level": null,
+    "sort_order": 14
+  },
+  {
+    "company_tag_id": 329,
+    "company_tag_name": "辅助设备",
+    "company_tag_subdimension_id": 63,
+    "company_tag_level": null,
+    "sort_order": 15
+  },
+  {
+    "company_tag_id": 330,
+    "company_tag_name": "家用医疗设备",
+    "company_tag_subdimension_id": 63,
+    "company_tag_level": null,
+    "sort_order": 16
+  },
+  {
+    "company_tag_id": 331,
+    "company_tag_name": "高值医用耗材",
+    "company_tag_subdimension_id": 63,
+    "company_tag_level": null,
+    "sort_order": 17
+  },
+  {
+    "company_tag_id": 332,
+    "company_tag_name": "植入器械/材料",
+    "company_tag_subdimension_id": 63,
+    "company_tag_level": null,
+    "sort_order": 18
+  },
+  {
+    "company_tag_id": 333,
+    "company_tag_name": "低值医用耗材",
+    "company_tag_subdimension_id": 63,
+    "company_tag_level": null,
+    "sort_order": 19
+  },
+  {
+    "company_tag_id": 334,
+    "company_tag_name": "装备制造",
+    "company_tag_subdimension_id": 63,
+    "company_tag_level": null,
+    "sort_order": 20
+  },
+  {
+    "company_tag_id": 335,
+    "company_tag_name": "化学制药",
+    "company_tag_subdimension_id": 63,
+    "company_tag_level": null,
+    "sort_order": 21
+  },
+  {
+    "company_tag_id": 336,
+    "company_tag_name": "生物制品",
+    "company_tag_subdimension_id": 63,
+    "company_tag_level": null,
+    "sort_order": 22
+  },
+  {
+    "company_tag_id": 337,
+    "company_tag_name": "中药",
+    "company_tag_subdimension_id": 63,
+    "company_tag_level": null,
+    "sort_order": 23
+  },
+  {
+    "company_tag_id": 338,
+    "company_tag_name": "医药商业 / 流通",
+    "company_tag_subdimension_id": 63,
+    "company_tag_level": null,
+    "sort_order": 24
+  },
+  {
+    "company_tag_id": 339,
+    "company_tag_name": "医疗零售",
+    "company_tag_subdimension_id": 63,
+    "company_tag_level": null,
+    "sort_order": 25
+  },
+  {
+    "company_tag_id": 340,
+    "company_tag_name": "严肃医疗",
+    "company_tag_subdimension_id": 63,
+    "company_tag_level": null,
+    "sort_order": 26
+  },
+  {
+    "company_tag_id": 341,
+    "company_tag_name": "消费医疗",
+    "company_tag_subdimension_id": 63,
+    "company_tag_level": null,
+    "sort_order": 27
+  },
+  {
+    "company_tag_id": 342,
+    "company_tag_name": "互联网医疗",
+    "company_tag_subdimension_id": 63,
+    "company_tag_level": null,
+    "sort_order": 28
+  },
+  {
+    "company_tag_id": 343,
+    "company_tag_name": "第三方中心",
+    "company_tag_subdimension_id": 63,
+    "company_tag_level": null,
+    "sort_order": 29
+  },
+  {
+    "company_tag_id": 344,
+    "company_tag_name": "保险支付",
+    "company_tag_subdimension_id": 63,
+    "company_tag_level": null,
+    "sort_order": 30
+  },
+  {
+    "company_tag_id": 345,
+    "company_tag_name": "智慧医疗（0101）",
+    "company_tag_subdimension_id": 64,
+    "company_tag_level": null,
+    "sort_order": 2
+  },
+  {
+    "company_tag_id": 346,
+    "company_tag_name": "前沿技术融合（0201）",
+    "company_tag_subdimension_id": 64,
+    "company_tag_level": null,
+    "sort_order": 127
+  },
+  {
+    "company_tag_id": 347,
+    "company_tag_name": "体外诊断 (IVD)（0301）",
+    "company_tag_subdimension_id": 64,
+    "company_tag_level": null,
+    "sort_order": 138
+  },
+  {
+    "company_tag_id": 348,
+    "company_tag_name": "医药商业 / 流通（0401）",
+    "company_tag_subdimension_id": 64,
+    "company_tag_level": null,
+    "sort_order": 252
+  },
+  {
+    "company_tag_id": 349,
+    "company_tag_name": "化学制药（0501）",
+    "company_tag_subdimension_id": 64,
+    "company_tag_level": null,
+    "sort_order": 313
+  },
+  {
+    "company_tag_id": 350,
+    "company_tag_name": "互联网+健康（0102）",
+    "company_tag_subdimension_id": 64,
+    "company_tag_level": null,
+    "sort_order": 46
+  },
+  {
+    "company_tag_id": 351,
+    "company_tag_name": "影像设备（0302）",
+    "company_tag_subdimension_id": 64,
+    "company_tag_level": null,
+    "sort_order": 151
+  },
+  {
+    "company_tag_id": 352,
+    "company_tag_name": "医疗零售（0402）",
+    "company_tag_subdimension_id": 64,
+    "company_tag_level": null,
+    "sort_order": 260
+  },
+  {
+    "company_tag_id": 353,
+    "company_tag_name": "生物制品（0502）",
+    "company_tag_subdimension_id": 64,
+    "company_tag_level": null,
+    "sort_order": 326
+  },
+  {
+    "company_tag_id": 354,
+    "company_tag_name": "数字疗法（0103）",
+    "company_tag_subdimension_id": 64,
+    "company_tag_level": null,
+    "sort_order": 88
+  },
+  {
+    "company_tag_id": 355,
+    "company_tag_name": "治疗设备（0303）",
+    "company_tag_subdimension_id": 64,
+    "company_tag_level": null,
+    "sort_order": 166
+  },
+  {
+    "company_tag_id": 356,
+    "company_tag_name": "严肃医疗（0403）",
+    "company_tag_subdimension_id": 64,
+    "company_tag_level": null,
+    "sort_order": 271
+  },
+  {
+    "company_tag_id": 357,
+    "company_tag_name": "中药（0503）",
+    "company_tag_subdimension_id": 64,
+    "company_tag_level": null,
+    "sort_order": 353
+  },
+  {
+    "company_tag_id": 358,
+    "company_tag_name": "消费医疗（0404）",
+    "company_tag_subdimension_id": 64,
+    "company_tag_level": null,
+    "sort_order": 279
+  },
+  {
+    "company_tag_id": 359,
+    "company_tag_name": "康复设备（0305）",
+    "company_tag_subdimension_id": 64,
+    "company_tag_level": null,
+    "sort_order": 190
+  },
+  {
+    "company_tag_id": 360,
+    "company_tag_name": "互联网医疗（0405）",
+    "company_tag_subdimension_id": 64,
+    "company_tag_level": null,
+    "sort_order": 291
+  },
+  {
+    "company_tag_id": 361,
+    "company_tag_name": "第三方中心（0406）",
+    "company_tag_subdimension_id": 64,
+    "company_tag_level": null,
+    "sort_order": 298
+  },
+  {
+    "company_tag_id": 362,
+    "company_tag_name": "保险支付（0407）",
+    "company_tag_subdimension_id": 64,
+    "company_tag_level": null,
+    "sort_order": 307
+  },
+  {
+    "company_tag_id": 363,
+    "company_tag_name": "植入器械/材料（0309）",
+    "company_tag_subdimension_id": 64,
+    "company_tag_level": null,
+    "sort_order": 221
+  },
+  {
+    "company_tag_id": 364,
+    "company_tag_name": "低值医用耗材（0310）",
+    "company_tag_subdimension_id": 64,
+    "company_tag_level": null,
+    "sort_order": 239
+  },
+  {
+    "company_tag_id": 365,
+    "company_tag_name": "装备制造（0311）",
+    "company_tag_subdimension_id": 64,
+    "company_tag_level": null,
+    "sort_order": 246
   }
 ]

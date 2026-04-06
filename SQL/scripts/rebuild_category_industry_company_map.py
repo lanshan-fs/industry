@@ -9,7 +9,7 @@ from datetime import date
 from pathlib import Path
 from typing import Dict, List, Set, Tuple
 
-import pymysql
+from _import_utils import parse_env, query_rows, run_mysql_sql
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -18,50 +18,8 @@ TMP_ROOT = SQL_ROOT / "tmp"
 RULES_JSON_PATH = SQL_ROOT / "data" / "category_industry_company_rules.json"
 CHAIN_JSON_PATH = SQL_ROOT / "data" / "chain_industry_seed.json"
 
-TEXT_COLUMNS = [
-    "company_name",
-    "industry_belong",
-    "business_scope",
-    "qualification_label",
-]
-
+TEXT_COLUMNS = ["company_name", "industry_belong", "business_scope", "qualification_label"]
 STAGE_NUMBERS = {"upstream": 1, "midstream": 2, "downstream": 3}
-
-
-def parse_env(env_path: Path) -> Dict[str, str]:
-    env: Dict[str, str] = {}
-    for line in env_path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, value = line.split("=", 1)
-        env[key.strip()] = value.strip()
-    return env
-
-
-def mysql_connect(env: Dict[str, str]):
-    host = env.get("DB_HOST", "127.0.0.1")
-    if host == "localhost":
-        host = "127.0.0.1"
-    return pymysql.connect(
-        host=host,
-        port=int(env.get("DB_PORT", "3306")),
-        user=env.get("DB_USER", "root"),
-        password=env.get("DB_PASSWORD", ""),
-        database=env.get("DB_NAME", "industrial_chain"),
-        charset="utf8mb4",
-        autocommit=False,
-    )
-
-
-def query_rows(sql: str, env: Dict[str, str]) -> List[List[str]]:
-    connection = mysql_connect(env)
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute(sql)
-            return [list(row) for row in cursor.fetchall()]
-    finally:
-        connection.close()
 
 
 def normalize_text(value: str) -> str:
@@ -80,10 +38,7 @@ def load_rules() -> List[Dict[str, object]]:
 
 def load_stage_map() -> Dict[str, int]:
     seeds = json.loads(CHAIN_JSON_PATH.read_text(encoding="utf-8"))
-    return {
-        str(item["category_level_code"]): STAGE_NUMBERS[str(item["stage_key"])]
-        for item in seeds
-    }
+    return {str(item["category_level_code"]): STAGE_NUMBERS[str(item["stage_key"])] for item in seeds}
 
 
 def fetch_category_maps(env: Dict[str, str]) -> Tuple[Dict[str, int], Dict[str, str]]:
@@ -104,10 +59,10 @@ def fetch_company_rows(env: Dict[str, str]) -> List[Dict[str, object]]:
         """
         SELECT
           company_id,
-          COALESCE(company_name, ''),
-          COALESCE(industry_belong, ''),
-          COALESCE(business_scope, ''),
-          COALESCE(qualification_label, '')
+          REPLACE(REPLACE(REPLACE(COALESCE(company_name, ''), CHAR(9), ' '), CHAR(10), ' '), CHAR(13), ' '),
+          REPLACE(REPLACE(REPLACE(COALESCE(industry_belong, ''), CHAR(9), ' '), CHAR(10), ' '), CHAR(13), ' '),
+          REPLACE(REPLACE(REPLACE(COALESCE(business_scope, ''), CHAR(9), ' '), CHAR(10), ' '), CHAR(13), ' '),
+          REPLACE(REPLACE(REPLACE(COALESCE(qualification_label, ''), CHAR(9), ' '), CHAR(10), ' '), CHAR(13), ' ')
         FROM company_basic
         ORDER BY company_id;
         """,
@@ -128,8 +83,7 @@ def fetch_company_rows(env: Dict[str, str]) -> List[Dict[str, object]]:
 
 
 def company_text(company: Dict[str, object]) -> str:
-    joined = " ".join(str(company[column]) for column in TEXT_COLUMNS)
-    return normalize_text(joined)
+    return normalize_text(" ".join(str(company[column]) for column in TEXT_COLUMNS))
 
 
 def matches_rule(normalized_company_text: str, rule: Dict[str, object]) -> bool:
@@ -142,48 +96,22 @@ def matches_rule(normalized_company_text: str, rule: Dict[str, object]) -> bool:
     return not any(keyword in normalized_company_text for keyword in exclude_any)
 
 
-def chunked(items: List[int], size: int = 500) -> List[List[int]]:
-    return [items[index : index + size] for index in range(0, len(items), size)]
-
-
-def apply_assignments(
-    assignments: Dict[int, Set[int]],
-    company_stage_map: Dict[int, int],
-    env: Dict[str, str],
-) -> None:
-    insert_rows = [
-        (category_id, company_id)
-        for company_id in sorted(assignments)
-        for category_id in sorted(assignments[company_id])
+def apply_assignments(assignments: Dict[int, Set[int]], company_stage_map: Dict[int, int], env: Dict[str, str]) -> None:
+    statements = [
+        "START TRANSACTION;",
+        "DELETE FROM category_industry_company_map;",
+        "UPDATE company_basic SET industry_chain_link = NULL;",
     ]
-
-    stage_buckets: Dict[int, List[int]] = defaultdict(list)
-    for company_id, stage in company_stage_map.items():
-        stage_buckets[stage].append(company_id)
-
-    connection = mysql_connect(env)
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute("DELETE FROM category_industry_company_map;")
-            cursor.execute("UPDATE company_basic SET industry_chain_link = NULL;")
-            if insert_rows:
-                cursor.executemany(
-                    "INSERT INTO category_industry_company_map (category_id, company_id) VALUES (%s, %s);",
-                    insert_rows,
-                )
-            for stage in sorted(stage_buckets):
-                for company_ids in chunked(sorted(stage_buckets[stage])):
-                    placeholders = ", ".join(["%s"] * len(company_ids))
-                    cursor.execute(
-                        f"UPDATE company_basic SET industry_chain_link = %s WHERE company_id IN ({placeholders});",
-                        [stage, *company_ids],
-                    )
-        connection.commit()
-    except Exception:
-        connection.rollback()
-        raise
-    finally:
-        connection.close()
+    values: List[str] = []
+    for company_id in sorted(assignments):
+        for category_id in sorted(assignments[company_id]):
+            values.append(f"({category_id}, {company_id})")
+    if values:
+        statements.append("INSERT INTO category_industry_company_map (category_id, company_id) VALUES\n" + ",\n".join(values) + ";")
+    for company_id, stage in sorted(company_stage_map.items()):
+        statements.append(f"UPDATE company_basic SET industry_chain_link = {stage} WHERE company_id = {company_id};")
+    statements.append("COMMIT;")
+    run_mysql_sql("\n".join(statements) + "\n", env)
 
 
 def build_report(
@@ -204,11 +132,6 @@ def build_report(
 
     stage_counts = Counter(company_stage_map.values())
     stage_name_map = {1: "上游", 2: "中游", 3: "下游"}
-    code_to_count: Dict[str, int] = {
-        code: category_company_counts.get(category_id, 0)
-        for code, category_id in code_to_id.items()
-    }
-
     lines = [
         "# 行业分类企业映射重建报告",
         "",
@@ -224,27 +147,25 @@ def build_report(
         "## 一级行业分类命中数",
         "",
     ]
-
     for code, name in sorted(code_to_name.items()):
-        lines.append(f"- {code} {name}: {code_to_count[code]}")
-
+        lines.append(f"- {code} {name}: {category_company_counts.get(code_to_id[code], 0)}")
     lines.extend(
         [
             "",
             "## 说明",
             "",
-            "- 当前为首页链路服务的第一版保守映射，只落一级行业分类。",
-            "- 规则仅使用 `company_name`、`industry_belong`、`business_scope`、`qualification_label` 的明确关键词命中。",
-            "- 若企业同时命中多个产业链阶段，不回填 `company_basic.industry_chain_link`，保持为空以避免误导。",
+            "- 当前为首页链路服务的保守映射，只落一级行业分类。",
+            "- 规则仅使用 `company_name`、`industry_belong`、`business_scope`、`qualification_label` 的关键词命中。",
+            "- 若企业同时命中多个产业链阶段，不回填 `company_basic.industry_chain_link`。",
             "",
         ]
     )
-    report_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    report_path.write_text("\n".join(lines), encoding="utf-8")
     return report_path
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Rebuild category_industry_company_map with conservative keyword rules.")
+    parser = argparse.ArgumentParser(description="Rebuild category_industry_company_map with keyword rules.")
     parser.add_argument("--env-file", default=str(PROJECT_ROOT / ".env"), help="Path to .env file")
     parser.add_argument("--apply", action="store_true", help="Apply rebuilt mappings to MySQL")
     args = parser.parse_args()

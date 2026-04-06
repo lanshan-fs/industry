@@ -346,5 +346,17 @@
     "company_tag_subdimension_name": "应用场景",
     "company_tag_dimension_id": 6,
     "sort_order": 10
+  },
+  {
+    "company_tag_subdimension_id": 63,
+    "company_tag_subdimension_name": "产业链",
+    "company_tag_dimension_id": 10,
+    "sort_order": 1
+  },
+  {
+    "company_tag_subdimension_id": 64,
+    "company_tag_subdimension_name": "行业分类",
+    "company_tag_dimension_id": 10,
+    "sort_order": 2
   }
 ]

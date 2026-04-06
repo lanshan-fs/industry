@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
   Layout,
@@ -29,13 +29,14 @@ import {
   ControlOutlined,
   NotificationOutlined,
 } from "@ant-design/icons";
+import { getStoredUser, isAdminUser, syncCurrentUserProfile } from "../utils/auth";
 
 const { Header, Content, Sider } = Layout;
 const { Search } = Input;
 
 // 定义导航数据结构
 // 修改点：根据需求调整了导航项的顺序（产业评分提前至行业画像之前）
-const TOP_NAV_ITEMS = [
+const BASE_TOP_NAV_ITEMS = [
   {
     key: "industry-class",
     label: "产业分类",
@@ -132,6 +133,24 @@ const MainLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
+  const [userData, setUserData] = useState(getStoredUser());
+  const [isAdmin, setIsAdmin] = useState(isAdminUser(getStoredUser()));
+
+  useEffect(() => {
+    let active = true;
+    void syncCurrentUserProfile()
+      .then((nextUser) => {
+        if (!active) {
+          return;
+        }
+        setUserData(nextUser);
+        setIsAdmin(isAdminUser(nextUser));
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // 解析路径
   const pathSnippets = location.pathname.split("/").filter((i) => i);
@@ -156,7 +175,7 @@ const MainLayout: React.FC = () => {
 
   const userDropdownItems: MenuProps["items"] = [
     { key: "center", label: "个人中心", icon: <UserOutlined /> },
-    { key: "system-mgmt", label: "系统管理", icon: <SettingOutlined /> },
+    ...(isAdmin ? [{ key: "system-mgmt", label: "系统管理", icon: <SettingOutlined /> }] : []),
     { type: "divider" },
     {
       key: "logout",
@@ -174,8 +193,6 @@ const MainLayout: React.FC = () => {
   const handleSiderClick = (e: { key: string }) =>
     navigate(`/${currentTopNav}/${e.key}`);
 
-  const userData = JSON.parse(localStorage.getItem("user") || "{}");
-
   const handleUserMenuClick: MenuProps["onClick"] = (e) => {
     if (e.key === "logout") {
       localStorage.removeItem("token");
@@ -189,7 +206,7 @@ const MainLayout: React.FC = () => {
   };
 
   const renderNavItems = () => {
-    return TOP_NAV_ITEMS.map((item) => {
+    return BASE_TOP_NAV_ITEMS.map((item) => {
       const isActive = activeNavKey === item.key;
       const hasChildren =
         (item as any).children && (item as any).children.length > 0;

@@ -24,6 +24,7 @@ import {
   PlusOutlined,
   ReloadOutlined,
 } from "@ant-design/icons";
+import { getAuthToken, resolveAdminStatus } from "../../../utils/auth";
 
 const { Text, Title } = Typography;
 const { TextArea } = Input;
@@ -51,10 +52,7 @@ const AnnouncementMgmt: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [form] = Form.useForm();
 
-  const getToken = () => {
-    const token = localStorage.getItem("token") || "";
-    return token.trim().replace(/^["']+|["']+$/g, "");
-  };
+  const getToken = () => getAuthToken();
 
   const fetchNotices = async () => {
     setLoading(true);
@@ -76,18 +74,21 @@ const AnnouncementMgmt: React.FC = () => {
   };
 
   useEffect(() => {
-    try {
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
-      const role = String(user.role || "").toUpperCase();
-      if (role === "ADMIN") {
+    let active = true;
+    void resolveAdminStatus().then((admin) => {
+      if (!active) {
+        return;
+      }
+      if (admin) {
         setIsAdmin(true);
         void fetchNotices();
       } else {
         setIsAdmin(false);
       }
-    } catch {
-      setIsAdmin(false);
-    }
+    });
+    return () => {
+      active = false;
+    };
   }, []);
 
   const openCreate = () => {
