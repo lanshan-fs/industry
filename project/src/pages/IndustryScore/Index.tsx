@@ -441,7 +441,7 @@ const IndustryScore: React.FC = () => {
             onEvents={{
               click: (params: any) => {
                 if (!params.data.children) {
-                  navigate(`/industry-portrait/industry-profile?industry=${encodeURIComponent(params.data.name)}`);
+                  navigate(`/industry-portrait/industry-profile?industryName=${encodeURIComponent(params.data.name)}`);
                 }
               },
             }}

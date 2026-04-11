@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   Layout,
   Tree,
@@ -240,6 +240,67 @@ const IndustryClass: React.FC = () => {
   >({});
 
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const stableTagColor = (value: string) => {
+    const seed = Array.from(String(value || "")).reduce(
+      (sum, char) => sum + char.charCodeAt(0),
+      0,
+    );
+    return TAG_COLORS[seed % TAG_COLORS.length];
+  };
+
+  const selectedNodeTitle = useMemo(() => {
+    const targetKey = selectedKeys[0];
+    if (!targetKey) return "";
+    const walk = (nodes: DataNode[] = []): string => {
+      for (const node of nodes) {
+        if (node.key === targetKey) return String(node.title || "");
+        if (node.children) {
+          const found = walk(node.children as DataNode[]);
+          if (found) return found;
+        }
+      }
+      return "";
+    };
+    return walk(treeData);
+  }, [selectedKeys, treeData]);
+
+  const preciseInsights = useMemo(() => {
+    const source = preciseList || [];
+    return {
+      highScoreCount: source.filter((item) => Number(item.total_score || 0) >= 80).length,
+      highTechCount: source.filter((item) => Boolean(item.is_high_tech)).length,
+      financedCount: source.filter((item) => {
+        const round = String(item.financing_round || "").trim();
+        return round && round !== "-" && round !== "未融资";
+      }).length,
+    };
+  }, [preciseList]);
+
+  const listInsights = useMemo(() => {
+    const highScoreCount = companyList.filter((item) => Number(item.total_score || 0) >= 80).length;
+    const financedCount = companyList.filter((item) => {
+      const round = String(item.financing_round || "").trim();
+      return round && round !== "-" && round !== "未融资";
+    }).length;
+    const topTagEntries = Object.entries(
+      companyList.reduce((acc: Record<string, number>, item) => {
+        (item.tags || []).forEach((tag: string) => {
+          if (!tag) return;
+          acc[tag] = (acc[tag] || 0) + 1;
+        });
+        return acc;
+      }, {}),
+    )
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6);
+
+    return {
+      highScoreCount,
+      financedCount,
+      topTags: topTagEntries,
+    };
+  }, [companyList]);
 
   // --- Initialization ---
   useEffect(() => {
@@ -633,17 +694,17 @@ const IndustryClass: React.FC = () => {
           <Space size={24}>
             <Space>
               <ShopOutlined style={{ color: "#1677ff" }} />
-              <Text strong>5</Text> 家集团
+              <Text strong>{preciseList.length}</Text> 家推荐企业
             </Space>
             <Divider type="vertical" />
             <Space>
               <RiseOutlined style={{ color: "#fa8c16" }} />
-              <Text strong>3</Text> 家上市公司
+              <Text strong>{preciseInsights.highScoreCount}</Text> 家高分企业
             </Space>
             <Divider type="vertical" />
             <Space>
               <CrownOutlined style={{ color: "#722ed1" }} />
-              <Text strong>1</Text> 个品牌产品
+              <Text strong>{preciseInsights.highTechCount}</Text> 家高新企业
             </Space>
           </Space>
         </div>
@@ -677,7 +738,7 @@ const IndustryClass: React.FC = () => {
                 hoverable
                 onClick={() =>
                   navigate(
-                    `/industry-portrait/enterprise-profile?id=${item.company_id}`,
+                    `/industry-portrait/enterprise-profile?id=${item.company_id}&from=industry-class`,
                   )
                 }
                 style={{
@@ -724,7 +785,7 @@ const IndustryClass: React.FC = () => {
                       bordered={false}
                       style={{ fontSize: 10, lineHeight: "18px", margin: 0 }}
                     >
-                      行业龙头
+                      {Number(item.total_score || 0) >= 80 ? "高分企业" : "潜力企业"}
                     </Tag>
                   </div>
                 </div>
@@ -740,18 +801,18 @@ const IndustryClass: React.FC = () => {
                       {item.registeredCapital || "-"}
                     </Text>
                   </Col>
-                  <Col span={12}>
-                    <Text
-                      type="secondary"
-                      style={{ fontSize: 12, display: "block" }}
-                    >
-                      成立日期
-                    </Text>
-                    <Text strong style={{ color: "#1f1f1f" }}>
-                      {item.establishmentDate?.substring(0, 7) || "-"}
-                    </Text>
-                  </Col>
-                </Row>
+                <Col span={12}>
+                  <Text
+                    type="secondary"
+                    style={{ fontSize: 12, display: "block" }}
+                  >
+                      画像评分
+                  </Text>
+                  <Text strong style={{ color: "#1f1f1f" }}>
+                      {Number(item.total_score || 0).toFixed(1)} 分
+                  </Text>
+                </Col>
+              </Row>
                 <div
                   style={{
                     marginTop: 16,
@@ -834,7 +895,7 @@ const IndustryClass: React.FC = () => {
                     style={{ fontSize: 18, color: "#262626" }}
                     onClick={() =>
                       navigate(
-                        `/industry-portrait/enterprise-profile?id=${item.company_id}`,
+                        `/industry-portrait/enterprise-profile?id=${item.company_id}&from=industry-class`,
                       )
                     }
                   >
@@ -938,46 +999,53 @@ const IndustryClass: React.FC = () => {
                 </Tag>
               </div>
               <Space size={[6, 6]} wrap style={{ minHeight: 60 }}>
-                {(item.tags || [])
-                  .slice(0, 8)
-                  .map((tag: string, tIdx: number) => (
-                    <Tag
-                      key={tIdx}
-                      color={
-                        TAG_COLORS[
-                          Math.floor(Math.random() * TAG_COLORS.length)
-                        ]
-                      }
-                      style={{ cursor: "pointer", borderRadius: 2, margin: 0 }}
-                      onClick={() =>
-                        navigate(`/advanced-search?keyword=${tag}`)
-                      }
-                    >
-                      {tag}
-                    </Tag>
-                  ))}
+                {(item.tags || []).slice(0, 8).map((tag: string, tIdx: number) => (
+                  <Tag
+                    key={tIdx}
+                    color={stableTagColor(tag)}
+                    style={{ cursor: "pointer", borderRadius: 10, margin: 0 }}
+                    onClick={() => navigate(`/advanced-search?keyword=${tag}`)}
+                  >
+                    {tag}
+                  </Tag>
+                ))}
+                {(!item.tags || item.tags.length === 0) && (
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    暂无已入库标签
+                  </Text>
+                )}
               </Space>
             </div>
             <div
               style={{
                 display: "flex",
                 justifyContent: "space-between",
-                alignItems: "flex-end",
+                alignItems: "center",
                 marginTop: 12,
               }}
             >
-              <Space
-                direction="vertical"
-                size={2}
-                style={{ fontSize: 12, color: "#999" }}
-              >
-                <span>
-                  <PhoneOutlined /> {item.phone}
-                </span>
-                <span>
-                  <MailOutlined /> {item.email}
-                </span>
-              </Space>
+              <div>
+                <Space size={8} wrap style={{ marginBottom: 8 }}>
+                  <Tag color={Number(item.total_score || 0) >= 80 ? "success" : "blue"} style={{ margin: 0 }}>
+                    综合评分 {Number(item.total_score || 0).toFixed(1)}
+                  </Tag>
+                  <Tag color={Number(item.risk_score || 0) >= 80 ? "success" : "orange"} style={{ margin: 0 }}>
+                    安全分 {Number(item.risk_score || 0)}
+                  </Tag>
+                </Space>
+                <Space
+                  direction="vertical"
+                  size={2}
+                  style={{ fontSize: 12, color: "#999" }}
+                >
+                  <span>
+                    <PhoneOutlined /> {item.phone}
+                  </span>
+                  <span>
+                    <MailOutlined /> {item.email}
+                  </span>
+                </Space>
+              </div>
               <Button
                 type="primary"
                 ghost
@@ -986,7 +1054,7 @@ const IndustryClass: React.FC = () => {
                 iconPosition="end"
                 onClick={() =>
                   navigate(
-                    `/industry-portrait/enterprise-profile?id=${item.company_id}`,
+                    `/industry-portrait/enterprise-profile?id=${item.company_id}&from=industry-class`,
                   )
                 }
               >
@@ -1063,25 +1131,26 @@ const IndustryClass: React.FC = () => {
                 </Col>
                 <Col span={12}>
                   <div style={{ background: "#fff", padding: "12px", borderRadius: 8, border: "1px solid #f0f0f0" }}>
-                    <Text type="secondary" style={{ fontSize: 12 }}>月度活跃度</Text>
+                    <Text type="secondary" style={{ fontSize: 12 }}>高分企业</Text>
                     <div style={{ fontSize: 20, fontWeight: "bold", color: "#52c41a", marginTop: 4 }}>
-                      +12.5%
+                      {listInsights.highScoreCount}
+                      <span style={{ fontSize: 12, fontWeight: "normal", marginLeft: 2 }}>家</span>
                     </div>
                   </div>
                 </Col>
               </Row>
 
               <div style={{ marginTop: 20, background: "#f0f5ff", padding: "16px", borderRadius: 12, border: "1px solid #adc6ff" }}>
-                <Text strong style={{ fontSize: 13, display: "block", marginBottom: 8 }}>核心技术热度排名</Text>
+                <Text strong style={{ fontSize: 13, display: "block", marginBottom: 8 }}>结果集热门标签</Text>
                 <Space wrap size={[0, 8]}>
-                  {MOCK_TECH_FIELDS.slice(0, 6).map((tech, idx) => (
+                  {(listInsights.topTags.length > 0 ? listInsights.topTags : MOCK_TECH_FIELDS.slice(0, 6).map((name, index) => [name, 0])).map((entry: any, idx) => (
                     <Tag 
-                      key={tech} 
+                      key={entry[0]} 
                       color={idx < 3 ? "blue" : "default"} 
                       bordered={false}
                       style={{ borderRadius: 10, fontSize: 11 }}
                     >
-                      {idx + 1}. {tech}
+                      {idx + 1}. {entry[0]}{entry[1] ? ` · ${entry[1]}` : ""}
                     </Tag>
                   ))}
                 </Space>
@@ -1092,6 +1161,13 @@ const IndustryClass: React.FC = () => {
                 style={{ marginTop: 20, borderRadius: 8, cursor: "pointer" }}
                 bodyStyle={{ padding: "12px" }}
                 hoverable
+                onClick={() =>
+                  navigate(
+                    selectedNodeTitle
+                      ? `/industry-portrait/industry-profile?industryName=${encodeURIComponent(selectedNodeTitle)}`
+                      : "/industry-portrait/industry-profile",
+                  )
+                }
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <Space>
@@ -1099,8 +1175,10 @@ const IndustryClass: React.FC = () => {
                       <CrownOutlined style={{ color: "#fa8c16" }} />
                     </div>
                     <div>
-                      <Text strong style={{ fontSize: 13 }}>生成环节分析报告</Text>
-                      <div style={{ fontSize: 11, color: "#8c8c8c" }}>AI 深度解析当前产业链</div>
+                      <Text strong style={{ fontSize: 13 }}>查看行业画像</Text>
+                      <div style={{ fontSize: 11, color: "#8c8c8c" }}>
+                        {selectedNodeTitle ? `进入「${selectedNodeTitle}」行业画像` : "进入行业画像页查看聚合分析"}
+                      </div>
                     </div>
                   </Space>
                   <RightOutlined style={{ color: "#bfbfbf", fontSize: 12 }} />

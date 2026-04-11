@@ -2,19 +2,19 @@
 
 ## 总览
 
-- `company_basic`: 26427
-- `company_branch`: 4408
-- `company_qualification`: 50611
-- `company_customer`: 10026
-- `company_ranking`: 1451
-- `company_recruit`: 38390
-- `company_software_copyright`: 28008
-- `company_work_copyright`: 3886
-- `company_patent`: 3199
-- `company_patent_company_map`: 3202
+- `company_basic`: 25972
+- `company_branch`: 4352
+- `company_qualification`: 50420
+- `company_customer`: 9177
+- `company_ranking`: 1405
+- `company_recruit`: 38365
+- `company_software_copyright`: 27908
+- `company_work_copyright`: 3879
+- `company_patent`: 3198
+- `company_patent_company_map`: 3199
 - `company_risk`: 4085
-- `company_tag_map`: 717971
-- `category_industry_company_map`: 14526
+- `company_tag_map`: 715231
+- `category_industry_company_map`: 14402
 
 ## 关键检查
 

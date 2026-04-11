@@ -1,8 +1,10 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Alert,
   Button,
   Card,
   Descriptions,
+  Form,
   Input,
   Modal,
   Popover,
@@ -24,7 +26,8 @@ import {
 import type { TableProps } from "antd";
 
 const { Text } = Typography;
-const { confirm } = Modal;
+
+type VerificationAction = () => Promise<boolean>;
 
 type DimensionKey = "basic" | "business" | "tech" | "risk" | "region" | "industry" | "scene";
 
@@ -102,6 +105,12 @@ const EnterpriseTag: React.FC = () => {
   const [editingKeys, setEditingKeys] = useState<Set<number>>(new Set());
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [currentRecord, setCurrentRecord] = useState<EnterpriseRow | null>(null);
+  const [verificationOpen, setVerificationOpen] = useState(false);
+  const [verificationTitle, setVerificationTitle] = useState("");
+  const [verificationDescription, setVerificationDescription] = useState("");
+  const [verificationText, setVerificationText] = useState("");
+  const [verificationSubmitting, setVerificationSubmitting] = useState(false);
+  const verificationActionRef = useRef<VerificationAction | null>(null);
 
   const allDimensionKeys = useMemo(() => Object.keys(DIMENSION_META) as DimensionKey[], []);
 
@@ -165,17 +174,61 @@ const EnterpriseTag: React.FC = () => {
     setEditingKeys(next);
   };
 
-  const handleAddTag = async (record: EnterpriseRow, dimension: DimensionKey, optionId: number) => {
+  const openVerification = (title: string, description: string, action: VerificationAction) => {
+    verificationActionRef.current = action;
+    setVerificationTitle(title);
+    setVerificationDescription(description);
+    setVerificationText("");
+    setVerificationOpen(true);
+  };
+
+  const closeVerification = () => {
+    if (verificationSubmitting) {
+      return;
+    }
+    verificationActionRef.current = null;
+    setVerificationOpen(false);
+    setVerificationText("");
+    setVerificationTitle("");
+    setVerificationDescription("");
+  };
+
+  const handleVerificationConfirm = async () => {
+    if (verificationText.trim() !== "确认") {
+      message.warning('请输入“确认”后再继续');
+      return;
+    }
+    const action = verificationActionRef.current;
+    if (!action) {
+      closeVerification();
+      return;
+    }
+    setVerificationSubmitting(true);
+    try {
+      const success = await action();
+      if (success) {
+        verificationActionRef.current = null;
+        setVerificationOpen(false);
+        setVerificationText("");
+        setVerificationTitle("");
+        setVerificationDescription("");
+      }
+    } finally {
+      setVerificationSubmitting(false);
+    }
+  };
+
+  const executeAddTag = async (record: EnterpriseRow, dimension: DimensionKey, optionId: number) => {
     const popoverKey = `${record.key}_${dimension}`;
     setPopoverOpenState((prev) => ({ ...prev, [popoverKey]: false }));
 
     const option = (tagLibrary[dimension] || []).find((item) => item.id === optionId);
     if (!option) {
-      return;
+      return false;
     }
     if (record.dimensions[dimension].includes(option.name)) {
       message.warning("该标签已存在");
-      return;
+      return false;
     }
 
     try {
@@ -188,6 +241,7 @@ const EnterpriseTag: React.FC = () => {
       if (result.success) {
         message.success("打标成功");
         fetchData(currentPage, pageSize, searchText);
+        return true;
       } else {
         message.error(result.message || "打标失败");
       }
@@ -195,9 +249,22 @@ const EnterpriseTag: React.FC = () => {
       console.error(error);
       message.error("打标失败");
     }
+    return false;
   };
 
-  const handleDeleteTag = async (record: EnterpriseRow, tagName: string) => {
+  const requestAddTag = (record: EnterpriseRow, dimension: DimensionKey, optionId: number) => {
+    const option = (tagLibrary[dimension] || []).find((item) => item.id === optionId);
+    if (!option) {
+      return;
+    }
+    openVerification(
+      `确认添加标签“${option.name}”吗？`,
+      `请输入“确认”后为企业“${record.name}”添加该标签。`,
+      () => executeAddTag(record, dimension, optionId),
+    );
+  };
+
+  const executeDeleteTag = async (record: EnterpriseRow, tagName: string) => {
     try {
       const response = await fetch("/api/tags/delete", {
         method: "POST",
@@ -208,6 +275,7 @@ const EnterpriseTag: React.FC = () => {
       if (result.success) {
         message.success("标签已删除");
         fetchData(currentPage, pageSize, searchText);
+        return true;
       } else {
         message.error(result.message || "删除失败");
       }
@@ -215,16 +283,15 @@ const EnterpriseTag: React.FC = () => {
       console.error(error);
       message.error("删除失败");
     }
+    return false;
   };
 
   const handleDeleteTagConfirm = (record: EnterpriseRow, tagName: string) => {
-    confirm({
-      title: `确认删除标签 "${tagName}"?`,
-      okText: "确定",
-      okType: "danger",
-      cancelText: "取消",
-      onOk: () => handleDeleteTag(record, tagName),
-    });
+    openVerification(
+      `确认删除标签“${tagName}”吗？`,
+      `请输入“确认”后从企业“${record.name}”中移除该标签。此操作会直接影响当前正式标签结果。`,
+      () => executeDeleteTag(record, tagName),
+    );
   };
 
   const renderDimensionCell = (
@@ -274,7 +341,7 @@ const EnterpriseTag: React.FC = () => {
                 style={{ width: 220 }}
                 placeholder="选择标签"
                 options={options}
-                onChange={(value) => handleAddTag(record, dimension, value)}
+                onChange={(value) => requestAddTag(record, dimension, value)}
               />
             )}
           >
@@ -409,6 +476,36 @@ const EnterpriseTag: React.FC = () => {
             ))}
           </Descriptions>
         ) : null}
+      </Modal>
+
+      <Modal
+        title={verificationTitle || "安全验证"}
+        open={verificationOpen}
+        onCancel={closeVerification}
+        onOk={() => void handleVerificationConfirm()}
+        confirmLoading={verificationSubmitting}
+        okText="确认执行"
+        cancelText="取消"
+        destroyOnClose
+      >
+        <Space direction="vertical" size={12} style={{ width: "100%", marginTop: 12 }}>
+          <Alert
+            type="warning"
+            showIcon
+            message="标签操作二次确认"
+            description={verificationDescription || "请输入“确认”后继续执行当前操作。"}
+          />
+          <Form layout="vertical">
+            <Form.Item label='请输入“确认”'>
+              <Input
+                value={verificationText}
+                onChange={(event) => setVerificationText(event.target.value)}
+                placeholder='请输入“确认”'
+                onPressEnter={() => void handleVerificationConfirm()}
+              />
+            </Form.Item>
+          </Form>
+        </Space>
       </Modal>
     </div>
   );

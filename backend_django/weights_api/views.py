@@ -51,6 +51,10 @@ TECH_DEFAULT_VALUES = {
     "tech_technology_enterprise": Decimal("15.0"),
     "industry_university_research": Decimal("15.0"),
     "national_provincial_award": Decimal("10.0"),
+    "national_tech_honor": Decimal("20.0"),
+    "provincial_tech_honor": Decimal("15.0"),
+    "medical_ai_model_filing": Decimal("10.0"),
+    "high_quality_dataset": Decimal("10.0"),
 }
 PRO_DEFAULT_VALUES = {
     "industry_market_size": Decimal("10.0"),
@@ -86,6 +90,10 @@ TECH_FIELDS = [
     ("tech_technology_enterprise", "科技型企业"),
     ("industry_university_research", "产学研合作"),
     ("national_provincial_award", "国家/省级奖励"),
+    ("national_tech_honor", "科技荣誉（国家级）"),
+    ("provincial_tech_honor", "科技荣誉（省级）"),
+    ("medical_ai_model_filing", "算法备案的医疗大模型"),
+    ("high_quality_dataset", "高质量数据集"),
 ]
 PROFESSIONAL_FIELDS = [
     ("industry_market_size", "行业市场规模"),
@@ -128,6 +136,16 @@ def _ensure_seed_rows():
         for field, value in TECH_DEFAULT_VALUES.items():
             setattr(tech_row, field, value)
         tech_row.save(update_fields=list(TECH_DEFAULT_VALUES.keys()))
+    else:
+        missing_fields = [
+            field
+            for field, value in TECH_DEFAULT_VALUES.items()
+            if float(getattr(tech_row, field) or 0) == 0 and value > 0
+        ]
+        if missing_fields:
+            for field in missing_fields:
+                setattr(tech_row, field, TECH_DEFAULT_VALUES[field])
+            tech_row.save(update_fields=missing_fields)
 
     pro_row = ScoreModelProfessionalWeight.objects.order_by("model_id").first()
     if not pro_row:

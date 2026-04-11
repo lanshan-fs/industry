@@ -7,6 +7,7 @@ export interface SuggestionItem {
   name: string;
   desc?: string;
   highlight?: boolean;
+  disabled?: boolean;
 }
 
 interface SuggestionListProps {
@@ -32,9 +33,14 @@ const SuggestionList: React.FC<SuggestionListProps> = ({
           style={{
             padding: "10px 0",
             borderBottom: "1px dashed #f0f0f0",
-            cursor: onItemClick ? "pointer" : "default",
+            cursor: onItemClick && !item.disabled ? "pointer" : "default",
+            opacity: item.disabled ? 0.72 : 1,
           }}
-          onClick={() => onItemClick?.(item)}
+          onClick={() => {
+            if (!item.disabled) {
+              onItemClick?.(item);
+            }
+          }}
         >
           <Row style={{ width: "100%", alignItems: "center" }}>
             <Col span={1}>

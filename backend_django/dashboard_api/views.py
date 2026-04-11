@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import json
-from pathlib import Path
-
 from django.db import connection
 from django.http import JsonResponse
 from django.utils import timezone
@@ -13,13 +10,24 @@ from auth_api.views import _admin_user, _json_body, _json_error, _normalize_text
 from industry_api.ecology_rules import ECOLOGY_RULES, ecology_keywords
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-CHAIN_SEED_PATH = PROJECT_ROOT / "SQL" / "data" / "chain_industry_seed.json"
 STAGE_ORDER = ["upstream", "midstream", "downstream"]
 STAGE_COLORS = {
     "upstream": "#1890ff",
     "midstream": "#52c41a",
     "downstream": "#fa8c16",
+}
+ROOT_CATEGORY_STAGE_KEY = {
+    "前沿技术": "upstream",
+    "AI 药物研": "upstream",
+    "医疗器械": "midstream",
+    "药品": "midstream",
+    "数字医疗": "downstream",
+    "医疗服务": "downstream",
+}
+STAGE_KEY_TO_TITLE = {
+    "upstream": "上游 · 研发与技术",
+    "midstream": "中游 · 产品与制造",
+    "downstream": "下游 · 应用与服务",
 }
 NOTICE_SEED = [
     {
@@ -62,7 +70,39 @@ _NOTICE_TABLE_READY = False
 
 
 def _load_chain_seed() -> list[dict]:
-    return json.loads(CHAIN_SEED_PATH.read_text(encoding="utf-8"))
+    rows = _rows(
+        """
+        SELECT
+          ci.chain_id,
+          ci.chain_name,
+          c.category_level_code,
+          root.category_name AS root_name
+        FROM chain_industry ci
+        JOIN chain_industry_category_industry_map cic
+          ON cic.chain_id = ci.chain_id
+        JOIN category_industry c
+          ON c.category_id = cic.category_id
+        LEFT JOIN category_industry root
+          ON root.category_level_code = LEFT(c.category_level_code, 2)
+        ORDER BY ci.chain_id
+        """
+    )
+    seed_rows = []
+    for row in rows:
+        root_name = _normalize_text(row["root_name"])
+        stage_key = ROOT_CATEGORY_STAGE_KEY.get(root_name)
+        if not stage_key:
+            continue
+        seed_rows.append(
+            {
+                "chain_name": _normalize_text(row["chain_name"]),
+                "category_level_code": _normalize_text(row["category_level_code"]),
+                "stage_key": stage_key,
+                "stage_title": STAGE_KEY_TO_TITLE[stage_key],
+                "sort_order": int(row["chain_id"] or 0),
+            }
+        )
+    return seed_rows
 
 
 def _query_one(sql: str) -> int:
@@ -353,10 +393,9 @@ def overview(_request):
 
     stage_map: dict[str, dict] = {}
     for stage_key in STAGE_ORDER:
-        row = next(item for item in seed_rows if item["stage_key"] == stage_key)
         stage_map[stage_key] = {
             "type": stage_key,
-            "title": row["stage_title"],
+            "title": STAGE_KEY_TO_TITLE[stage_key],
             "color": STAGE_COLORS[stage_key],
             "subTags": [],
             "total": 0,

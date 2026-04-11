@@ -1,9 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Layout, Empty, Spin, Button, message, Space } from "antd";
-import { ArrowLeftOutlined } from "@ant-design/icons";
-import { useNavigate, useLocation } from "react-router-dom";
+import {
+  ArrowLeftOutlined,
+  DownloadOutlined,
+  ShareAltOutlined,
+} from "@ant-design/icons";
+import { useLocation, useNavigate } from "react-router-dom";
+import dayjs from "dayjs";
 
-import ReportActionButtons from "../../components/ReportActionButtons";
 import EnterpriseOverviewTab from "./components/EnterpriseOverviewTab";
 
 const { Content } = Layout;
@@ -14,28 +18,27 @@ const EnterpriseProfile: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // 从 URL 获取企业 ID 或名称
   const queryParams = new URLSearchParams(location.search);
   const companyId = queryParams.get("id");
   const companyName = queryParams.get("company");
-  const scoreQuery = companyId ? `id=${encodeURIComponent(companyId)}` : `company=${encodeURIComponent(companyName || "")}`;
+  const source = queryParams.get("from");
+  const industryName = queryParams.get("industryName");
 
   useEffect(() => {
     const fetchProfile = async () => {
+      const identifier = companyId || companyName;
+      if (!identifier) {
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       try {
-        // 优先使用 ID 查询，没有则尝试按名称模糊匹配
-        const identifier = companyId || companyName;
-        if (!identifier) {
-          setLoading(false);
-          return;
-        }
-
         const search = companyId
           ? `id=${encodeURIComponent(companyId)}`
           : `company=${encodeURIComponent(companyName || "")}`;
-        const res = await fetch(`/api/scoring/enterprise-profile/?${search}`);
-        const json = await res.json();
+        const response = await fetch(`/api/scoring/enterprise-profile/?${search}`);
+        const json = await response.json();
 
         if (json.success && json.data) {
           setProfile(json.data);
@@ -53,76 +56,133 @@ const EnterpriseProfile: React.FC = () => {
     fetchProfile();
   }, [companyId, companyName]);
 
-  if (!loading && !profile)
+  const normalizedProfile = useMemo(() => {
+    if (!profile) return null;
+
+    const riskOverview =
+      Array.isArray(profile.riskOverview) && profile.riskOverview.length > 0
+        ? profile.riskOverview
+        : (profile.riskTableData || [])
+            .filter((item: any) => Number(item?.count || 0) > 0)
+            .slice(0, 5)
+            .map((item: any) => ({
+              name: item.item,
+              count: Number(item.count || 0),
+            }));
+
+    return {
+      ...profile,
+      baseInfo: {
+        ...profile.baseInfo,
+        updateTime: profile.baseInfo?.updateTime || dayjs().format("YYYY-MM-DD"),
+      },
+      riskOverview,
+      tags: Array.isArray(profile.tags) ? profile.tags.filter(Boolean) : [],
+      honors: Array.isArray(profile.honors) ? profile.honors : [],
+    };
+  }, [profile]);
+
+  const handleExport = () => {
+    window.print();
+  };
+
+  const handleShare = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      message.success("页面链接已复制");
+    } catch (error) {
+      console.error("Share failed:", error);
+      message.error("复制链接失败");
+    }
+  };
+
+  const handleReturn = () => {
+    if (source === "industry-profile") {
+      navigate(
+        industryName
+          ? `/industry-portrait/industry-profile?industryName=${encodeURIComponent(industryName)}`
+          : "/industry-portrait/industry-profile",
+      );
+      return;
+    }
+    if (source === "industry-class") {
+      navigate("/industry-class");
+      return;
+    }
+    if (source === "enterprise-data") {
+      navigate("/system-mgmt/enterprise-data");
+      return;
+    }
+    navigate(-1);
+  };
+
+  const returnLabel =
+    source === "industry-profile"
+      ? "返回行业画像"
+      : source === "industry-class"
+        ? "返回行业分类"
+        : source === "enterprise-data"
+          ? "返回企业数据管理"
+          : "返回上一页";
+
+  if (loading) {
     return (
-      <div style={{ textAlign: "center", marginTop: 100 }}>
-        <Empty description="未找到匹配的企业画像" />
-        <Button onClick={() => navigate(-1)} style={{ marginTop: 16 }}>返回上一页</Button>
+      <div style={{ textAlign: "center", marginTop: 200 }}>
+        <Spin size="large" tip="企业全景画像加载中..." />
       </div>
     );
+  }
+
+  if (!normalizedProfile) {
+    return (
+      <div style={{ textAlign: "center", marginTop: 150 }}>
+        <Empty description="未检索到企业多维数据" />
+        <Button type="primary" onClick={() => navigate(-1)} style={{ marginTop: 16 }}>
+          返回搜索
+        </Button>
+      </div>
+    );
+  }
 
   return (
-    <Layout style={{ minHeight: "100vh", background: "#fff" }}>
-      <Content style={{ padding: 0, width: "100%" }}>
-        <div style={{ maxWidth: "100%", margin: "0 auto" }}>
-          {/* 顶部工具栏 */}
-          <div
-            style={{
-              padding: "0 24px",
-              borderBottom: "1px solid #f0f0f0",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              backgroundColor: "#fff",
-              height: 64,
-            }}
+    <Layout style={{ minHeight: "100vh", background: "#f5f7fa" }}>
+      <div
+        style={{
+          background: "#ffffff",
+          padding: "16px 24px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          borderBottom: "1px solid #e8e8e8",
+        }}
+      >
+        <Button
+          type="text"
+          icon={<ArrowLeftOutlined />}
+          onClick={handleReturn}
+          style={{ fontSize: 14, fontWeight: 600, color: "#333" }}
+        >
+          {returnLabel}
+        </Button>
+        <Space size="middle">
+          <Button icon={<DownloadOutlined />} onClick={handleExport}>
+            导出评估报告
+          </Button>
+          <Button
+            icon={<ShareAltOutlined />}
+            onClick={handleShare}
+            style={{ color: "#1677ff", borderColor: "#1677ff" }}
           >
-            <Button
-              type="text"
-              icon={<ArrowLeftOutlined />}
-              onClick={() => navigate(-1)}
-              style={{ fontSize: 14 }}
-            >
-              返回
-            </Button>
+            分享结果
+          </Button>
+        </Space>
+      </div>
 
-            <Space>
-              {profile && (
-                <Button onClick={() => navigate(`/industry-portrait/enterprise-score?${scoreQuery}`)}>
-                  评分详情
-                </Button>
-              )}
-              {profile && (
-                <ReportActionButtons
-                  reportTitle={`${profile.baseInfo.name}企业画像报告`}
-                  targetId="enterprise-report-content"
-                />
-              )}
-            </Space>
-          </div>
-
-          {loading ? (
-            <div style={{ textAlign: "center", padding: "100px 0" }}>
-              <Spin size="large" tip="企业全息数据加载中..." />
-            </div>
-          ) : (
-            <div id="enterprise-report-content">
-              <EnterpriseOverviewTab profile={profile} />
-            </div>
-          )}
-
-          <div
-            style={{
-              textAlign: "center",
-              padding: "24px 0",
-              color: "#ccc",
-              fontSize: 12,
-              backgroundColor: "#f5f5f5",
-            }}
-          >
-            - 朝阳区产业链洞察平台生成 -
-          </div>
-        </div>
+      <Content
+        id="enterprise-report-content"
+        style={{ padding: "20px 24px", maxWidth: 1600, margin: "0 auto", width: "100%" }}
+      >
+        <EnterpriseOverviewTab profile={normalizedProfile} />
       </Content>
     </Layout>
   );

@@ -1,0 +1,617 @@
+﻿数据表,字段名,数据类型,是否有获取,说明,PK,NOT NULL,UNIQUE,DEFAULT,FK,CHECK,备注,父记录
+category_industry,category_id,BIGINT,,行业分类唯一标识,1,1,,,,,AUTO_INCREMENT,行业分类表
+category_industry,category_name,VARCHAR(255),,行业分类名称,,1,,,,,,行业分类表
+category_industry,category_level,TINYINT,,行业分类层级（0-3 级）,,1,,,,(`category_level` between 0 and 3),,行业分类表
+category_industry,category_level_code,VARCHAR(255),,行业分类层级编码,,1,1,,,,,行业分类表
+category_industry,category_level_code_parent,VARCHAR(255),,行业分类层级编码（父级）,,,,,,,,行业分类表
+category_industry,field_belong,TINYINT,,所属领域（1:数字医疗，2:康养）,,1,,,,"(`field_belong` in (1,2))",,行业分类表
+category_industry,sort_order,INT,,排序序号,,1,,0,,(`sort_order` >= 0),,行业分类表
+category_industry_company_map,category_industry_company_map_id,BIGINT,,映射唯一标识,1,1,,,,,AUTO_INCREMENT,行业分类与企业映射表
+category_industry_company_map,category_id,BIGINT,,行业分类唯一标识,,1,,,category_industry.category_id,,,行业分类与企业映射表
+category_industry_company_map,company_id,BIGINT,,企业唯一标识,,1,,,company_basic.company_id,,,行业分类与企业映射表
+chain_industry,chain_id,BIGINT,,产业链节点唯一标识,1,1,,,,,AUTO_INCREMENT,产业链节点表
+chain_industry,chain_name,VARCHAR(255),,产业链节点名称,,1,1,,,,,产业链节点表
+chain_industry,stage_key,VARCHAR(32),,产业阶段键（upstream/midstream/downstream）,,1,,upstream,,,,产业链节点表
+chain_industry,stage_title,VARCHAR(255),,产业阶段标题,,,,,,,,产业链节点表
+chain_industry,sort_order,INT,,排序序号,,1,,0,,(`sort_order` >= 0),,产业链节点表
+chain_industry,chain_des,VARCHAR(255),,产业链节点简述,,,,,,,,产业链节点表
+chain_industry_category_industry_map,chain_industry_category_industry_map_id,BIGINT,,映射唯一标识,1,1,,,,,AUTO_INCREMENT,产业链节点与行业分类映射表
+chain_industry_category_industry_map,chain_id,BIGINT,,产业链节点唯一标识,,1,,,chain_industry.chain_id,,,产业链节点与行业分类映射表
+chain_industry_category_industry_map,category_id,BIGINT,,行业分类唯一标识,,1,,,category_industry.category_id,,,产业链节点与行业分类映射表
+company_address,company_address_id,BIGINT,,企业地址记录唯一标识,1,1,,,,,AUTO_INCREMENT,企业地址信息表
+company_address,company_id,BIGINT,,企业唯一标识,,1,,,company_basic.company_id,,,企业地址信息表
+company_address,address_type,VARCHAR(64),,地址类型,,1,,registered,,,,企业地址信息表
+company_address,address_text,VARCHAR(255),,企业地址,,1,,,,,,企业地址信息表
+company_address,province,VARCHAR(255),,省,,,,,,,,企业地址信息表
+company_address,city,VARCHAR(255),,市,,,,,,,,企业地址信息表
+company_address,district,VARCHAR(255),,区县,,,,,,,,企业地址信息表
+company_address,is_latest,TINYINT,,是否为最新记录,,1,,0,,"(`is_latest` in (0,1))",,企业地址信息表
+company_basic,company_id,BIGINT,,企业唯一标识,1,1,,,,,AUTO_INCREMENT,企业基础信息表
+company_basic,company_name,VARCHAR(255),,企业名称,,,,,,,,企业基础信息表
+company_basic,company_name_en,VARCHAR(255),,企业英文名称,,,,,,,,企业基础信息表
+company_basic,former_name_latest,VARCHAR(255),,企业曾用名（最新）,,,,,,,,企业基础信息表
+company_basic,credit_code,CHAR(18),,统一社会信用代码,,1,1,,,,,企业基础信息表
+company_basic,legal_representative,VARCHAR(255),,法定代表人,,,,,,,,企业基础信息表
+company_basic,register_number,CHAR(15),,注册号（工商注册号，旧版企业登记编号）,,,,,,,,企业基础信息表
+company_basic,approved_date,DATE,,核准日期（工商信息最后核准更新日期）,,,,,,,,企业基础信息表
+company_basic,org_code,CHAR(9),,组织机构代码,,,,,,,,企业基础信息表
+company_basic,establish_date,DATE,,成立日期,,,,,,,,企业基础信息表
+company_basic,business_term,VARCHAR(255),,经营期限,,,,,,,,企业基础信息表
+company_basic,business_scope,TEXT,,经营范围,,,,,,,,企业基础信息表
+company_basic,company_status,VARCHAR(255),,经营状态,,,,,,,,企业基础信息表
+company_basic,email_business,VARCHAR(255),,企业邮箱（工商信息）,,,,,,,,企业基础信息表
+company_basic,email_auth,VARCHAR(255),,企业邮箱（认证）,,,,,,,,企业基础信息表
+company_basic,website,VARCHAR(255),,企业网站 URL,,,,,,,,企业基础信息表
+company_basic,contact_phone,VARCHAR(255),,联系电话,,,,,,,,企业基础信息表
+company_basic,contact_info,VARCHAR(255),,联系方式,,,,,,,,企业基础信息表
+company_basic,recommended_phone,VARCHAR(255),,推荐电话,,,,,,,,企业基础信息表
+company_basic,latest_shareholder_name,VARCHAR(255),,股东（最新）,,,,,,,,企业基础信息表
+company_basic,register_sheng,VARCHAR(255),,注册地（省）,,,,,,,,企业基础信息表
+company_basic,register_shi,VARCHAR(255),,注册地（市）,,,,,,,,企业基础信息表
+company_basic,register_xian,VARCHAR(255),,注册地（区县）,,,,,,,,企业基础信息表
+company_basic,subdistrict,VARCHAR(255),,所属街道/地区,,,,,,,,企业基础信息表
+company_basic,register_capital,"DECIMAL(18,4)",,注册资本（万元）,,,,,,,,企业基础信息表
+company_basic,paid_capital,"DECIMAL(18,4)",,实缴资本（万元）,,,,,,,,企业基础信息表
+company_basic,company_type,VARCHAR(255),,企业类型,,,,,,,,企业基础信息表
+company_basic,org_type,VARCHAR(255),,组织类型（暂时保留）,,,,,,,,企业基础信息表
+company_basic,investment_type,VARCHAR(255),,投资类型,,,,,,,,企业基础信息表
+company_basic,company_scale,VARCHAR(255),,企业规模,,,,,,,,企业基础信息表
+company_basic,employee_count,INT,,员工人数（最新）,,,,,,,,企业基础信息表
+company_basic,insured_count,INT,,参保人数,,,,,,,,企业基础信息表
+company_basic,industry_belong,VARCHAR(255),,所属行业（国标）,,,,,,,,企业基础信息表
+company_basic,industry_belong_code,VARCHAR(255),,所属行业代码（国标）,,,,,,,,企业基础信息表
+company_basic,is_branch,TINYINT,,是否为分支机构（1:是，0:否）,,1,,0,,"(`is_branch` in (0,1))",,企业基础信息表
+company_basic,branch_id,BIGINT,,分支机构唯一标识,,,,,,,,企业基础信息表
+company_basic,branch_name,VARCHAR(255),,分支机构名称（最新）,,,,,,,,企业基础信息表
+company_basic,register_address,VARCHAR(255),,企业地址（工商信息）,,,,,,,,企业基础信息表
+company_basic,register_address_detail,VARCHAR(255),,企业地址（详细，最新）,,,,,,,,企业基础信息表
+company_basic,qualification_label,VARCHAR(255),,企业资质/企业科技属性（最新）,,,,,,,,企业基础信息表
+company_basic,is_general_taxpayer,TINYINT,,是否为一般纳税人（1:是，0:否）,,1,,0,,"(`is_general_taxpayer` in (0,1))",,企业基础信息表
+company_basic,taxpayer_qualifications,VARCHAR(255),,纳税人资质,,,,,,,,企业基础信息表
+company_basic,taxpayer_credit_rating,VARCHAR(16),,纳税人信用等级：ABCDM,,,,,,,,企业基础信息表
+company_basic,financing_round,VARCHAR(255),,投融资轮次（最新）,,,,,,,,企业基础信息表
+company_basic,financing_round_verify_time,DATE,,投融资轮次核准时间（最新）,,,,,,,,企业基础信息表
+company_basic,financing_info,VARCHAR(255),,投融资轮次信息（最新）,,,,,,,,企业基础信息表
+company_basic,stock_code,VARCHAR(32),,股票代码,,,,,,,,企业基础信息表
+company_basic,field_belong,TINYINT,,所属领域（1:数字医疗，2:康养）,,,,,,"((`field_belong` is null) or (`field_belong` in (1,2)))",,企业基础信息表
+company_basic,is_high_tech_enterprise,TINYINT,,是否为高新技术企业（1:是，0:否）,,1,,0,,,,企业基础信息表
+company_basic,is_high_tech_enterprise_verify_time,DATE,,高新技术企业认证日期,,,,,,,,企业基础信息表
+company_basic,is_micro_enterprise,TINYINT,,是否为小微企业（1:是，0:否）,,1,,0,,,,企业基础信息表
+company_basic,has_changed_info,TINYINT,,是否有变更信息（1:是，0:否）,,1,,0,,,,企业基础信息表
+company_basic,has_bidding,TINYINT,,是否有招投标信息（1:是，0:否）,,1,,0,,,,企业基础信息表
+company_basic,has_recruitment,TINYINT,,是否有招聘信息（1:是，0:否）,,1,,0,,,,企业基础信息表
+company_basic,industry_chain_link,TINYINT,,产业链环节（1:上游，2:中游，3:下游）,,,,,,"((`industry_chain_link` is null) or (`industry_chain_link` in (1,2,3)))",,企业基础信息表
+company_basic,has_software_copyright,TINYINT,,有无软件著作权,,1,,0,,,,企业基础信息表
+company_basic,has_work_copyright,TINYINT,,有无作品著作权,,1,,0,,,,企业基础信息表
+company_basic,listing_status,TINYINT,,上市状态（2:终止上市，1:正常上市，0:未上市）,,,,,,"((`listing_status` is null) or (`listing_status` in (0,1,2)))",,企业基础信息表
+company_basic,same_phone_company_count,INT,,同企业电话数量,,1,,0,,,,企业基础信息表
+company_basic,is_srdi_sme,TINYINT,,是否为专精特新中小企业,,1,,0,,,,企业基础信息表
+company_basic,is_gazelle_company,TINYINT,,是否为瞪羚企业,,1,,0,,,,企业基础信息表
+company_basic,is_tech_sme,TINYINT,,是否为科技型中小企业,,1,,0,,,,企业基础信息表
+company_basic,is_egalet_company,TINYINT,,是否为雏鹰企业,,1,,0,,,,企业基础信息表
+company_basic,is_srdi_little_giant,TINYINT,,是否为专精特新小巨人,,1,,0,,,,企业基础信息表
+company_basic,is_innovative_sme,TINYINT,,是否为创新型中小企业,,1,,0,,,,企业基础信息表
+company_basic,has_patent,TINYINT,,有无专利,,1,,0,,,,企业基础信息表
+company_basic,has_trademark,TINYINT,,有无商标,,1,,0,,,,企业基础信息表
+company_basic,has_legal_document,TINYINT,,有无法律文书,,1,,0,,,,企业基础信息表
+company_basic,has_dishonest_execution,TINYINT,,有无失信被执行,,1,,0,,,,企业基础信息表
+company_basic,has_chattel_mortgage,TINYINT,,有无动产抵押,,1,,0,,,,企业基础信息表
+company_basic,has_business_abnormal,TINYINT,,有无经营异常,,1,,0,,,,企业基础信息表
+company_basic,has_admin_penalty,TINYINT,,有无行政处罚,,1,,0,,,,企业基础信息表
+company_basic,has_bankruptcy_overlap,TINYINT,,有无破产重叠,,1,,0,,,,企业基础信息表
+company_basic,has_liquidation_info,TINYINT,,有无清算信息,,1,,0,,,,企业基础信息表
+company_basic,has_env_penalty,TINYINT,,有无环保处罚,,1,,0,,,,企业基础信息表
+company_basic,has_equity_freeze,TINYINT,,有无股权冻结,,1,,0,,,,企业基础信息表
+company_basic,has_executed_person,TINYINT,,有无被执行人,,1,,0,,,,企业基础信息表
+company_basic,has_consumption_restriction,TINYINT,,有无限制高消费,,1,,0,,,,企业基础信息表
+company_basic,consumption_restriction_count,INT,,限制高消费数量,,1,,0,,,,企业基础信息表
+company_basic,is_chaoyang_company,TINYINT,,是否是朝阳区企业,,1,,0,,,,企业基础信息表
+company_basic,created_at,DATETIME,,创建时间,,1,,CURRENT_TIMESTAMP,,,,企业基础信息表
+company_basic,updated_at,DATETIME,,更新时间,,1,,CURRENT_TIMESTAMP,,,,企业基础信息表
+company_basic_count,company_id,BIGINT,,企业唯一标识,1,1,,,company_basic.company_id,,,企业聚合计数表
+company_basic_count,branch_count,INT,,分支机构数量（结构化明细）,,1,,0,,,,企业聚合计数表
+company_basic_count,branch_count_raw,INT,,分支机构数量（原始聚合值）,,1,,0,,,,企业聚合计数表
+company_basic_count,recruit_count,INT,,招聘信息数量（结构化明细）,,1,,0,,,,企业聚合计数表
+company_basic_count,recruit_count_raw,INT,,招聘信息数量（原始聚合值）,,1,,0,,,,企业聚合计数表
+company_basic_count,software_copyright_count,INT,,软件著作权数量（结构化明细）,,1,,0,,,,企业聚合计数表
+company_basic_count,software_copyright_count_raw,INT,,软件著作权数量（原始聚合值）,,1,,0,,,,企业聚合计数表
+company_basic_count,work_copyright_count,INT,,作品著作权数量（结构化明细）,,1,,0,,,,企业聚合计数表
+company_basic_count,work_copyright_count_raw,INT,,作品著作权数量（原始聚合值）,,1,,0,,,,企业聚合计数表
+company_basic_count,patent_count,INT,,专利数量（结构化明细）,,1,,0,,,,企业聚合计数表
+company_basic_count,patent_count_raw,INT,,专利数量（原始聚合值）,,1,,0,,,,企业聚合计数表
+company_basic_count,trademark_count,INT,,商标数量,,1,,0,,,,企业聚合计数表
+company_basic_count,customer_count,INT,,客户数量（结构化明细）,,1,,0,,,,企业聚合计数表
+company_basic_count,customer_count_raw,INT,,客户数量（原始聚合值）,,1,,0,,,,企业聚合计数表
+company_basic_count,ranking_count,INT,,上榜榜单数量（结构化明细）,,1,,0,,,,企业聚合计数表
+company_basic_count,ranking_count_raw,INT,,上榜榜单数量（原始聚合值）,,1,,0,,,,企业聚合计数表
+company_basic_count,supplier_count,INT,,供应商数量（结构化明细）,,1,,0,,,,企业聚合计数表
+company_basic_count,supplier_count_raw,INT,,供应商数量（原始聚合值）,,1,,0,,,,企业聚合计数表
+company_basic_count,qualification_count,INT,,资质数量（结构化明细）,,1,,0,,,,企业聚合计数表
+company_basic_count,qualification_count_raw,INT,,资质数量（原始聚合值）,,1,,0,,,,企业聚合计数表
+company_basic_count,license_count,INT,,许可数量（结构化明细）,,1,,0,,,,企业聚合计数表
+company_basic_count,license_count_raw,INT,,许可数量（原始聚合值）,,1,,0,,,,企业聚合计数表
+company_basic_count,bidding_count,INT,,招投标数量（原始聚合值）,,1,,0,,,,企业聚合计数表
+company_basic_count,legal_doc_case_count,INT,,法律文书（司法案件）数量,,1,,0,,,,企业聚合计数表
+company_basic_count,legal_doc_judgement_count,INT,,法律文书（裁判文书）数量,,1,,0,,,,企业聚合计数表
+company_basic_count,legal_doc_all_count,INT,,法律文书（全部）数量,,1,,0,,,,企业聚合计数表
+company_basic_count,dishonest_execution_count,INT,,失信被执行数量,,1,,0,,,,企业聚合计数表
+company_basic_count,chattel_mortgage_count,INT,,动产抵押数量,,1,,0,,,,企业聚合计数表
+company_basic_count,business_abnormal_count,INT,,经营异常数量,,1,,0,,,,企业聚合计数表
+company_basic_count,admin_penalty_count,INT,,行政处罚数量,,1,,0,,,,企业聚合计数表
+company_basic_count,bankruptcy_overlap_count,INT,,破产重叠数量,,1,,0,,,,企业聚合计数表
+company_basic_count,liquidation_info_count,INT,,清算信息数量,,1,,0,,,,企业聚合计数表
+company_basic_count,env_penalty_count,INT,,环保处罚数量,,1,,0,,,,企业聚合计数表
+company_basic_count,equity_freeze_count,INT,,股权冻结数量,,1,,0,,,,企业聚合计数表
+company_basic_count,executed_person_count,INT,,被执行人数量,,1,,0,,,,企业聚合计数表
+company_basic_count,ai_model_filing_count,INT,,算法备案医疗大模型数量,,1,,0,,,,企业聚合计数表
+company_basic_count,high_quality_dataset_count,INT,,高质量数据集数量,,1,,0,,,,企业聚合计数表
+company_basic_count,innovation_notice_count,INT,,创新性公示数量,,1,,0,,,,企业聚合计数表
+company_bidding,company_bidding_id,BIGINT,,企业招投标记录唯一标识,1,1,,,,,AUTO_INCREMENT,企业招投标信息表
+company_bidding,company_id,BIGINT,,企业唯一标识,,1,,,company_basic.company_id,,,企业招投标信息表
+company_bidding,bidding_title,VARCHAR(255),,招投标项目名称,,,,,,,,企业招投标信息表
+company_bidding,bidding_role,VARCHAR(64),,企业角色,,,,,,,,企业招投标信息表
+company_bidding,publish_date,DATE,,发布日期,,,,,,,,企业招投标信息表
+company_bidding,bidding_amount,"DECIMAL(18,4)",,招投标金额（万元）,,,,,,,,企业招投标信息表
+company_branch,company_branch_id,BIGINT,,企业分支机构唯一标识,1,1,,,,,AUTO_INCREMENT,企业分支机构表
+company_branch,company_id,BIGINT,,企业唯一标识,,1,,,company_basic.company_id,,,企业分支机构表
+company_branch,company_branch_name,VARCHAR(255),,企业分支机构名称,,1,,,,,,企业分支机构表
+company_branch,company_branch_address,VARCHAR(255),,企业分支机构（注册）地址,,,,,,,,企业分支机构表
+company_branch,company_branch_region,VARCHAR(255),,企业分支机构地区原始文本,,,,,,,,企业分支机构表
+company_branch,company_branch_status,VARCHAR(64),,企业分支机构状态文本（如存续、注销、吊销）,,,,,,,,企业分支机构表
+company_branch,company_branch_establish_date,DATE,,企业分支机构成立日期,,,,,,,,企业分支机构表
+company_branch,company_branch_legal_representative,VARCHAR(255),,企业分支机构法定代表人,,,,,,,,企业分支机构表
+company_branch,company_branch_business_scope,TEXT,,企业分支机构经营范围,,,,,,,,企业分支机构表
+company_branch,company_branch_taxpayer_credit_rating,VARCHAR(16),,企业分支机构纳税人信用等级,,,,,,,,企业分支机构表
+company_change,company_change_id,BIGINT,,企业变更记录唯一标识,1,1,,,,,AUTO_INCREMENT,企业变更信息表
+company_change,company_id,BIGINT,,企业唯一标识,,1,,,company_basic.company_id,,,企业变更信息表
+company_change,change_item,VARCHAR(255),,变更事项,,1,,,,,,企业变更信息表
+company_change,before_change,TEXT,,变更前内容,,,,,,,,企业变更信息表
+company_change,after_change,TEXT,,变更后内容,,,,,,,,企业变更信息表
+company_change,change_date,DATE,,变更日期,,,,,,,,企业变更信息表
+company_consumption_restriction,company_consumption_restriction_id,BIGINT,,限制高消费记录唯一标识,1,1,,,,,AUTO_INCREMENT,限制高消费表
+company_consumption_restriction,company_id,BIGINT,,企业唯一标识,,1,,,company_basic.company_id,,,限制高消费表
+company_consumption_restriction,case_no,VARCHAR(255),,案号,,,,,,,,限制高消费表
+company_consumption_restriction,restricted_subject,VARCHAR(255),,限制对象,,,,,,,,限制高消费表
+company_consumption_restriction,filing_date,DATE,,立案日期,,,,,,,,限制高消费表
+company_consumption_restriction,publish_date,DATE,,发布日期,,,,,,,,限制高消费表
+company_contact_info,company_contact_info_id,BIGINT,,联系方式记录唯一标识,1,1,,,,,AUTO_INCREMENT,企业联系方式表
+company_contact_info,company_id,BIGINT,,企业唯一标识,,1,,,company_basic.company_id,,,企业联系方式表
+company_contact_info,contact_info,VARCHAR(255),,联系方式,,1,,,,,,企业联系方式表
+company_contact_info,is_latest,TINYINT,,是否为最新记录,,1,,0,,"(`is_latest` in (0,1))",,企业联系方式表
+company_contact_info,captured_at,DATETIME,,抓取/核准时间,,,,,,,,企业联系方式表
+company_contact_phone,company_contact_phone_id,BIGINT,,联系电话记录唯一标识,1,1,,,,,AUTO_INCREMENT,企业联系电话表
+company_contact_phone,company_id,BIGINT,,企业唯一标识,,1,,,company_basic.company_id,,,企业联系电话表
+company_contact_phone,contact_phone,VARCHAR(255),,联系电话,,1,,,,,,企业联系电话表
+company_contact_phone,is_latest,TINYINT,,是否为最新记录,,1,,0,,"(`is_latest` in (0,1))",,企业联系电话表
+company_contact_phone,captured_at,DATETIME,,抓取/核准时间,,,,,,,,企业联系电话表
+company_customer,company_customer_id,BIGINT,,企业客户记录唯一标识,1,1,,,,,AUTO_INCREMENT,企业客户信息表
+company_customer,company_customer_name,VARCHAR(255),,企业客户名称,,1,,,,,,企业客户信息表
+company_customer,company_id,BIGINT,,企业唯一标识,,1,,,company_basic.company_id,,,企业客户信息表
+company_customer,customer_company_id,BIGINT,,客户企业 ID,,,,,company_basic.company_id,,,企业客户信息表
+company_customer,company_customer_sales_amount,"DECIMAL(20,2)",,企业客户销售金额（万元）,,,,,,,,企业客户信息表
+company_customer,company_customer_sales_ratio,"DECIMAL(5,2)",,企业客户销售占比,,,,,,((`company_customer_sales_ratio` is null) or ((`company_customer_sales_ratio` >= 0) and (`company_customer_sales_ratio` <= 100))),,企业客户信息表
+company_customer,company_customer_report_date,DATE,,报告时间,,,,,,,,企业客户信息表
+company_customer,data_source,VARCHAR(255),,数据来源,,,,,,,,企业客户信息表
+company_employee_count,company_employee_count_id,BIGINT,,企业员工人数记录唯一标识,1,1,,,,,AUTO_INCREMENT,企业员工人数表
+company_employee_count,company_id,BIGINT,,企业唯一标识,,1,,,company_basic.company_id,,,企业员工人数表
+company_employee_count,stat_year,SMALLINT,,统计年份,,1,,,,,,企业员工人数表
+company_employee_count,employee_count,INT,,员工人数,,1,,,,(`employee_count` >= 0),,企业员工人数表
+company_financing,company_financing_id,BIGINT,,企业投融资记录唯一标识,1,1,,,,,AUTO_INCREMENT,企业投融资轮次信息表
+company_financing,company_id,BIGINT,,企业唯一标识,,1,,,company_basic.company_id,,,企业投融资轮次信息表
+company_financing,financing_round,VARCHAR(255),,投融资轮次,,1,,,,,,企业投融资轮次信息表
+company_financing,verify_time,DATE,,核准时间,,,,,,,,企业投融资轮次信息表
+company_financing,financing_amount,"DECIMAL(18,4)",,融资金额（万元）,,,,,,,,企业投融资轮次信息表
+company_financing,investor_name,VARCHAR(255),,投资方名称,,,,,,,,企业投融资轮次信息表
+company_financing,is_latest,TINYINT,,是否为最新记录,,1,,0,,"(`is_latest` in (0,1))",,企业投融资轮次信息表
+company_former_name,company_former_name_id,BIGINT,,企业曾用名记录唯一标识,1,1,,,,,AUTO_INCREMENT,企业曾用名表
+company_former_name,company_id,BIGINT,,企业唯一标识,,1,,,company_basic.company_id,,,企业曾用名表
+company_former_name,former_name,VARCHAR(255),,企业曾用名,,1,,,,,,企业曾用名表
+company_former_name,is_latest,TINYINT,,是否为最新记录,,1,,0,,"(`is_latest` in (0,1))",,企业曾用名表
+company_former_name,effective_date,DATE,,生效时间,,,,,,,,企业曾用名表
+company_former_name,sort_order,INT,,排序序号,,1,,0,,(`sort_order` >= 0),,企业曾用名表
+company_listing_status,company_listing_status_id,BIGINT,,企业上市状态记录唯一标识,1,1,,,,,AUTO_INCREMENT,企业上市状态表
+company_listing_status,company_id,BIGINT,,企业唯一标识,,1,,,company_basic.company_id,,,企业上市状态表
+company_listing_status,listing_status,TINYINT,,上市状态（2:终止上市，1:正常上市，0:未上市）,,1,,,,"(`listing_status` in (0,1,2))",,企业上市状态表
+company_listing_status,stock_code,VARCHAR(32),,股票代码,,,,,,,,企业上市状态表
+company_listing_status,market_name,VARCHAR(255),,上市市场,,,,,,,,企业上市状态表
+company_listing_status,listed_at,DATE,,上市日期,,,,,,,,企业上市状态表
+company_listing_status,delisted_at,DATE,,终止上市日期,,,,,,,,企业上市状态表
+company_listing_status,is_latest,TINYINT,,是否为最新记录,,1,,1,,"(`is_latest` in (0,1))",,企业上市状态表
+company_patent,company_patent_id,BIGINT,,专利唯一标识,1,1,,,,,AUTO_INCREMENT,企业专利表
+company_patent,company_patent_number,VARCHAR(255),,专利号,,1,1,,,,,企业专利表
+company_patent,company_patent_name,VARCHAR(255),,专利名称,,1,,,,,,企业专利表
+company_patent,company_id,BIGINT,,企业唯一标识,,1,,,company_basic.company_id,,,企业专利表
+company_patent,application_date,DATE,,专利申请日期,,,,,,,,企业专利表
+company_patent,auth_date,DATE,,专利授权日期,,,,,,,,企业专利表
+company_patent,publication_date,DATE,,专利申请公布日,,,,,,,,企业专利表
+company_patent,tech_attribute_label,VARCHAR(255),,科技属性标签,,,,,,,,企业专利表
+company_patent,sort_order,INT,,排序序号,,1,,0,,(`sort_order` >= 0),,企业专利表
+company_patent_company_map,company_patent_company_map_id,BIGINT,,映射唯一标识,1,1,,,,,AUTO_INCREMENT,企业与专利映射表
+company_patent_company_map,company_patent_id,BIGINT,,专利唯一标识,,1,,,company_patent.company_patent_id,,,企业与专利映射表
+company_patent_company_map,company_id,BIGINT,,企业唯一标识,,1,,,company_basic.company_id,,,企业与专利映射表
+company_patent_patent_type_map,company_patent_patent_type_id,BIGINT,,映射唯一标识,1,1,,,,,AUTO_INCREMENT,企业专利与专利类型映射表
+company_patent_patent_type_map,company_patent_id,BIGINT,,专利唯一标识,,1,,,company_patent.company_patent_id,,,企业专利与专利类型映射表
+company_patent_patent_type_map,company_patent_type_id,BIGINT,,专利类型唯一标识,,1,,,company_patent_type.company_patent_type_id,,,企业专利与专利类型映射表
+company_patent_type,company_patent_type_id,BIGINT,,专利类型唯一标识,1,1,,,,,AUTO_INCREMENT,专利类型表
+company_patent_type,company_patent_type_name,VARCHAR(255),,专利类型名称,,1,1,,,,,专利类型表
+company_qualification,company_qualification_id,BIGINT,,企业资质记录唯一标识,1,1,,,,,AUTO_INCREMENT,企业资质表
+company_qualification,company_id,BIGINT,,企业唯一标识,,1,,,company_basic.company_id,,,企业资质表
+company_qualification,record_kind,VARCHAR(32),,记录类型（qualification/license）,,1,,qualification,,,,企业资质表
+company_qualification,qualification_name,VARCHAR(255),,企业资质/科技属性名称,,1,,,,,,企业资质表
+company_qualification,qualification_number,VARCHAR(255),,证书/许可编号,,,,,,,,企业资质表
+company_qualification,qualification_status,VARCHAR(64),,证书/许可状态,,,,,,,,企业资质表
+company_qualification,qualification_level,TINYINT,,资质等级,,,,,,,,企业资质表
+company_qualification,qualification_type,VARCHAR(255),,资质类型,,,,,,,,企业资质表
+company_qualification,data_source,VARCHAR(255),,数据来源,,,,,,,,企业资质表
+company_qualification,issued_at,DATE,,认定日期,,,,,,,,企业资质表
+company_qualification,valid_from,DATE,,有效期开始日期,,,,,,,,企业资质表
+company_qualification,expires_at,DATE,,失效日期,,,,,,,,企业资质表
+company_qualification,validity_period_text,VARCHAR(255),,有效期原始文本,,,,,,,,企业资质表
+company_qualification,issuing_authority,VARCHAR(255),,发证/许可机关,,,,,,,,企业资质表
+company_qualification,is_latest,TINYINT,,是否为最新记录,,1,,0,,"(`is_latest` in (0,1))",,企业资质表
+company_ranking,company_ranking_id,BIGINT,,企业榜单唯一标识,1,1,,,,,AUTO_INCREMENT,企业榜单表
+company_ranking,company_ranking_name,VARCHAR(255),,企业榜单名称,,1,,,,,,企业榜单表
+company_ranking,company_id,BIGINT,,企业唯一标识,,1,,,company_basic.company_id,,,企业榜单表
+company_ranking,company_ranking_type,VARCHAR(255),,企业榜单类型,,,,,,,,企业榜单表
+company_ranking,company_ranking_source,VARCHAR(255),,企业榜单来源,,,,,,,,企业榜单表
+company_ranking,company_ranking_position,INT,,榜内位置（数字）,,,,,,,,企业榜单表
+company_ranking,company_ranking_alias,VARCHAR(255),,榜内名称,,,,,,,,企业榜单表
+company_ranking,company_ranking_publish_year,INT,,榜单发布年份,,,,,,,,企业榜单表
+company_recommended_phone,company_recommended_phone_id,BIGINT,,推荐电话记录唯一标识,1,1,,,,,AUTO_INCREMENT,企业推荐电话表
+company_recommended_phone,company_id,BIGINT,,企业唯一标识,,1,,,company_basic.company_id,,,企业推荐电话表
+company_recommended_phone,recommended_phone,VARCHAR(255),,推荐电话,,1,,,,,,企业推荐电话表
+company_recommended_phone,is_latest,TINYINT,,是否为最新记录,,1,,0,,"(`is_latest` in (0,1))",,企业推荐电话表
+company_recommended_phone,captured_at,DATETIME,,抓取/核准时间,,,,,,,,企业推荐电话表
+company_recruit,company_recruit_id,BIGINT,,企业招聘记录唯一标识,1,1,,,,,AUTO_INCREMENT,企业招聘信息表
+company_recruit,company_recruit_position,VARCHAR(255),,企业招聘岗位,,1,,,,,,企业招聘信息表
+company_recruit,company_id,BIGINT,,企业唯一标识,,1,,,company_basic.company_id,,,企业招聘信息表
+company_recruit,company_recruit_salary,VARCHAR(255),,企业招聘薪资,,,,,,,,企业招聘信息表
+company_recruit,company_recruit_work_year_req,VARCHAR(255),,企业招聘工作年限要求,,,,,,,,企业招聘信息表
+company_recruit,company_recruit_work_place,VARCHAR(255),,企业招聘工作地点,,,,,,,,企业招聘信息表
+company_recruit,company_recruit_edu_req,VARCHAR(255),,企业招聘学历要求,,,,,,,,企业招聘信息表
+company_recruit,company_recruit_time,DATE,,企业招聘时间,,,,,,,,企业招聘信息表
+company_risk,company_risk_category_id,BIGINT,,企业风险种类唯一标识,1,1,,,,,AUTO_INCREMENT,企业风险统计表
+company_risk,company_id,BIGINT,,企业唯一标识,,1,,,company_basic.company_id,,,企业风险统计表
+company_risk,company_risk_category_name,VARCHAR(255),,企业风险种类名称,,1,,,,,,企业风险统计表
+company_risk,company_risk_category_count,INT,,企业风险数量,,1,,0,,(`company_risk_category_count` >= 0),,企业风险统计表
+company_shareholder,company_shareholder_id,BIGINT,,企业股东记录唯一标识,1,1,,,,,AUTO_INCREMENT,企业股东信息表
+company_shareholder,company_id,BIGINT,,企业唯一标识,,1,,,company_basic.company_id,,,企业股东信息表
+company_shareholder,shareholder_name,VARCHAR(255),,股东名称,,1,,,,,,企业股东信息表
+company_shareholder,shareholder_type,VARCHAR(64),,股东类型,,,,,,,,企业股东信息表
+company_shareholder,holding_ratio,"DECIMAL(5,2)",,持股比例,,,,,,((`holding_ratio` is null) or ((`holding_ratio` >= 0) and (`holding_ratio` <= 100))),,企业股东信息表
+company_shareholder,subscribed_amount,"DECIMAL(18,4)",,认缴出资额（万元）,,,,,,,,企业股东信息表
+company_shareholder,paid_amount,"DECIMAL(18,4)",,实缴出资额（万元）,,,,,,,,企业股东信息表
+company_shareholder,is_latest,TINYINT,,是否为最新记录,,1,,0,,"(`is_latest` in (0,1))",,企业股东信息表
+company_shareholder,captured_at,DATETIME,,抓取/核准时间,,,,,,,,企业股东信息表
+company_software_copyright,company_software_copyright_id,BIGINT,,软件著作唯一标识,1,1,,,,,AUTO_INCREMENT,企业软件著作权表
+company_software_copyright,company_software_copyright_name,VARCHAR(255),,软件著作名称,,1,,,,,,企业软件著作权表
+company_software_copyright,company_id,BIGINT,,企业唯一标识,,1,,,company_basic.company_id,,,企业软件著作权表
+company_software_copyright,company_software_copyright_register_number,VARCHAR(255),,软件著作登记号,,1,1,,,,,企业软件著作权表
+company_software_copyright,company_software_copyright_register_date,DATE,,软件著作登记批准日期,,,,,,,,企业软件著作权表
+company_software_copyright,company_software_copyright_for_short,VARCHAR(255),,软件著作简称,,,,,,,,企业软件著作权表
+company_software_copyright,company_software_copyright_status,VARCHAR(255),,软件著作状态,,,,,,,,企业软件著作权表
+company_software_copyright,company_software_copyright_obtain,VARCHAR(255),,软件著作取得方式,,,,,,,,企业软件著作权表
+company_subdistrict,company_subdistrict_id,BIGINT,,街道/地区 ID,1,1,,,,,AUTO_INCREMENT,企业街道/地区映射表
+company_subdistrict,company_subdistrict_name,VARCHAR(255),,街道/地区名称,,1,,,,,,企业街道/地区映射表
+company_subdistrict,company_id,BIGINT,,企业唯一标识,,1,,,company_basic.company_id,,,企业街道/地区映射表
+company_supplier,company_supplier_id,BIGINT,,企业供应商记录唯一标识,1,1,,,,,AUTO_INCREMENT,企业供应商信息表
+company_supplier,company_supplier_name,VARCHAR(255),,企业供应商名称,,1,,,,,,企业供应商信息表
+company_supplier,company_id,BIGINT,,企业唯一标识,,1,,,company_basic.company_id,,,企业供应商信息表
+company_supplier,supplier_company_id,BIGINT,,供应商企业 ID,,,,,company_basic.company_id,,,企业供应商信息表
+company_supplier,company_supplier_purchase_amount,"DECIMAL(20,2)",,企业供应商采购金额（万元）,,,,,,,,企业供应商信息表
+company_supplier,company_supplier_purchase_ratio,"DECIMAL(5,2)",,企业供应商采购占比,,,,,,((`company_supplier_purchase_ratio` is null) or ((`company_supplier_purchase_ratio` >= 0) and (`company_supplier_purchase_ratio` <= 100))),,企业供应商信息表
+company_supplier,company_supplier_report_date,DATE,,报告时间,,,,,,,,企业供应商信息表
+company_tag_auto_rule,company_tag_auto_rule_id,BIGINT,,打标规则唯一标识,1,1,,,,,AUTO_INCREMENT,企业标签自动打标规则表
+company_tag_auto_rule,company_tag_id,BIGINT,,企业标签唯一标识,,1,,,company_tag_library.company_tag_id,,,企业标签自动打标规则表
+company_tag_auto_rule,company_tag_auto_rule_type,VARCHAR(255),,打标规则类型,,1,,,,,,企业标签自动打标规则表
+company_tag_auto_rule,rule_definition,JSON,,规则定义 JSON,,,,,,,,企业标签自动打标规则表
+company_tag_auto_rule,is_enabled,TINYINT,,是否启用规则,,1,,1,,"(`is_enabled` in (0,1))",,企业标签自动打标规则表
+company_tag_batch,company_tag_batch_id,BIGINT,,企业标签批次唯一标识,1,1,,,,,AUTO_INCREMENT,企业标签批次表
+company_tag_batch,batch_code,VARCHAR(64),,批次编码,,1,1,,,,,企业标签批次表
+company_tag_batch,batch_name,VARCHAR(255),,批次名称,,,,,,,,企业标签批次表
+company_tag_batch,status,VARCHAR(32),,批次状态（pending/running/completed/failed）,,1,,pending,,,,企业标签批次表
+company_tag_batch,requested_by_user_id,BIGINT,,发起用户 ID,,,,,,,,企业标签批次表
+company_tag_batch,dimension_ids,JSON,,本批次选择的标签维度 ID 列表,,,,,,,,企业标签批次表
+company_tag_batch,dimension_names,JSON,,本批次选择的标签维度名称列表,,,,,,,,企业标签批次表
+company_tag_batch,requested_company_count,INT,,本批次请求企业数,,1,,0,,,,企业标签批次表
+company_tag_batch,success_company_count,INT,,成功企业数,,1,,0,,,,企业标签批次表
+company_tag_batch,failed_company_count,INT,,失败企业数,,1,,0,,,,企业标签批次表
+company_tag_batch,summary_json,JSON,,批次执行摘要,,,,,,,,企业标签批次表
+company_tag_batch,error_message,TEXT,,批次错误信息,,,,,,,,企业标签批次表
+company_tag_batch,started_at,DATETIME,,开始时间,,,,,,,,企业标签批次表
+company_tag_batch,finished_at,DATETIME,,结束时间,,,,,,,,企业标签批次表
+company_tag_batch,created_at,DATETIME,,创建时间,,1,,CURRENT_TIMESTAMP,,,,企业标签批次表
+company_tag_batch,updated_at,DATETIME,,更新时间,,1,,CURRENT_TIMESTAMP,,,,企业标签批次表
+company_tag_batch_item,company_tag_batch_item_id,BIGINT,,企业标签批次明细唯一标识,1,1,,,,,AUTO_INCREMENT,企业标签批次明细表
+company_tag_batch_item,company_tag_batch_id,BIGINT,,企业标签批次唯一标识,,1,,,company_tag_batch.company_tag_batch_id,,,企业标签批次明细表
+company_tag_batch_item,company_id,BIGINT,,企业唯一标识,,1,,,company_basic.company_id,,,企业标签批次明细表
+company_tag_batch_item,status,VARCHAR(32),,明细状态（pending/success/failed）,,1,,pending,,,,企业标签批次明细表
+company_tag_batch_item,tag_count,INT,,本次命中标签数,,1,,0,,,,企业标签批次明细表
+company_tag_batch_item,result_json,JSON,,明细执行结果,,,,,,,,企业标签批次明细表
+company_tag_batch_item,error_message,TEXT,,明细错误信息,,,,,,,,企业标签批次明细表
+company_tag_batch_item,started_at,DATETIME,,开始时间,,,,,,,,企业标签批次明细表
+company_tag_batch_item,finished_at,DATETIME,,结束时间,,,,,,,,企业标签批次明细表
+company_tag_batch_item,created_at,DATETIME,,创建时间,,1,,CURRENT_TIMESTAMP,,,,企业标签批次明细表
+company_tag_batch_item,updated_at,DATETIME,,更新时间,,1,,CURRENT_TIMESTAMP,,,,企业标签批次明细表
+company_tag_dimension,company_tag_dimension_id,BIGINT,,企业标签维度唯一标识,1,1,,,,,AUTO_INCREMENT,企业标签维度表
+company_tag_dimension,company_tag_dimension_name,VARCHAR(255),,企业标签维度名称,,1,1,,,,,企业标签维度表
+company_tag_dimension,company_tag_dimension_color,VARCHAR(255),,增强前端表现力,,,,,,,,企业标签维度表
+company_tag_dimension,company_tag_dimension_icon,VARCHAR(255),,维度图标,,,,,,,,企业标签维度表
+company_tag_dimension,company_tag_dimension_des,VARCHAR(255),,维度描述,,,,,,,,企业标签维度表
+company_tag_dimension,sort_order,INT,,排序序号,,1,,0,,(`sort_order` >= 0),,企业标签维度表
+company_tag_dimension_library_map,company_tag_dimension_library_map_id,BIGINT,,标签维度与标签库映射唯一标识,1,1,,,,,AUTO_INCREMENT,企业标签维度与标签库映射表
+company_tag_dimension_library_map,company_tag_dimension_id,BIGINT,,企业标签维度唯一标识,,1,,,company_tag_dimension.company_tag_dimension_id,,,企业标签维度与标签库映射表
+company_tag_dimension_library_map,company_tag_id,BIGINT,,企业标签唯一标识,,1,,,company_tag_library.company_tag_id,,,企业标签维度与标签库映射表
+company_tag_library,company_tag_id,BIGINT,,企业标签唯一标识,1,1,,,,,AUTO_INCREMENT,企业标签库表
+company_tag_library,company_tag_name,VARCHAR(255),,企业标签名称,,1,1,,,,,企业标签库表
+company_tag_library,company_tag_subdimension_id,BIGINT,,企业标签子维度唯一标识,,,,,company_tag_subdimension.company_tag_subdimension_id,,,企业标签库表
+company_tag_library,company_tag_level,TINYINT,,企业标签等级（国家级、省级、市级）,,,,,,,,企业标签库表
+company_tag_library,sort_order,INT,,排序序号,,1,,0,,(`sort_order` >= 0),,企业标签库表
+company_tag_llm_batch,company_tag_llm_batch_id,BIGINT,,企业标签 LLM 候选批次唯一标识,1,1,,,,,AUTO_INCREMENT,企业标签 LLM 候选批次表
+company_tag_llm_batch,batch_code,VARCHAR(64),,LLM 批次编码,,1,1,,,,,企业标签 LLM 候选批次表
+company_tag_llm_batch,batch_name,VARCHAR(255),,批次名称,,,,,,,,企业标签 LLM 候选批次表
+company_tag_llm_batch,status,VARCHAR(32),,批次状态（pending/running/completed/failed）,,1,,pending,,,,企业标签 LLM 候选批次表
+company_tag_llm_batch,provider,VARCHAR(64),,候选生成服务提供方,,1,,agent_chat,,,,企业标签 LLM 候选批次表
+company_tag_llm_batch,model_name,VARCHAR(128),,模型名称,,,,,,,,企业标签 LLM 候选批次表
+company_tag_llm_batch,company_tag_dimension_id,BIGINT,,对应的标签维度，当前固定为应用场景,,1,,,company_tag_dimension.company_tag_dimension_id,,,企业标签 LLM 候选批次表
+company_tag_llm_batch,requested_by_user_id,BIGINT,,发起用户 ID,,,,,,,,企业标签 LLM 候选批次表
+company_tag_llm_batch,requested_company_count,INT,,请求企业数,,1,,0,,,,企业标签 LLM 候选批次表
+company_tag_llm_batch,success_company_count,INT,,成功生成候选的企业数,,1,,0,,,,企业标签 LLM 候选批次表
+company_tag_llm_batch,failed_company_count,INT,,生成失败企业数,,1,,0,,,,企业标签 LLM 候选批次表
+company_tag_llm_batch,summary_json,JSON,,候选生成摘要,,,,,,,,企业标签 LLM 候选批次表
+company_tag_llm_batch,error_message,TEXT,,批次错误信息,,,,,,,,企业标签 LLM 候选批次表
+company_tag_llm_batch,started_at,DATETIME,,开始时间,,,,,,,,企业标签 LLM 候选批次表
+company_tag_llm_batch,finished_at,DATETIME,,结束时间,,,,,,,,企业标签 LLM 候选批次表
+company_tag_llm_batch,created_at,DATETIME,,创建时间,,1,,CURRENT_TIMESTAMP,,,,企业标签 LLM 候选批次表
+company_tag_llm_batch,updated_at,DATETIME,,更新时间,,1,,CURRENT_TIMESTAMP,,,,企业标签 LLM 候选批次表
+company_tag_llm_candidate,company_tag_llm_candidate_id,BIGINT,,企业标签 LLM 候选唯一标识,1,1,,,,,AUTO_INCREMENT,企业标签 LLM 场景候选表
+company_tag_llm_candidate,company_tag_llm_batch_id,BIGINT,,所属 LLM 候选批次,,1,,,company_tag_llm_batch.company_tag_llm_batch_id,,,企业标签 LLM 场景候选表
+company_tag_llm_candidate,company_id,BIGINT,,企业唯一标识,,1,,,company_basic.company_id,,,企业标签 LLM 场景候选表
+company_tag_llm_candidate,company_tag_id,BIGINT,,映射到正式标签库的标签 ID，可为空,,,,,company_tag_library.company_tag_id,,,企业标签 LLM 场景候选表
+company_tag_llm_candidate,candidate_type,VARCHAR(32),,候选类型（mapped_tag/unmapped_term）,,1,,,,,,企业标签 LLM 场景候选表
+company_tag_llm_candidate,candidate_name,VARCHAR(255),,候选标签名称或候选短语,,1,,,,,,企业标签 LLM 场景候选表
+company_tag_llm_candidate,normalized_name,VARCHAR(255),,归一化后的标签名称,,,,,,,,企业标签 LLM 场景候选表
+company_tag_llm_candidate,status,VARCHAR(32),,候选状态（pending/unmapped/applied/rejected）,,1,,pending,,,,企业标签 LLM 场景候选表
+company_tag_llm_candidate,confidence,"DECIMAL(3,2)",,候选置信度,,,,,,,,企业标签 LLM 场景候选表
+company_tag_llm_candidate,reason_text,TEXT,,候选生成原因,,,,,,,,企业标签 LLM 场景候选表
+company_tag_llm_candidate,evidence_json,JSON,,候选生成证据快照,,,,,,,,企业标签 LLM 场景候选表
+company_tag_llm_candidate,prompt_text,MEDIUMTEXT,,发送给模型的提示词,,,,,,,,企业标签 LLM 场景候选表
+company_tag_llm_candidate,raw_response,MEDIUMTEXT,,模型原始响应,,,,,,,,企业标签 LLM 场景候选表
+company_tag_llm_candidate,response_json,JSON,,解析后的响应 JSON,,,,,,,,企业标签 LLM 场景候选表
+company_tag_llm_candidate,created_by_user_id,BIGINT,,发起用户 ID,,,,,,,,企业标签 LLM 场景候选表
+company_tag_llm_candidate,reviewed_by_user_id,BIGINT,,审核用户 ID,,,,,,,,企业标签 LLM 场景候选表
+company_tag_llm_candidate,reviewed_at,DATETIME,,审核时间,,,,,,,,企业标签 LLM 场景候选表
+company_tag_llm_candidate,applied_at,DATETIME,,采纳落库时间,,,,,,,,企业标签 LLM 场景候选表
+company_tag_llm_candidate,created_at,DATETIME,,创建时间,,1,,CURRENT_TIMESTAMP,,,,企业标签 LLM 场景候选表
+company_tag_llm_candidate,updated_at,DATETIME,,更新时间,,1,,CURRENT_TIMESTAMP,,,,企业标签 LLM 场景候选表
+company_tag_map,company_tag_map_id,BIGINT,,企业标签映射唯一标识,1,1,,,,,AUTO_INCREMENT,企业标签映射表
+company_tag_map,company_id,BIGINT,,企业唯一标识,,1,,,company_basic.company_id,,,企业标签映射表
+company_tag_map,company_tag_id,BIGINT,,企业标签唯一标识,,1,,,company_tag_library.company_tag_id,,,企业标签映射表
+company_tag_map,source,TINYINT,,打标来源（1:手动，2:自动）,,,,,,"((`source` is null) or (`source` in (1,2)))",,企业标签映射表
+company_tag_map,confidence,"DECIMAL(3,2)",,置信度,,,,,,((`confidence` is null) or ((`confidence` >= 0) and (`confidence` <= 1))),,企业标签映射表
+company_tag_map,create_time,DATETIME,,打标时间,,1,,CURRENT_TIMESTAMP,,,,企业标签映射表
+company_tag_map,user_id,BIGINT,,打标人,,,,,,,,企业标签映射表
+company_tag_subdimension,company_tag_subdimension_id,BIGINT,,企业标签子维度唯一标识,1,1,,,,,AUTO_INCREMENT,企业标签子维度表
+company_tag_subdimension,company_tag_subdimension_name,VARCHAR(255),,企业标签子维度名称,,1,,,,,,企业标签子维度表
+company_tag_subdimension,company_tag_dimension_id,BIGINT,,企业标签维度唯一标识,,1,,,company_tag_dimension.company_tag_dimension_id,,,企业标签子维度表
+company_tag_subdimension,sort_order,INT,,排序序号,,1,,0,,(`sort_order` >= 0),,企业标签子维度表
+company_trademark,company_trademark_id,BIGINT,,企业商标唯一标识,1,1,,,,,AUTO_INCREMENT,企业商标表
+company_trademark,company_trademark_name,VARCHAR(255),,企业商标名称,,1,,,,,,企业商标表
+company_trademark,company_id,BIGINT,,企业唯一标识,,1,,,company_basic.company_id,,,企业商标表
+company_trademark,company_trademark_register_number,VARCHAR(255),,企业商标注册号,,1,1,,,,,企业商标表
+company_trademark,company_trademark_application_date,DATE,,企业商标申请日期,,,,,,,,企业商标表
+company_website,company_website_id,BIGINT,,企业网站记录唯一标识,1,1,,,,,AUTO_INCREMENT,企业网站表
+company_website,company_id,BIGINT,,企业唯一标识,,1,,,company_basic.company_id,,,企业网站表
+company_website,website,VARCHAR(255),,企业网站 URL,,1,,,,,,企业网站表
+company_website,is_latest,TINYINT,,是否为最新记录,,1,,0,,"(`is_latest` in (0,1))",,企业网站表
+company_website,captured_at,DATETIME,,抓取/核准时间,,,,,,,,企业网站表
+company_work_copyright,company_work_copyright_id,BIGINT,,作品著作唯一标识,1,1,,,,,AUTO_INCREMENT,企业作品著作权表
+company_work_copyright,company_work_copyright_name,VARCHAR(255),,作品著作名称,,1,,,,,,企业作品著作权表
+company_work_copyright,company_id,BIGINT,,企业唯一标识,,1,,,company_basic.company_id,,,企业作品著作权表
+company_work_copyright,company_work_copyright_register_number,VARCHAR(255),,作品著作登记号,,1,1,,,,,企业作品著作权表
+company_work_copyright,company_work_copyright_type,VARCHAR(255),,作品著作类别,,,,,,,,企业作品著作权表
+company_work_copyright,company_work_copyright_publish_date,DATE,,作品著作首次发布日期,,,,,,,,企业作品著作权表
+company_work_copyright,company_work_copyright_register_date,DATE,,作品著作登记日期,,,,,,,,企业作品著作权表
+company_work_copyright,company_work_copyright_status,VARCHAR(255),,作品著作状态,,,,,,,,企业作品著作权表
+platform_notice,notice_id,BIGINT,,,1,1,,,,,AUTO_INCREMENT,
+platform_notice,title,VARCHAR(255),,,,1,,,,,,
+platform_notice,notice_type,VARCHAR(32),,,,1,,通知,,,,
+platform_notice,content,TEXT,,,,1,,,,,,
+platform_notice,publish_date,DATE,,,,,,,,,,
+platform_notice,sort_order,INT,,,,1,,0,,,,
+platform_notice,is_published,TINYINT(1),,,,1,,1,,,,
+platform_notice,is_deleted,TINYINT(1),,,,1,,0,,,,
+platform_notice,created_by,BIGINT,,,,,,,,,,
+platform_notice,updated_by,BIGINT,,,,,,,,,,
+platform_notice,created_at,DATETIME,,,,1,,CURRENT_TIMESTAMP,,,,
+platform_notice,updated_at,DATETIME,,,,1,,CURRENT_TIMESTAMP,,,,
+rag_chat_message,message_id,BIGINT,,消息主键,1,1,,,,,AUTO_INCREMENT,RAG 对话消息表
+rag_chat_message,session_id,VARCHAR(64),,所属会话 ID,,1,,,rag_chat_session.session_id,,,RAG 对话消息表
+rag_chat_message,role,VARCHAR(16),,消息角色（user/assistant/system）,,1,,,,,,RAG 对话消息表
+rag_chat_message,content,LONGTEXT,,消息正文,,1,,,,,,RAG 对话消息表
+rag_chat_message,retrieval_metadata,JSON,,检索元数据,,,,,,,,RAG 对话消息表
+rag_chat_message,created_at,DATETIME,,创建时间,,1,,CURRENT_TIMESTAMP,,,,RAG 对话消息表
+rag_chat_session,session_id,VARCHAR(64),,RAG 对话会话 ID,1,1,,,,,,RAG 对话会话表
+rag_chat_session,user_id,BIGINT,,所属用户 ID（users.user_id）,,1,,,users.user_id,,,RAG 对话会话表
+rag_chat_session,title,VARCHAR(255),,会话标题,,,,,,,,RAG 对话会话表
+rag_chat_session,is_pinned,TINYINT,,是否置顶（1:是，0:否）,,1,,0,,,,RAG 对话会话表
+rag_chat_session,created_at,DATETIME,,创建时间,,1,,CURRENT_TIMESTAMP,,,,RAG 对话会话表
+rag_chat_session,updated_at,DATETIME,,更新时间,,1,,CURRENT_TIMESTAMP,,,,RAG 对话会话表
+score_industry_path,industry_path,VARCHAR(255),,行业路径名称,1,1,,,,,,行业路径评分统计表
+score_industry_path,path_level,SMALLINT,,几级标签,,,,,,,,行业路径评分统计表
+score_industry_path,avg_score,"DECIMAL(5,2)",,行业平均分,,,,,,,,行业路径评分统计表
+score_industry_path,company_count,INT,,行业包含企业数量,,,,,,((`company_count` is null) or (`company_count` >= 0)),,行业路径评分统计表
+score_model_basic_weight,model_id,BIGINT,,基础评分模型 ID,1,1,,,,,AUTO_INCREMENT,基础评分模型权重表
+score_model_basic_weight,model_name,VARCHAR(100),,基础评分模型名称,,1,,,,,,基础评分模型权重表
+score_model_basic_weight,established_year,"DECIMAL(5,2)",,成立年限,,1,,0.00,,,,基础评分模型权重表
+score_model_basic_weight,registered_capital,"DECIMAL(5,2)",,注册资本,,1,,0.00,,,,基础评分模型权重表
+score_model_basic_weight,actual_paid_capital,"DECIMAL(5,2)",,实缴资本,,1,,0.00,,,,基础评分模型权重表
+score_model_basic_weight,company_type,"DECIMAL(5,2)",,公司类型,,1,,0.00,,,,基础评分模型权重表
+score_model_basic_weight,enterprise_size_type,"DECIMAL(5,2)",,企业规模（分型）,,1,,0.00,,,,基础评分模型权重表
+score_model_basic_weight,social_security_count,"DECIMAL(5,2)",,企业规模（社保人数）,,1,,0.00,,,,基础评分模型权重表
+score_model_basic_weight,website,"DECIMAL(5,2)",,网址,,1,,0.00,,,,基础评分模型权重表
+score_model_basic_weight,business_scope,"DECIMAL(5,2)",,经营范围,,1,,0.00,,,,基础评分模型权重表
+score_model_basic_weight,tax_rating,"DECIMAL(5,2)",,纳税人等级,,1,,0.00,,,,基础评分模型权重表
+score_model_basic_weight,tax_type,"DECIMAL(5,2)",,纳税人类型,,1,,0.00,,,,基础评分模型权重表
+score_model_basic_weight,funding_round,"DECIMAL(5,2)",,投融资轮次,,1,,0.00,,,,基础评分模型权重表
+score_model_basic_weight,patent_type,"DECIMAL(5,2)",,专利类型,,1,,0.00,,,,基础评分模型权重表
+score_model_basic_weight,software_copyright,"DECIMAL(5,2)",,软件著作权,,1,,0.00,,,,基础评分模型权重表
+score_model_basic_weight,technology_enterprise,"DECIMAL(5,2)",,科技型企业,,1,,0.00,,,,基础评分模型权重表
+score_model_professional_weight,model_id,BIGINT,,专业能力评分模型 ID,1,1,,,,,AUTO_INCREMENT,专业能力评分模型权重表
+score_model_professional_weight,model_name,VARCHAR(100),,专业能力评分模型名称,,1,,,,,,专业能力评分模型权重表
+score_model_professional_weight,industry_market_size,"DECIMAL(5,2)",,行业市场规模,,1,,0.00,,,,专业能力评分模型权重表
+score_model_professional_weight,industry_heat,"DECIMAL(5,2)",,行业热度,,1,,0.00,,,,专业能力评分模型权重表
+score_model_professional_weight,industry_profit_margin,"DECIMAL(5,2)",,行业利润率,,1,,0.00,,,,专业能力评分模型权重表
+score_model_professional_weight,qualification,"DECIMAL(5,2)",,资质,,1,,0.00,,,,专业能力评分模型权重表
+score_model_professional_weight,certificates,"DECIMAL(5,2)",,证书,,1,,0.00,,,,专业能力评分模型权重表
+score_model_professional_weight,innovation,"DECIMAL(5,2)",,创新性,,1,,0.00,,,,专业能力评分模型权重表
+score_model_professional_weight,partnership_score,"DECIMAL(5,2)",,合作上下游,,1,,0.00,,,,专业能力评分模型权重表
+score_model_professional_weight,ranking,"DECIMAL(5,2)",,专业榜单入选,,1,,0.00,,,,专业能力评分模型权重表
+score_model_tech_weight,model_id,BIGINT,,科技属性评分模型 ID,1,1,,,,,AUTO_INCREMENT,科技属性评分模型权重表
+score_model_tech_weight,model_name,VARCHAR(100),,科技属性评分模型名称,,1,,,,,,科技属性评分模型权重表
+score_model_tech_weight,tech_patent_type,"DECIMAL(5,2)",,专利类型,,1,,0.00,,,,科技属性评分模型权重表
+score_model_tech_weight,patent_tech_attribute,"DECIMAL(5,2)",,专利科技属性,,1,,0.00,,,,科技属性评分模型权重表
+score_model_tech_weight,tech_software_copyright,"DECIMAL(5,2)",,软件著作权,,1,,0.00,,,,科技属性评分模型权重表
+score_model_tech_weight,software_copyright_tech_attribute,"DECIMAL(5,2)",,软著科技属性,,1,,0.00,,,,科技属性评分模型权重表
+score_model_tech_weight,tech_technology_enterprise,"DECIMAL(5,2)",,科技型企业,,1,,0.00,,,,科技属性评分模型权重表
+score_model_tech_weight,industry_university_research,"DECIMAL(5,2)",,产学研合作,,1,,0.00,,,,科技属性评分模型权重表
+score_model_tech_weight,national_provincial_award,"DECIMAL(5,2)",,国家/省级奖励,,1,,0.00,,,,科技属性评分模型权重表
+score_model_total_weight,model_id,BIGINT,,模型 ID,1,1,,,,,AUTO_INCREMENT,总评分模型权重表
+score_model_total_weight,model_name,VARCHAR(100),,模型名称,,1,,,,,,总评分模型权重表
+score_model_total_weight,model_weight,"DECIMAL(5,2)",,模型权重,,1,,,,((`model_weight` >= 0) and (`model_weight` <= 100)),,总评分模型权重表
+scoring_scorelog,id,BIGINT,,评分日志 ID,1,1,,,,,AUTO_INCREMENT,企业评分日志表
+scoring_scorelog,enterprise_id,BIGINT,,企业 ID,,1,,,company_basic.company_id,,,企业评分日志表
+scoring_scorelog,enterprise_name,VARCHAR(255),,企业名称,,,,,,,,企业评分日志表
+scoring_scorelog,score_type,VARCHAR(20),,得分类型,,,,,,,,企业评分日志表
+scoring_scorelog,score_value,"DECIMAL(5,2)",,得分分值,,,,,,,,企业评分日志表
+scoring_scorelog,description,LONGTEXT,,得分依据描述,,,,,,,,企业评分日志表
+scoring_scorelog,created_at,DATETIME(6),,创建时间,,,,CURRENT_TIMESTAMP(6),,,,企业评分日志表
+scoring_scoreresult,enterprise_id,BIGINT,,企业 ID,1,1,,,company_basic.company_id,,,企业评分结果表
+scoring_scoreresult,company_name,VARCHAR(255),,企业名称,,,,,,,,企业评分结果表
+scoring_scoreresult,total_score,"DECIMAL(5,2)",,总得分,,1,,0.00,,,,企业评分结果表
+scoring_scoreresult,basic_score,"DECIMAL(5,2)",,基础得分,,1,,0.00,,,,企业评分结果表
+scoring_scoreresult,tech_score,"DECIMAL(5,2)",,科技属性得分,,1,,0.00,,,,企业评分结果表
+scoring_scoreresult,professional_score,"DECIMAL(5,2)",,专业能力得分,,1,,0.00,,,,企业评分结果表
+scoring_scoreresult,created_at,DATETIME(6),,创建时间,,1,,CURRENT_TIMESTAMP(6),,,,企业评分结果表
+scoring_scoreresult,updated_at,DATETIME(6),,更新时间,,1,,CURRENT_TIMESTAMP(6),,,,企业评分结果表
+user_and_roles,association_id,BIGINT,,用户权限关联表 关联 ID 唯一标识,1,1,,,,,AUTO_INCREMENT,用户权限关联表
+user_and_roles,user_id,BIGINT,,用户 ID,,1,,,users.user_id,,,用户权限关联表
+user_and_roles,role_id,BIGINT,,权限 ID,,1,,,user_roles.role_id,,,用户权限关联表
+user_and_roles,assigned_at,DATETIME(6),,授权时间,,,,CURRENT_TIMESTAMP(6),,,,用户权限关联表
+user_dinvite_codes,invite_code,VARCHAR(50),,邀请码,1,1,,,,,,邀请码表
+user_dinvite_codes,is_used,TINYINT(1),,使用状态：0-未使用，1-已使用,,1,,0,,"(`is_used` in (0,1))",,邀请码表
+user_dinvite_codes,created_at,DATETIME(6),,创建时间,,,,CURRENT_TIMESTAMP(6),,,,邀请码表
+user_domains,domain_id,BIGINT,,领域表 领域 ID 唯一标识,1,1,,,,,AUTO_INCREMENT,用户领域表
+user_domains,domain_name,VARCHAR(50),,领域名称,,1,1,,,,,用户领域表
+user_domains,domain_description,LONGTEXT,,领域描述,,,,,,,,用户领域表
+user_domains,created_at,DATETIME(6),,创建时间,,,,CURRENT_TIMESTAMP(6),,,,用户领域表
+user_operation_logs,log_id,BIGINT,,操作日志表 日志 ID 唯一标识,1,1,,,,,AUTO_INCREMENT,用户操作日志表
+user_operation_logs,user_id,BIGINT,,用户 ID,,1,,,users.user_id,,,用户操作日志表
+user_operation_logs,operation_time,DATETIME(6),,操作时间,,,,CURRENT_TIMESTAMP(6),,,,用户操作日志表
+user_operation_logs,action,VARCHAR(50),,操作内容,,1,,,,,,用户操作日志表
+user_roles,role_id,BIGINT,,权限表 权限 ID 唯一标识,1,1,,,,,AUTO_INCREMENT,用户角色表
+user_roles,role_name,VARCHAR(30),,权限名称,,1,1,,,,,用户角色表
+user_roles,role_description,LONGTEXT,,权限描述,,,,,,,,用户角色表
+users,user_id,BIGINT,,用户表 用户 ID 唯一标识,1,1,,,,,AUTO_INCREMENT,统一用户认证与资料表
+users,user_name,VARCHAR(100),,用户名,,1,1,,,,,统一用户认证与资料表
+users,password_hash,VARCHAR(255),,密码哈希值,,1,,,,,,统一用户认证与资料表
+users,email,VARCHAR(100),,邮箱,,,1,,,,,统一用户认证与资料表
+users,phone,VARCHAR(20),,联系方式（手机号）,,,1,,,,,统一用户认证与资料表
+users,organization,VARCHAR(100),,单位,,,,,,,,统一用户认证与资料表
+users,position,VARCHAR(100),,职务,,,,,,,,统一用户认证与资料表
+users,user_nickname,VARCHAR(255),,用户显示昵称,,,,,,,,统一用户认证与资料表
+users,user_avatar,VARCHAR(255),,头像（文件 URL）,,,,,,,,统一用户认证与资料表
+users,user_type,TINYINT,,所属领域（1:数字医疗，2:康养）,,,,,,"((`user_type` is null) or (`user_type` in (1,2)))",,统一用户认证与资料表
+users,is_superuser,TINYINT,,是否为管理员（1:是，0:否）,,1,,0,,"(`is_superuser` in (0,1))",,统一用户认证与资料表
+users,user_role,VARCHAR(255),,用户角色,,,,,,,,统一用户认证与资料表
+users,date_joined,DATETIME,,注册时间,,,,CURRENT_TIMESTAMP,,,,统一用户认证与资料表
+users,last_login_time,DATETIME,,上次登录时间,,,,,,,,统一用户认证与资料表
+users,last_login_ip,VARCHAR(255),,上次登录 IP,,,,,,,,统一用户认证与资料表
+users,password_update_time,DATETIME,,上次修改密码时间,,,,,,,,统一用户认证与资料表
+users,user_real_name,VARCHAR(255),,用户真实姓名,,,,,,,,统一用户认证与资料表
+users,org_name,VARCHAR(255),,用户所属组织名称,,,,,,,,统一用户认证与资料表
+users,org_id,VARCHAR(255),,用户所属组织 ID,,,,,,,,统一用户认证与资料表
+users,dept_name,VARCHAR(255),,用户所属部门名称,,,,,,,,统一用户认证与资料表
+users,dept_id,VARCHAR(255),,用户所属部门 ID,,,,,,,,统一用户认证与资料表
+users,user_status,TINYINT,,用户状态（0:禁用，1:正常，2:待审核）,,1,,2,,"(`user_status` in (0,1,2))",,统一用户认证与资料表
+users,domain_id,BIGINT,,所属领域 ID,,,,,user_domains.domain_id,,,统一用户认证与资料表
+users,registered_at,DATETIME(6),,注册时间,,,,CURRENT_TIMESTAMP(6),,,,统一用户认证与资料表
+users,last_login_at,DATETIME(6),,最后登录时间,,,,,,,,统一用户认证与资料表
+users,updated_at,DATETIME(6),,更新时间,,,,CURRENT_TIMESTAMP(6),,,,统一用户认证与资料表
+company_ai_model_filing,company_ai_model_filing_id,BIGINT,,算法备案医疗大模型记录唯一标识,1,1,,,,,AUTO_INCREMENT,企业算法备案医疗大模型表
+company_ai_model_filing,company_id,BIGINT,,企业唯一标识,,1,,,company_basic.company_id,,,企业算法备案医疗大模型表
+company_ai_model_filing,company_name_raw,VARCHAR(255),,企业名称原值,,,,,,,,企业算法备案医疗大模型表
+company_ai_model_filing,model_name,VARCHAR(255),,模型名称,,1,,,,,,企业算法备案医疗大模型表
+company_ai_model_filing,filing_no,VARCHAR(255),,备案编号,,,,,,,,企业算法备案医疗大模型表
+company_ai_model_filing,filing_type,VARCHAR(64),,备案类型,,,,,,,,企业算法备案医疗大模型表
+company_ai_model_filing,territory,VARCHAR(255),,属地,,,,,,,,企业算法备案医疗大模型表
+company_ai_model_filing,filed_at,DATE,,备案时间,,,,,,,,企业算法备案医疗大模型表
+company_ai_model_filing,source_period_raw,VARCHAR(64),,时期原值,,,,,,,,企业算法备案医疗大模型表
+company_ai_model_filing,source_file,VARCHAR(255),,来源文件,,,,,,,,企业算法备案医疗大模型表
+company_ai_model_filing,source_sheet,VARCHAR(128),,来源工作表,,,,,,,,企业算法备案医疗大模型表
+company_ai_model_filing,created_at,DATETIME,,创建时间,,1,,CURRENT_TIMESTAMP,,,,企业算法备案医疗大模型表
+company_ai_model_filing,updated_at,DATETIME,,更新时间,,1,,CURRENT_TIMESTAMP,,,,企业算法备案医疗大模型表
+company_high_quality_dataset,company_high_quality_dataset_id,BIGINT,,高质量数据集记录唯一标识,1,1,,,,,AUTO_INCREMENT,企业高质量数据集表
+company_high_quality_dataset,company_id,BIGINT,,企业唯一标识,,1,,,company_basic.company_id,,,企业高质量数据集表
+company_high_quality_dataset,company_name_raw,VARCHAR(255),,企业名称原值,,,,,,,,企业高质量数据集表
+company_high_quality_dataset,dataset_name,VARCHAR(255),,案例/数据集名称,,1,,,,,,企业高质量数据集表
+company_high_quality_dataset,applicant_unit_raw,TEXT,,申报单位原值,,,,,,,,企业高质量数据集表
+company_high_quality_dataset,recommender_unit,VARCHAR(255),,推荐单位,,,,,,,,企业高质量数据集表
+company_high_quality_dataset,announced_at,DATE,,公布日期,,,,,,,,企业高质量数据集表
+company_high_quality_dataset,source_file,VARCHAR(255),,来源文件,,,,,,,,企业高质量数据集表
+company_high_quality_dataset,source_sheet,VARCHAR(128),,来源工作表,,,,,,,,企业高质量数据集表
+company_high_quality_dataset,created_at,DATETIME,,创建时间,,1,,CURRENT_TIMESTAMP,,,,企业高质量数据集表
+company_high_quality_dataset,updated_at,DATETIME,,更新时间,,1,,CURRENT_TIMESTAMP,,,,企业高质量数据集表
+company_innovation_notice,company_innovation_notice_id,BIGINT,,创新性公示记录唯一标识,1,1,,,,,AUTO_INCREMENT,企业创新性公示表
+company_innovation_notice,company_id,BIGINT,,企业唯一标识,,1,,,company_basic.company_id,,,企业创新性公示表
+company_innovation_notice,company_name_raw,VARCHAR(255),,企业名称原值,,,,,,,,企业创新性公示表
+company_innovation_notice,notice_type,VARCHAR(64),,公示类型,,1,,,,,,企业创新性公示表
+company_innovation_notice,notice_title,VARCHAR(255),,公示标题,,,,,,,,企业创新性公示表
+company_innovation_notice,notice_category,VARCHAR(255),,公示类别,,,,,,,,企业创新性公示表
+company_innovation_notice,product_name,VARCHAR(255),,产品/事项名称,,,,,,,,企业创新性公示表
+company_innovation_notice,reg_no,VARCHAR(255),,注册证号/登记号,,,,,,,,企业创新性公示表
+company_innovation_notice,acceptance_no,VARCHAR(255),,受理号,,,,,,,,企业创新性公示表
+company_innovation_notice,owner_name,VARCHAR(255),,所有者名称,,,,,,,,企业创新性公示表
+company_innovation_notice,public_date,DATE,,公示日期,,,,,,,,企业创新性公示表
+company_innovation_notice,public_end_date,DATE,,公示截止日期,,,,,,,,企业创新性公示表
+company_innovation_notice,rare_disease_flag,TINYINT,,是否为罕见病药物,,1,,0,,"(`rare_disease_flag` in (0,1))",,企业创新性公示表
+company_innovation_notice,source_file,VARCHAR(255),,来源文件,,,,,,,,企业创新性公示表
+company_innovation_notice,source_sheet,VARCHAR(128),,来源工作表,,,,,,,,企业创新性公示表
+company_innovation_notice,created_at,DATETIME,,创建时间,,1,,CURRENT_TIMESTAMP,,,,企业创新性公示表
+company_innovation_notice,updated_at,DATETIME,,更新时间,,1,,CURRENT_TIMESTAMP,,,,企业创新性公示表
+raw_import_company_ai_model_filing,raw_id,BIGINT,,原始导入记录 ID,1,1,,,,,AUTO_INCREMENT,Excel 原始导入表-算法备案医疗大模型
+raw_import_company_ai_model_filing,source_file,VARCHAR(255),,来源文件名,,,,,,,,Excel 原始导入表-算法备案医疗大模型
+raw_import_company_ai_model_filing,source_sheet,VARCHAR(128),,来源工作表,,,,,,,,Excel 原始导入表-算法备案医疗大模型
+raw_import_company_ai_model_filing,sheet_row_no,INT,,Excel 行号/序号,,,,,,,,Excel 原始导入表-算法备案医疗大模型
+raw_import_company_ai_model_filing,period_raw,VARCHAR(64),,时期原值,,,,,,,,Excel 原始导入表-算法备案医疗大模型
+raw_import_company_ai_model_filing,filing_type,VARCHAR(64),,类型,,,,,,,,Excel 原始导入表-算法备案医疗大模型
+raw_import_company_ai_model_filing,source_order_raw,VARCHAR(64),,原序号,,,,,,,,Excel 原始导入表-算法备案医疗大模型
+raw_import_company_ai_model_filing,territory,VARCHAR(255),,属地,,,,,,,,Excel 原始导入表-算法备案医疗大模型
+raw_import_company_ai_model_filing,model_name,VARCHAR(255),,模型名称,,,,,,,,Excel 原始导入表-算法备案医疗大模型
+raw_import_company_ai_model_filing,company_name,VARCHAR(255),,单位/企业名称,,,,,,,,Excel 原始导入表-算法备案医疗大模型
+raw_import_company_ai_model_filing,filing_number,VARCHAR(255),,备案编号,,,,,,,,Excel 原始导入表-算法备案医疗大模型
+raw_import_company_ai_model_filing,filed_at_raw,VARCHAR(64),,备案时间原值,,,,,,,,Excel 原始导入表-算法备案医疗大模型
+raw_import_company_high_quality_dataset,raw_id,BIGINT,,原始导入记录 ID,1,1,,,,,AUTO_INCREMENT,Excel 原始导入表-高质量数据集
+raw_import_company_high_quality_dataset,source_file,VARCHAR(255),,来源文件名,,,,,,,,Excel 原始导入表-高质量数据集
+raw_import_company_high_quality_dataset,source_sheet,VARCHAR(128),,来源工作表,,,,,,,,Excel 原始导入表-高质量数据集
+raw_import_company_high_quality_dataset,sheet_row_no,INT,,Excel 行号/序号,,,,,,,,Excel 原始导入表-高质量数据集
+raw_import_company_high_quality_dataset,source_order_raw,VARCHAR(64),,原序号,,,,,,,,Excel 原始导入表-高质量数据集
+raw_import_company_high_quality_dataset,dataset_name,VARCHAR(255),,案例/数据集名称,,,,,,,,Excel 原始导入表-高质量数据集
+raw_import_company_high_quality_dataset,applicant_unit,TEXT,,申报单位原值,,,,,,,,Excel 原始导入表-高质量数据集
+raw_import_company_high_quality_dataset,recommender_unit,VARCHAR(255),,推荐单位,,,,,,,,Excel 原始导入表-高质量数据集
+raw_import_company_innovation_notice,raw_id,BIGINT,,原始导入记录 ID,1,1,,,,,AUTO_INCREMENT,Excel 原始导入表-创新性公示
+raw_import_company_innovation_notice,source_file,VARCHAR(255),,来源文件名,,,,,,,,Excel 原始导入表-创新性公示
+raw_import_company_innovation_notice,source_sheet,VARCHAR(128),,来源工作表,,,,,,,,Excel 原始导入表-创新性公示
+raw_import_company_innovation_notice,notice_type,VARCHAR(64),,公示类型,,,,,,,,Excel 原始导入表-创新性公示
+raw_import_company_innovation_notice,sheet_row_no,INT,,Excel 行号/序号,,,,,,,,Excel 原始导入表-创新性公示
+raw_import_company_innovation_notice,source_order_raw,VARCHAR(64),,原序号,,,,,,,,Excel 原始导入表-创新性公示
+raw_import_company_innovation_notice,notice_title,VARCHAR(255),,公示标题,,,,,,,,Excel 原始导入表-创新性公示
+raw_import_company_innovation_notice,notice_category,VARCHAR(255),,公示类别,,,,,,,,Excel 原始导入表-创新性公示
+raw_import_company_innovation_notice,company_name,VARCHAR(512),,企业名称/申请人,,,,,,,,Excel 原始导入表-创新性公示
+raw_import_company_innovation_notice,owner_name,VARCHAR(255),,所有者名称,,,,,,,,Excel 原始导入表-创新性公示
+raw_import_company_innovation_notice,product_name,VARCHAR(255),,产品/事项名称,,,,,,,,Excel 原始导入表-创新性公示
+raw_import_company_innovation_notice,reg_no,VARCHAR(255),,注册证号/登记号,,,,,,,,Excel 原始导入表-创新性公示
+raw_import_company_innovation_notice,acceptance_no,VARCHAR(255),,受理号,,,,,,,,Excel 原始导入表-创新性公示
+raw_import_company_innovation_notice,public_date_raw,VARCHAR(64),,公示日期原值,,,,,,,,Excel 原始导入表-创新性公示
+raw_import_company_innovation_notice,public_end_date_raw,VARCHAR(64),,公示截止日期原值,,,,,,,,Excel 原始导入表-创新性公示
+raw_import_company_innovation_notice,rare_disease_flag_raw,VARCHAR(64),,是否为罕见病药物原值,,,,,,,,Excel 原始导入表-创新性公示

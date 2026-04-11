@@ -1,7 +1,4 @@
-/**
- * src/pages/IndustryPortrait/components/EnterpriseOverviewTab.tsx
- */
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Row,
   Col,
@@ -17,10 +14,10 @@ import {
   Alert,
   Grid,
   List,
-  Dropdown,
-  ConfigProvider,
+  Card,
+  Button,
+  Modal,
 } from "antd";
-import type { MenuProps } from "antd";
 import {
   GlobalOutlined,
   EnvironmentOutlined,
@@ -28,44 +25,76 @@ import {
   ExperimentOutlined,
   ThunderboltOutlined,
   UserOutlined,
-  WarningOutlined,
   RiseOutlined,
   DownOutlined,
+  UpOutlined,
+  TeamOutlined,
+  ApartmentOutlined,
+  TrophyOutlined,
+  ProfileOutlined,
 } from "@ant-design/icons";
 import { Radar } from "@ant-design/plots";
-import dayjs from "dayjs";
 
-// --- 引入新组件 ---
 import EnterpriseBasicInfoTab from "./EnterpriseBasicInfoTab";
-import ProfileListCard from "./ProfileListCard";
 
-const { Title, Text } = Typography;
+const { Title, Text, Paragraph } = Typography;
 const { useBreakpoint } = Grid;
 
-// --- 视觉风格定义 ---
 const COLORS = {
   primary: "#1890ff",
   gold: "#faad14",
   green: "#52c41a",
-  bg: "#fff",
   borderColor: "#f0f0f0",
   textSecondary: "#666",
   riskHigh: "#ff4d4f",
-  riskMedium: "#faad14",
-  riskLow: "#52c41a",
+  riskMedium: "#fa8c16",
+  panel: "#ffffff",
+  softBlue: "#f4f9ff",
 };
 
-const BORDER_STYLE = `1px solid ${COLORS.borderColor}`;
+const TAB_CONFIG = [
+  { key: "basic", label: "基本信息" },
+  { key: "risk", label: "经营风险" },
+  { key: "operating", label: "经营信息" },
+  { key: "ip", label: "知识产权" },
+];
 
-// --- 图表配置 (保持不变) ---
+interface EnterpriseOverviewTabProps {
+  profile: any;
+}
+
+const sectionTitleStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  fontSize: 16,
+  fontWeight: 700,
+  color: "#262626",
+  marginBottom: 16,
+};
+
+const SectionTitle = ({ title }: { title: string }) => (
+  <div style={sectionTitleStyle}>
+    <div
+      style={{
+        width: 4,
+        height: 16,
+        backgroundColor: COLORS.primary,
+        borderRadius: 2,
+        marginRight: 8,
+      }}
+    />
+    {title}
+  </div>
+);
+
 const MAIN_RADAR_CONFIG = (data: any[]) => ({
-  data,
+  data: data || [],
   xField: "item",
   yField: "score",
   area: {
     style: {
       fill: "l(90) 0:#1890ff 1:rgba(24,144,255,0.1)",
-      fillOpacity: 0.4,
+      fillOpacity: 0.32,
     },
   },
   line: { style: { stroke: "#1890ff", lineWidth: 2 } },
@@ -76,176 +105,404 @@ const MAIN_RADAR_CONFIG = (data: any[]) => ({
   },
   scale: { y: { min: 0, max: 100, tickCount: 5 } },
   axis: { x: { grid: { line: { style: { stroke: "#eee" } } } } },
-  height: 220,
+  height: 240,
 });
 
-// --- 新版标签页配置 (保持不变) ---
-const NEW_TAB_CONFIG = [
-  {
-    key: "basic",
-    label: "基本信息",
-    children: [
-      { key: "basic-business", label: "工商信息" },
-      { key: "basic-shareholder", label: "股东信息" },
-      { key: "basic-personnel", label: "主要人员" },
-      { key: "basic-branch", label: "分支机构" },
-      { key: "basic-change", label: "变更记录" },
-      { key: "basic-report", label: "企业年报" },
-      { key: "basic-social", label: "社保人数" },
-      { key: "basic-related", label: "关联企业" },
-    ],
-  },
-  {
-    key: "judicial",
-    label: "司法涉诉",
-    children: [
-      { key: "judicial-case", label: "司法案件" },
-      { key: "judicial-doc", label: "法律文书" },
-      { key: "judicial-dishonest", label: "失信被执行" },
-      { key: "judicial-litigation", label: "诉讼" },
-    ],
-  },
-  {
-    key: "investment",
-    label: "投融资",
-    children: [
-      { key: "invest-history", label: "融资历史" },
-      { key: "invest-out", label: "对外投资" },
-    ],
-  },
-  {
-    key: "risk",
-    label: "经营风险",
-    children: [
-      { key: "risk-abnormal", label: "经营异常" },
-      { key: "risk-admin", label: "行政处罚" },
-      { key: "risk-env", label: "环保处罚" },
-      { key: "risk-clear", label: "清算信息" },
-    ],
-  },
-  {
-    key: "operating",
-    label: "经营信息",
-    children: [
-      { key: "op-bid", label: "招投标" },
-      { key: "op-product", label: "产品" },
-      { key: "op-cert", label: "资质认证" },
-      { key: "op-tax", label: "税务资质" },
-      { key: "op-client", label: "客户" },
-      { key: "op-supplier", label: "供应商" },
-    ],
-  },
-  {
-    key: "ip",
-    label: "知识产权",
-    children: [
-      { key: "ip-patent", label: "专利" },
-      { key: "ip-soft", label: "软件著作" },
-      { key: "ip-tm", label: "商标" },
-      { key: "ip-copy", label: "著作权" },
-    ],
-  },
-];
-
-interface EnterpriseOverviewTabProps {
-  profile: any;
-}
-
-const EnterpriseOverviewTab: React.FC<EnterpriseOverviewTabProps> = ({
-  profile,
-}) => {
+const EnterpriseOverviewTab: React.FC<EnterpriseOverviewTabProps> = ({ profile }) => {
   const screens = useBreakpoint();
   const isMobile = !screens.md;
   const [activeTabKey, setActiveTabKey] = useState("basic");
+  const [expandedTabs, setExpandedTabs] = useState<Record<string, boolean>>({});
+  const [ipDetailModal, setIpDetailModal] = useState<{
+    open: boolean;
+    title: string;
+    columns: any[];
+    data: any[];
+  }>({ open: false, title: "", columns: [], data: [] });
 
-  // --- 锚点跳转处理 ---
-  const handleSubMenuClick = (tabKey: string, subKey: string) => {
-    setActiveTabKey(tabKey);
-    setTimeout(() => {
-      const el = document.getElementById(subKey);
-      if (el) {
-        const headerOffset = 60;
-        const elementPosition = el.getBoundingClientRect().top;
-        const offsetPosition =
-          elementPosition + window.pageYOffset - headerOffset;
-        window.scrollTo({
-          top: offsetPosition,
-          behavior: "smooth",
-        });
-      }
-    }, 100);
+  const toggleExpand = (key: string) => {
+    setExpandedTabs((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  // --- 占位渲染 (用于非基本信息 Tab) ---
-  const renderPlaceholderTab = (title: string) => (
-    <div style={{ padding: 24, minHeight: 300 }}>
-      <Alert
-        message={`此处展示${title}详细信息`}
-        type="info"
-        showIcon
-        style={{ marginBottom: 24, borderRadius: 0 }}
-      />
-      <ProfileListCard
-        columns={[
-          { title: "项目", dataIndex: "name" },
-          { title: "详情", dataIndex: "desc" },
-        ]}
-        data={[{ key: 1, name: "示例数据", desc: "暂无记录" }]}
-      />
-    </div>
+  const getOperateItem = (label: string) =>
+    (profile.operateTableData || []).find((item: any) => item.item === label);
+
+  const relocationRisk = useMemo(() => {
+    if (profile.migrationRisk) {
+      return profile.migrationRisk;
+    }
+    const recruitCount = Number(getOperateItem("招聘信息数量")?.count || 0);
+    const recruitStatus = String(getOperateItem("有无招聘")?.status || "无");
+
+    if (recruitCount >= 5 || recruitStatus === "有") {
+      return {
+        level: "低",
+        color: COLORS.green,
+        score: 22,
+        label: "招聘活跃度良好",
+        factors: [
+          { name: "招聘信息数量", desc: `库内检出 ${recruitCount} 条招聘记录`, impact: "Low" },
+          { name: "本地吸附信号", desc: "仍存在持续招聘动作", impact: "Low" },
+          { name: "判定口径", desc: "仅依据库内招聘数据：0 条高风险，1-4 条中风险，>=5 条低风险", impact: "Low" },
+        ],
+      };
+    }
+
+    if (recruitCount >= 1) {
+      return {
+        level: "中",
+        color: COLORS.riskMedium,
+        score: 58,
+        label: "招聘活跃度偏弱",
+        factors: [
+          { name: "招聘信息数量", desc: `库内检出 ${recruitCount} 条招聘记录`, impact: "Medium" },
+          { name: "本地吸附信号", desc: "存在零散招聘，但持续性不足", impact: "Medium" },
+          { name: "判定口径", desc: "仅依据库内招聘数据：0 条高风险，1-4 条中风险，>=5 条低风险", impact: "Low" },
+        ],
+      };
+    }
+
+    return {
+      level: "高",
+      color: COLORS.riskHigh,
+      score: 86,
+      label: "未检出招聘吸附信号",
+      factors: [
+        { name: "招聘信息数量", desc: "库内未检出招聘记录", impact: "High" },
+        { name: "本地吸附信号", desc: "当前无法从招聘侧证明企业仍在扩大本地投入", impact: "High" },
+        { name: "判定口径", desc: "仅依据库内招聘数据：0 条高风险，1-4 条中风险，>=5 条低风险", impact: "Low" },
+      ],
+    };
+  }, [profile.migrationRisk, profile.operateTableData]);
+
+  const riskOverview = useMemo(() => {
+    return (profile.riskTableData || [])
+      .filter((item: any) => Number(item.count || 0) > 0)
+      .slice(0, 3)
+      .map((item: any) => ({ name: item.item, count: Number(item.count || 0) }));
+  }, [profile.riskTableData]);
+
+  const ipDetailConfigs = useMemo(
+    () => ({
+      专利数量: {
+        title: "专利明细",
+        data: profile.ipDetails?.["专利数量"] || [],
+        columns: [
+          { title: "专利名称", dataIndex: "name", key: "name", ellipsis: true },
+          { title: "专利号", dataIndex: "number", key: "number", width: 180 },
+          { title: "申请日期", dataIndex: "applicationDate", key: "applicationDate", width: 120 },
+          { title: "授权日期", dataIndex: "authDate", key: "authDate", width: 120 },
+          { title: "技术属性", dataIndex: "techAttribute", key: "techAttribute", width: 140, ellipsis: true },
+        ],
+      },
+      软件著作权数量: {
+        title: "软件著作权明细",
+        data: profile.ipDetails?.["软件著作权数量"] || [],
+        columns: [
+          { title: "名称", dataIndex: "name", key: "name", ellipsis: true },
+          { title: "登记号", dataIndex: "number", key: "number", width: 200 },
+          { title: "简称", dataIndex: "shortName", key: "shortName", width: 160, ellipsis: true },
+          { title: "登记日期", dataIndex: "registerDate", key: "registerDate", width: 120 },
+          { title: "状态", dataIndex: "status", key: "status", width: 120 },
+        ],
+      },
+      作品著作权数量: {
+        title: "作品著作权明细",
+        data: profile.ipDetails?.["作品著作权数量"] || [],
+        columns: [
+          { title: "名称", dataIndex: "name", key: "name", ellipsis: true },
+          { title: "登记号", dataIndex: "number", key: "number", width: 180 },
+          { title: "类型", dataIndex: "type", key: "type", width: 140 },
+          { title: "发表日期", dataIndex: "publishDate", key: "publishDate", width: 120 },
+          { title: "登记日期", dataIndex: "registerDate", key: "registerDate", width: 120 },
+        ],
+      },
+      商标数量: {
+        title: "商标明细",
+        data: profile.ipDetails?.["商标数量"] || [],
+        columns: [
+          { title: "商标名称", dataIndex: "name", key: "name", ellipsis: true },
+          { title: "注册号", dataIndex: "number", key: "number", width: 180 },
+          { title: "申请日期", dataIndex: "applicationDate", key: "applicationDate", width: 120 },
+        ],
+      },
+    }),
+    [profile.ipDetails],
   );
 
-  // --- 渲染评分模型子卡片 (保持不变) ---
-  const renderSubModelCard = (
+  const openIpDetailModal = (itemName: string) => {
+    const config = (ipDetailConfigs as Record<string, any>)[itemName];
+    if (!config || !Array.isArray(config.data) || config.data.length === 0) return;
+    setIpDetailModal({
+      open: true,
+      title: config.title,
+      columns: config.columns,
+      data: config.data,
+    });
+  };
+
+  const summaryCards = useMemo(
+    () => [
+      {
+        key: "capital",
+        label: "注册资本",
+        value: profile.baseInfo.regCapital || "-",
+        icon: <BankOutlined style={{ color: COLORS.primary }} />,
+      },
+      {
+        key: "insured",
+        label: "参保人数",
+        value: profile.baseInfo.insuredCount ? `${profile.baseInfo.insuredCount} 人` : "-",
+        icon: <TeamOutlined style={{ color: COLORS.green }} />,
+      },
+      {
+        key: "rank",
+        label: "库内排名",
+        value: profile.metrics.rank ? `#${profile.metrics.rank}` : "-",
+        icon: <TrophyOutlined style={{ color: COLORS.gold }} />,
+      },
+      {
+        key: "honors",
+        label: "资质荣誉",
+        value: `${profile.honors?.length || 0} 项`,
+        icon: <ProfileOutlined style={{ color: "#722ed1" }} />,
+      },
+    ],
+    [profile.baseInfo.insuredCount, profile.baseInfo.regCapital, profile.honors, profile.metrics.rank],
+  );
+
+  const renderExpandableTable = (
+    expandKey: string,
+    data: any[],
+    columns: any[],
+    emptyText: string,
     title: string,
-    icon: React.ReactNode,
-    modelData: any,
-    color: string,
-    hasRightBorder: boolean = true,
+    alert?: React.ReactNode,
   ) => {
+    const isExpanded = expandedTabs[expandKey];
+    const fullData = data || [];
+    const displayData = isExpanded ? fullData : fullData.slice(0, 6);
+    const hasMore = fullData.length > 6;
+
+    return (
+      <Card
+        bordered={false}
+        style={{
+          borderRadius: 12,
+          minHeight: 300,
+          boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+        }}
+      >
+        <SectionTitle title={title} />
+        {alert}
+        <Table
+          columns={columns}
+          dataSource={displayData}
+          pagination={false}
+          bordered
+          size="middle"
+          locale={{ emptyText }}
+        />
+        {hasMore ? (
+          <div style={{ textAlign: "center", marginTop: 16 }}>
+            <Button type="link" onClick={() => toggleExpand(expandKey)} style={{ fontWeight: 500 }}>
+              {isExpanded ? (
+                <>
+                  <UpOutlined /> 收起表格
+                </>
+              ) : (
+                <>
+                  <DownOutlined /> 展开剩余 {fullData.length - 6} 项
+                </>
+              )}
+            </Button>
+          </div>
+        ) : null}
+      </Card>
+    );
+  };
+
+  const renderRiskTab = () =>
+    renderExpandableTable(
+      "risk",
+      profile.riskTableData,
+      [
+        { title: "风险维度", dataIndex: "item", key: "item", width: 200 },
+        {
+          title: "是否存在记录",
+          dataIndex: "hasRisk",
+          key: "hasRisk",
+          render: (text: string) => (
+            <Tag color={text === "有记录" ? "error" : "success"}>{text}</Tag>
+          ),
+        },
+        {
+          title: "记录数量 (条)",
+          dataIndex: "count",
+          key: "count",
+          render: (count: number) => (
+            <Text
+              style={{
+                color: count > 0 ? COLORS.riskHigh : COLORS.textSecondary,
+                fontWeight: count > 0 ? 700 : 400,
+              }}
+            >
+              {count}
+            </Text>
+          ),
+        },
+      ],
+      "暂无经营风险数据",
+      "经营风险明细",
+      <Alert
+        message="这里展示的是企业风险记录本身，与下方“迁出风险识别”口径不同。"
+        type="warning"
+        showIcon
+        style={{ marginBottom: 16 }}
+      />,
+    );
+
+  const renderOperationTab = () =>
+    renderExpandableTable(
+      "operating",
+      profile.operateTableData,
+      [
+        { title: "经营信息维度", dataIndex: "item", key: "item", width: "42%" },
+        {
+          title: "状态/内容",
+          dataIndex: "status",
+          key: "status",
+          render: (text: string) => {
+            if (text === "-") return <Text type="secondary">-</Text>;
+            if (text === "是" || text === "有") return <Tag color="blue">{text}</Tag>;
+            if (text === "否" || text === "无") return <Tag>{text}</Tag>;
+            return <Text>{text}</Text>;
+          },
+        },
+        {
+          title: "数量",
+          dataIndex: "count",
+          key: "count",
+          align: "center" as const,
+          width: 120,
+        },
+      ],
+      "暂无经营信息数据",
+      "企业经营信息明细",
+    );
+
+  const renderIpTab = () =>
+    renderExpandableTable(
+      "ip",
+      profile.qualTableData,
+      [
+        { title: "资质/知识产权名称", dataIndex: "item", key: "item" },
+        {
+          title: "认定状态",
+          dataIndex: "status",
+          key: "status",
+          width: 160,
+          render: (text: string) => {
+            if (text === "-") return <Text type="secondary">-</Text>;
+            return <Tag color={text === "是" || text === "有" ? "processing" : "default"}>{text}</Tag>;
+          },
+        },
+        {
+          title: "数量",
+          dataIndex: "count",
+          key: "count",
+          align: "center" as const,
+          width: 120,
+          render: (count: number, record: any) => {
+            const hasDetail =
+              count > 0 &&
+              Boolean((ipDetailConfigs as Record<string, any>)[record.item]?.data?.length);
+            return hasDetail ? (
+              <Button
+                type="link"
+                style={{ padding: 0 }}
+                onClick={() => openIpDetailModal(record.item)}
+              >
+                {count}
+              </Button>
+            ) : (
+              count
+            );
+          },
+        },
+        {
+          title: "明细",
+          key: "detail",
+          width: 110,
+          align: "center" as const,
+          render: (_: any, record: any) => {
+            const count = Number(record.count || 0);
+            const hasDetail =
+              count > 0 &&
+              Boolean((ipDetailConfigs as Record<string, any>)[record.item]?.data?.length);
+            return hasDetail ? (
+              <Button size="small" onClick={() => openIpDetailModal(record.item)}>
+                查看明细
+              </Button>
+            ) : (
+              <Text type="secondary">-</Text>
+            );
+          },
+        },
+      ],
+      "暂无知识产权与资质数据",
+      "资质荣誉与知识产权明细",
+    );
+
+  const renderSubModelCard = (title: string, icon: React.ReactNode, modelData: any, color: string) => {
+    const dataSource =
+      modelData?.dimensions?.length > 0
+        ? modelData.dimensions
+        : [{ name: "核心权重指标", weight: 100, score: modelData?.score || 0 }];
+
     const columns: any[] = [
       {
         title: "评分维度",
         dataIndex: "name",
         ellipsis: true,
         align: "left",
-        render: (t: string) => <Text style={{ fontSize: 13 }}>{t}</Text>,
+        render: (text: string) => <Text style={{ fontSize: 13 }}>{text}</Text>,
       },
       {
         title: "权重",
         dataIndex: "weight",
         width: 80,
         align: "center",
-        sorter: (a: any, b: any) => a.weight - b.weight,
-        render: (t: number) => <Tag style={{ marginRight: 0 }}>{t}%</Tag>,
+        render: (weight: number) => <Tag style={{ marginRight: 0 }}>{weight}%</Tag>,
       },
       {
         title: "得分",
         dataIndex: "score",
         width: 80,
         align: "center",
-        sorter: (a: any, b: any) => a.score - b.score,
-        render: (s: number) => (
-          <Text strong style={{ color: s < 60 ? "red" : color }}>
-            {s}
+        render: (score: number) => (
+          <Text strong style={{ color: score < 60 ? COLORS.riskHigh : color }}>
+            {score}
           </Text>
         ),
       },
     ];
 
     return (
-      <div
+      <Card
+        bordered={false}
+        bodyStyle={{ padding: 0 }}
         style={{
           height: "100%",
-          display: "flex",
-          flexDirection: "column",
-          borderRight: hasRightBorder && !isMobile ? BORDER_STYLE : "none",
+          borderRadius: 12,
+          overflow: "hidden",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
         }}
       >
         <div
           style={{
             padding: "16px 20px",
-            borderBottom: BORDER_STYLE,
+            borderBottom: `1px solid ${COLORS.borderColor}`,
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
@@ -257,50 +514,60 @@ const EnterpriseOverviewTab: React.FC<EnterpriseOverviewTabProps> = ({
             <Text strong>{title}</Text>
           </Space>
           <Statistic
-            value={modelData.score}
-            valueStyle={{ color: color, fontWeight: "bold", fontSize: 18 }}
+            value={modelData?.score || 0}
+            valueStyle={{ color, fontWeight: "bold", fontSize: 18 }}
             suffix={<span style={{ fontSize: 12, color: "#999" }}>分(总)</span>}
           />
         </div>
-        <div style={{ flex: 1, padding: 0 }}>
-          <Table
-            dataSource={modelData.dimensions}
-            rowKey="name"
-            pagination={false}
-            size="small"
-            columns={columns}
-            scroll={{ y: 250 }}
-            bordered={false}
-          />
-        </div>
-      </div>
+        <Table
+          dataSource={dataSource}
+          rowKey="name"
+          pagination={false}
+          size="small"
+          columns={columns}
+          scroll={{ y: 250 }}
+          bordered={false}
+        />
+      </Card>
     );
   };
 
   return (
-    <>
-      {/* 区块一：企业名片 (代码保持不变) */}
-      <div style={{ padding: 24, borderBottom: BORDER_STYLE }}>
-        <Row gutter={24} align="middle">
-          <Col flex="100px">
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <Card
+        bordered={false}
+        style={{
+          borderRadius: 16,
+          boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+          background: "linear-gradient(135deg, #ffffff 0%, #f7fbff 100%)",
+        }}
+        bodyStyle={{ padding: 24 }}
+      >
+        <Row gutter={[24, 24]} align="middle">
+          <Col flex="88px">
             <Avatar
               shape="square"
               size={88}
-              style={{ backgroundColor: COLORS.primary, fontSize: 32 }}
+              style={{
+                backgroundColor: COLORS.primary,
+                fontSize: 32,
+                borderRadius: 16,
+                boxShadow: "0 12px 24px rgba(24,144,255,0.18)",
+              }}
             >
-              {profile.baseInfo.name[0]}
+              {profile.baseInfo.name?.charAt(0) || "企"}
             </Avatar>
           </Col>
           <Col flex="auto">
-            <Space direction="vertical" size={6} style={{ width: "100%" }}>
-              <Space align="center">
+            <Space direction="vertical" size={8} style={{ width: "100%" }}>
+              <Space align="center" wrap>
                 <Title level={3} style={{ margin: 0 }}>
                   {profile.baseInfo.name}
                 </Title>
-                <Tag color="success">{profile.baseInfo.status || "未知"}</Tag>
+                <Tag color="success">{profile.baseInfo.status || "在业"}</Tag>
                 <Tag color="blue">{profile.baseInfo.type}</Tag>
               </Space>
-              <Space size={24} style={{ color: COLORS.textSecondary }}>
+              <Space size={20} style={{ color: COLORS.textSecondary, flexWrap: "wrap" }}>
                 <span>
                   <UserOutlined /> 法人：{profile.baseInfo.legalPerson}
                 </span>
@@ -311,66 +578,131 @@ const EnterpriseOverviewTab: React.FC<EnterpriseOverviewTabProps> = ({
                   <GlobalOutlined /> 官网：{profile.baseInfo.website}
                 </span>
               </Space>
-              <Space style={{ marginTop: 8 }} wrap>
-                {profile.tags.map((t: string) => (
-                  <Tag key={t} color="geekblue">
-                    {t}
+              <Space wrap size={[8, 8]}>
+                {(profile.tags || []).slice(0, 8).map((tag: string) => (
+                  <Tag
+                    key={tag}
+                    style={{
+                      marginRight: 0,
+                      border: "none",
+                      background: "#e6f4ff",
+                      color: "#1677ff",
+                      padding: "4px 10px",
+                      borderRadius: 999,
+                    }}
+                  >
+                    {tag}
                   </Tag>
                 ))}
               </Space>
             </Space>
           </Col>
-          <Col
-            flex="200px"
-            style={{
-              textAlign: "right",
-              borderLeft: "1px solid #f0f0f0",
-              paddingLeft: 24,
-            }}
-          >
-            <Statistic
-              title="综合健康分"
-              value={profile.metrics.totalScore}
-              valueStyle={{
-                color: COLORS.primary,
-                fontSize: 36,
-                fontWeight: "bold",
+          <Col xs={24} lg={6}>
+            <div
+              style={{
+                padding: 18,
+                borderRadius: 16,
+                background: COLORS.panel,
+                border: `1px solid ${COLORS.borderColor}`,
+                textAlign: "center",
               }}
-              suffix={
-                <span style={{ fontSize: 14, color: "#999" }}>/ 100</span>
-              }
-            />
-            <div style={{ marginTop: 8 }}>
+            >
+              <Text type="secondary">综合健康分</Text>
+              <div
+                style={{
+                  fontSize: 52,
+                  lineHeight: 1,
+                  fontWeight: 800,
+                  color: COLORS.primary,
+                  marginTop: 8,
+                }}
+              >
+                {profile.metrics.totalScore}
+              </div>
               <Text type="secondary" style={{ fontSize: 12 }}>
-                更新于：{dayjs().format("YYYY-MM-DD")}
+                更新于：{profile.baseInfo.updateTime}
               </Text>
             </div>
           </Col>
         </Row>
-      </div>
 
-      {/* 区块二：工商信息全景 + 资质荣誉 (代码保持不变) */}
-      <Row gutter={0} style={{ borderBottom: BORDER_STYLE }}>
-        <Col
-          xs={24}
-          lg={16}
-          style={{ borderRight: !isMobile ? BORDER_STYLE : "none" }}
-        >
-          <div
-            style={{
-              padding: "12px 24px",
-              borderBottom: BORDER_STYLE,
-              backgroundColor: "#fafafa",
-            }}
+        <Row gutter={[12, 12]} style={{ marginTop: 20 }}>
+          {summaryCards.map((item) => (
+            <Col xs={12} lg={6} key={item.key}>
+              <div
+                style={{
+                  height: "100%",
+                  padding: "14px 16px",
+                  borderRadius: 14,
+                  background: item.key === "rank" ? "#fff8e6" : COLORS.softBlue,
+                  border: `1px solid ${COLORS.borderColor}`,
+                }}
+              >
+                <Space align="start">
+                  <div style={{ fontSize: 18 }}>{item.icon}</div>
+                  <div>
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      {item.label}
+                    </Text>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: "#262626", marginTop: 2 }}>
+                      {item.value}
+                    </div>
+                  </div>
+                </Space>
+              </div>
+            </Col>
+          ))}
+        </Row>
+      </Card>
+
+      <Row gutter={16}>
+        <Col xs={24} xl={15}>
+          <Card
+            bordered={false}
+            style={{ height: "100%", borderRadius: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}
           >
-            <Text strong>工商信息全景</Text>
-          </div>
-          <div style={{ padding: 24 }}>
+            <SectionTitle title="工商信息全景" />
+            <Row gutter={[12, 12]} style={{ marginBottom: 16 }}>
+              <Col xs={12} md={6}>
+                <div style={{ padding: 14, borderRadius: 12, background: "#fafafa" }}>
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    行业
+                  </Text>
+                  <div style={{ fontWeight: 700, marginTop: 4 }}>{profile.baseInfo.industry}</div>
+                </div>
+              </Col>
+              <Col xs={12} md={6}>
+                <div style={{ padding: 14, borderRadius: 12, background: "#fafafa" }}>
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    成立日期
+                  </Text>
+                  <div style={{ fontWeight: 700, marginTop: 4 }}>{profile.baseInfo.establishDate}</div>
+                </div>
+              </Col>
+              <Col xs={12} md={6}>
+                <div style={{ padding: 14, borderRadius: 12, background: "#fafafa" }}>
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    注册资本
+                  </Text>
+                  <div style={{ fontWeight: 700, marginTop: 4 }}>{profile.baseInfo.regCapital}</div>
+                </div>
+              </Col>
+              <Col xs={12} md={6}>
+                <div style={{ padding: 14, borderRadius: 12, background: "#fafafa" }}>
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    参保人数
+                  </Text>
+                  <div style={{ fontWeight: 700, marginTop: 4 }}>
+                    {profile.baseInfo.insuredCount ? `${profile.baseInfo.insuredCount} 人` : "-"}
+                  </div>
+                </div>
+              </Col>
+            </Row>
             <Descriptions
               column={2}
               bordered
-              size="small"
-              labelStyle={{ width: 160, background: "#fafafa" }}
+              size="middle"
+              labelStyle={{ width: 150, background: "#fafafa", color: "#666" }}
             >
               <Descriptions.Item label="统一社会信用代码">
                 {profile.baseInfo.creditCode}
@@ -378,349 +710,272 @@ const EnterpriseOverviewTab: React.FC<EnterpriseOverviewTabProps> = ({
               <Descriptions.Item label="纳税人识别号">
                 {profile.baseInfo.taxId}
               </Descriptions.Item>
-              <Descriptions.Item label="注册资本">
-                {profile.baseInfo.regCapital}
+              <Descriptions.Item label="企业类型">{profile.baseInfo.type}</Descriptions.Item>
+              <Descriptions.Item label="经营状态">{profile.baseInfo.status || "-"}</Descriptions.Item>
+              <Descriptions.Item label="法定代表人">{profile.baseInfo.legalPerson}</Descriptions.Item>
+              <Descriptions.Item label="核准日期">{profile.baseInfo.approvedDate || "-"}</Descriptions.Item>
+              <Descriptions.Item label="登记机关">
+                {profile.baseInfo.registrationAuthority || "-"}
               </Descriptions.Item>
-              <Descriptions.Item label="实缴资本">
-                {profile.baseInfo.paidInCapital}
-              </Descriptions.Item>
-              <Descriptions.Item label="成立日期">
-                {profile.baseInfo.establishDate}
-              </Descriptions.Item>
-              <Descriptions.Item label="企业类型">
-                {profile.baseInfo.type}
-              </Descriptions.Item>
-              <Descriptions.Item label="所属行业">
-                {profile.baseInfo.industry}
-              </Descriptions.Item>
-              <Descriptions.Item label="参保人数">
-                {profile.baseInfo.insuredCount ?? "-"} 人
-              </Descriptions.Item>
+              <Descriptions.Item label="官网">{profile.baseInfo.website}</Descriptions.Item>
               <Descriptions.Item label="注册地址" span={2}>
                 {profile.baseInfo.address}
               </Descriptions.Item>
               <Descriptions.Item label="经营范围" span={2}>
-                {profile.baseInfo.scope}
+                <Paragraph style={{ marginBottom: 0 }} ellipsis={{ rows: 3, expandable: true, symbol: "展开" }}>
+                  {profile.baseInfo.scope}
+                </Paragraph>
               </Descriptions.Item>
             </Descriptions>
-          </div>
+          </Card>
         </Col>
-        <Col xs={24} lg={8}>
-          <div
-            style={{
-              padding: "12px 24px",
-              borderBottom: BORDER_STYLE,
-              display: "flex",
-              justifyContent: "space-between",
-              backgroundColor: "#fafafa",
-            }}
+
+        <Col xs={24} xl={9}>
+          <Card
+            bordered={false}
+            style={{ height: "100%", borderRadius: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}
           >
-            <Text strong>资质与荣誉概览</Text>
-          </div>
-          <div style={{ padding: 24 }}>
-            <Timeline
-              items={profile.honors.map((h: any) => ({
-                color: "blue",
-                children: (
-                  <>
-                    <Text type="secondary" style={{ fontSize: 12 }}>
-                      {h.year}
-                    </Text>
-                    <div style={{ fontWeight: 500 }}>{h.name}</div>
-                  </>
-                ),
-              }))}
-            />
-          </div>
+            <SectionTitle title="资质与荣誉概览" />
+            {profile.honors?.length > 0 ? (
+              <Timeline
+                items={profile.honors.slice(0, 8).map((item: any) => ({
+                  color: "blue",
+                  children: (
+                    <>
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        {item.year}
+                      </Text>
+                      <div style={{ fontWeight: 500 }}>{item.name}</div>
+                    </>
+                  ),
+                }))}
+              />
+            ) : (
+              <Alert
+                type="info"
+                showIcon
+                message="暂无高价值资质荣誉"
+                description="当前企业在画像接口中没有同步到榜单或资质时间轴数据。"
+              />
+            )}
+          </Card>
         </Col>
       </Row>
 
-      {/* =======================
-          【修改】新增区块：企业详细数据 (Custom Tabs)
-          优化目标：下拉选框配色、阴影优化，以及字号行高加大
-          ======================= */}
-      <div style={{ borderBottom: BORDER_STYLE, minHeight: 300 }}>
-        {/* Sticky 导航栏 */}
+      <Card
+        bordered={false}
+        bodyStyle={{ padding: 0, backgroundColor: "transparent" }}
+        style={{ borderRadius: 12, background: "transparent", boxShadow: "none" }}
+      >
         <div
           style={{
             background: "#fff",
-            borderBottom: "1px solid #e8e8e8",
-            position: "sticky",
-            top: 0,
-            zIndex: 10,
+            borderRadius: 14,
+            boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+            marginBottom: 16,
           }}
         >
-          {/* 使用 ConfigProvider 覆盖下拉菜单样式 */}
-          <ConfigProvider
-            theme={{
-              components: {
-                Dropdown: {
-                  borderRadius: 0,
-                },
-                Menu: {
-                  borderRadius: 0,
-                  borderRadiusLG: 0,
-                  borderRadiusSM: 0,
-                  itemSelectedBg: "#f5f9ff",
-                  itemSelectedColor: COLORS.primary,
-                  itemHoverBg: "#fafafa",
-                  boxShadowSecondary: "0 4px 12px rgba(0,0,0,0.06)",
-
-                  // 【核心修改】加大字号和行高(选项高度)
-                  itemHeight: 42, // 原 38
-                  fontSize: 14, // 原 13
-                },
-              },
-            }}
-          >
-            <Row>
-              {NEW_TAB_CONFIG.map((tab) => {
-                const isActive = activeTabKey === tab.key;
-
-                // 构造下拉菜单项
-                const menuItems: MenuProps["items"] = tab.children.map(
-                  (child) => ({
-                    key: child.key,
-                    label: (
-                      <span style={{ fontWeight: 400 }}>{child.label}</span>
-                    ),
-                    onClick: () => handleSubMenuClick(tab.key, child.key),
-                  }),
-                );
-
-                return (
-                  <Col key={tab.key} flex={1} style={{ textAlign: "center" }}>
-                    <Dropdown
-                      menu={{
-                        items: menuItems,
-                        style: {
-                          border: "1px solid #ebebeb",
-                          borderTop: "none",
-                        },
-                      }}
-                      placement="bottom"
-                      overlayStyle={{ paddingTop: 0 }}
-                    >
-                      <div
-                        onClick={() => setActiveTabKey(tab.key)}
-                        style={{
-                          cursor: "pointer",
-                          height: 48,
-                          lineHeight: "48px",
-                          fontSize: 14,
-                          fontWeight: isActive ? 600 : 400,
-                          color: isActive ? COLORS.primary : "#333",
-                          borderBottom: isActive
-                            ? `2px solid ${COLORS.primary}`
-                            : "2px solid transparent",
-                          transition: "all 0.2s",
-                          background: "#fff",
-                        }}
-                      >
-                        {tab.label}{" "}
-                        <DownOutlined
-                          style={{
-                            fontSize: 10,
-                            color: "#ccc",
-                            marginLeft: 4,
-                            verticalAlign: "middle",
-                          }}
-                        />
-                      </div>
-                    </Dropdown>
-                  </Col>
-                );
-              })}
-            </Row>
-          </ConfigProvider>
-        </div>
-
-        {/* 内容区域 */}
-        <div style={{ backgroundColor: "#fff", paddingTop: 8 }}>
-          {activeTabKey === "basic" && (
-            <EnterpriseBasicInfoTab profile={profile} />
-          )}
-          {activeTabKey === "judicial" && renderPlaceholderTab("司法涉诉")}
-          {activeTabKey === "investment" && renderPlaceholderTab("投融资")}
-          {activeTabKey === "risk" && renderPlaceholderTab("经营风险")}
-          {activeTabKey === "operating" && renderPlaceholderTab("经营信息")}
-          {activeTabKey === "ip" && renderPlaceholderTab("知识产权")}
-        </div>
-      </div>
-
-      {/* 区块三：企业综合评估 (代码保持不变) */}
-      <div style={{ borderBottom: BORDER_STYLE }}>
-        <div
-          style={{
-            padding: "12px 24px",
-            borderBottom: BORDER_STYLE,
-            backgroundColor: "#fafafa",
-          }}
-        >
-          <Text strong>企业综合评估</Text>
-        </div>
-        <div style={{ padding: 24 }}>
-          <Row gutter={0}>
-            <Col
-              xs={24}
-              lg={14}
-              style={{
-                borderRight: !isMobile ? "1px solid #f0f0f0" : "none",
-                paddingRight: !isMobile ? 24 : 0,
-              }}
-            >
-              <Title level={5} style={{ fontSize: 14, marginBottom: 24 }}>
-                企业综合能力可视化
-              </Title>
-              <Row gutter={24} align="middle">
-                <Col xs={24} md={10} style={{ textAlign: "center" }}>
-                  <Progress
-                    type="dashboard"
-                    percent={profile.metrics.totalScore}
-                    strokeColor={COLORS.primary}
-                    width={180}
-                    format={(percent) => (
-                      <div style={{ color: COLORS.primary }}>
-                        <div style={{ fontSize: 32 }}>{percent}</div>
-                        <div style={{ fontSize: 14, color: "#999" }}>
-                          综合得分
-                        </div>
-                      </div>
-                    )}
-                  />
-                  <div style={{ marginTop: 16 }}>
-                    <Alert
-                      message="经营稳健，潜力巨大"
-                      type="success"
-                      showIcon
-                      style={{
-                        display: "inline-flex",
-                        fontSize: 12,
-                        padding: "4px 12px",
-                      }}
-                    />
+          <Row>
+            {TAB_CONFIG.map((tab) => {
+              const isActive = activeTabKey === tab.key;
+              return (
+                <Col key={tab.key} flex={1} style={{ textAlign: "center" }}>
+                  <div
+                    onClick={() => setActiveTabKey(tab.key)}
+                    style={{
+                      cursor: "pointer",
+                      height: 50,
+                      lineHeight: "50px",
+                      fontSize: 14,
+                      fontWeight: isActive ? 700 : 500,
+                      color: isActive ? COLORS.primary : "#333",
+                      borderBottom: isActive
+                        ? `3px solid ${COLORS.primary}`
+                        : "3px solid transparent",
+                      transition: "all 0.2s",
+                    }}
+                  >
+                    {tab.label}
                   </div>
                 </Col>
-                <Col xs={24} md={14}>
-                  <Radar {...MAIN_RADAR_CONFIG(profile.overallRadar)} />
-                </Col>
-              </Row>
-            </Col>
-            <Col xs={24} lg={10} style={{ paddingLeft: !isMobile ? 24 : 0 }}>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: 16,
-                }}
-              >
-                <Title level={5} style={{ fontSize: 14, margin: 0 }}>
-                  企业迁出风险
-                </Title>
-                <WarningOutlined style={{ color: "#faad14" }} />
-              </div>
-              <div
-                style={{
-                  background: "#fff",
-                  borderRadius: 4,
-                  padding: "16px 0",
-                }}
-              >
-                <Row align="middle" gutter={16} style={{ marginBottom: 20 }}>
-                  <Col>
-                    <Text type="secondary">当前风险等级：</Text>
-                  </Col>
-                  <Col>
-                    <Tag
-                      color={profile.migrationRisk.color}
-                      style={{
-                        fontSize: 14,
-                        padding: "4px 12px",
-                        fontWeight: "bold",
-                      }}
-                    >
-                      {profile.migrationRisk.level}风险
-                    </Tag>
-                  </Col>
-                  <Col>
-                    <Progress
-                      percent={profile.migrationRisk.score}
-                      size="small"
-                      status="normal"
-                      strokeColor={profile.migrationRisk.color}
-                      style={{ width: 100 }}
-                      showInfo={false}
-                    />
-                  </Col>
-                </Row>
-                <Text strong style={{ fontSize: 12, color: "#999" }}>
-                  关键风险因素 (Top 5)
-                </Text>
-                <List
-                  size="small"
-                  split={false}
-                  dataSource={profile.migrationRisk.factors}
-                  renderItem={(item: any, index: number) => (
-                    <List.Item
-                      style={{
-                        padding: "8px 0",
-                        borderBottom: "1px dashed #f0f0f0",
-                      }}
-                    >
-                      <Space style={{ width: "100%" }}>
-                        <Avatar
-                          size={18}
-                          style={{
-                            backgroundColor: index < 3 ? "#ffccc7" : "#f0f0f0",
-                            color: index < 3 ? "#cf1322" : "#666",
-                            fontSize: 10,
-                          }}
-                        >
-                          {index + 1}
-                        </Avatar>
-                        <div style={{ flex: 1 }}>
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                            }}
-                          >
-                            <Text style={{ fontSize: 13 }}>{item.name}</Text>
-                            <Space size={4}>
-                              {item.impact === "High" && (
-                                <RiseOutlined
-                                  style={{
-                                    color: COLORS.riskHigh,
-                                    fontSize: 10,
-                                  }}
-                                />
-                              )}
-                              <Text type="secondary" style={{ fontSize: 12 }}>
-                                {item.desc}
-                              </Text>
-                            </Space>
-                          </div>
-                        </div>
-                      </Space>
-                    </List.Item>
-                  )}
-                />
-              </div>
-            </Col>
+              );
+            })}
           </Row>
         </div>
-      </div>
 
-      {/* 区块四：三大评分模型 (代码保持不变) */}
-      <Row gutter={0} style={{ borderBottom: BORDER_STYLE }}>
+        <div>
+          {activeTabKey === "basic" && <EnterpriseBasicInfoTab profile={profile} />}
+          {activeTabKey === "risk" && renderRiskTab()}
+          {activeTabKey === "operating" && renderOperationTab()}
+          {activeTabKey === "ip" && renderIpTab()}
+        </div>
+      </Card>
+
+      <Card
+        bordered={false}
+        style={{ borderRadius: 16, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}
+      >
+        <SectionTitle title="企业综合评估" />
+        <Row gutter={24} style={{ marginTop: 8 }}>
+          <Col
+            xs={24}
+            xl={14}
+            style={{
+              borderRight: !isMobile ? "1px solid #f0f0f0" : "none",
+              paddingRight: !isMobile ? 24 : 0,
+            }}
+          >
+            <Title level={5} style={{ fontSize: 14, marginBottom: 24, color: "#262626" }}>
+              企业综合能力可视化
+            </Title>
+            <Row gutter={24} align="middle">
+              <Col xs={24} md={10} style={{ textAlign: "center" }}>
+                <Progress
+                  type="dashboard"
+                  percent={profile.metrics.totalScore}
+                  strokeColor={COLORS.primary}
+                  width={180}
+                  format={(percent) => (
+                    <div style={{ color: COLORS.primary }}>
+                      <div style={{ fontSize: 32 }}>{percent}</div>
+                      <div style={{ fontSize: 14, color: "#999" }}>综合得分</div>
+                    </div>
+                  )}
+                />
+                <div style={{ marginTop: 16 }}>
+                  <Alert
+                    message={profile.metrics.totalScore > 60 ? "经营稳健，潜力较强" : "仍需持续观察"}
+                    type={profile.metrics.totalScore > 60 ? "success" : "warning"}
+                    showIcon
+                    style={{ display: "inline-flex", fontSize: 12, padding: "4px 12px" }}
+                  />
+                </div>
+              </Col>
+              <Col xs={24} md={14}>
+                <Radar {...MAIN_RADAR_CONFIG(profile.overallRadar || [])} />
+              </Col>
+            </Row>
+          </Col>
+
+          <Col xs={24} xl={10} style={{ paddingLeft: !isMobile ? 24 : 0 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <Title level={5} style={{ fontSize: 14, margin: 0, color: "#262626" }}>
+                企业迁出风险识别
+              </Title>
+              <ApartmentOutlined style={{ color: relocationRisk.color }} />
+            </div>
+            <div
+              style={{
+                background: "#fafafa",
+                borderRadius: 12,
+                padding: 20,
+                border: "1px solid #f0f0f0",
+              }}
+            >
+              <Row align="middle" gutter={16} style={{ marginBottom: 18 }}>
+                <Col>
+                  <Text type="secondary">当前风险等级：</Text>
+                </Col>
+                <Col>
+                  <Tag
+                    color={relocationRisk.color}
+                    style={{ fontSize: 14, padding: "4px 12px", fontWeight: 700 }}
+                  >
+                    {relocationRisk.level}风险
+                  </Tag>
+                </Col>
+                <Col flex="auto">
+                  <Progress
+                    percent={relocationRisk.score}
+                    size="small"
+                    strokeColor={relocationRisk.color}
+                    showInfo={false}
+                  />
+                </Col>
+              </Row>
+
+              <Alert
+                type={relocationRisk.level === "高" ? "error" : relocationRisk.level === "中" ? "warning" : "success"}
+                showIcon
+                message={relocationRisk.label}
+                description="当前规则仅依据库内招聘数据构建；有招聘记录时，以在京招聘占比 >=60% 判低风险、30%-60% 判中风险、<30% 判高风险。"
+                style={{ marginBottom: 16 }}
+              />
+
+              <Text strong style={{ fontSize: 12, color: "#999" }}>
+                识别因子
+              </Text>
+              <List
+                size="small"
+                split={false}
+                dataSource={relocationRisk.factors}
+                renderItem={(item: any, index: number) => (
+                  <List.Item style={{ padding: "10px 0", borderBottom: "1px dashed #e8e8e8" }}>
+                    <Space style={{ width: "100%", alignItems: "flex-start" }}>
+                      <Avatar
+                        size={18}
+                        style={{
+                          backgroundColor:
+                            item.impact === "High"
+                              ? "#ffccc7"
+                              : item.impact === "Medium"
+                                ? "#ffe7ba"
+                                : "#e6f4ff",
+                          color:
+                            item.impact === "High"
+                              ? "#cf1322"
+                              : item.impact === "Medium"
+                                ? "#d46b08"
+                                : "#1677ff",
+                          fontSize: 10,
+                        }}
+                      >
+                        {index + 1}
+                      </Avatar>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+                          <Text style={{ fontSize: 13 }}>{item.name}</Text>
+                          <Space size={4}>
+                            {item.impact !== "Low" ? (
+                              <RiseOutlined style={{ color: relocationRisk.color, fontSize: 10 }} />
+                            ) : null}
+                            <Text type="secondary" style={{ fontSize: 12 }}>
+                              {item.desc}
+                            </Text>
+                          </Space>
+                        </div>
+                      </div>
+                    </Space>
+                  </List.Item>
+                )}
+              />
+
+              {riskOverview.length > 0 ? (
+                <div style={{ marginTop: 16 }}>
+                  <Text strong style={{ fontSize: 12, color: "#999" }}>
+                    风险记录补充观察
+                  </Text>
+                  <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    {riskOverview.map((item) => (
+                      <Tag key={item.name} color="default" style={{ marginRight: 0 }}>
+                        {item.name} {item.count}条
+                      </Tag>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </Col>
+        </Row>
+      </Card>
+
+      <Row gutter={16}>
         <Col xs={24} md={8}>
           {renderSubModelCard(
             "企业基础评分",
             <BankOutlined style={{ color: COLORS.gold }} />,
             profile.models.basic,
             COLORS.gold,
-            true,
           )}
         </Col>
         <Col xs={24} md={8}>
@@ -729,20 +984,38 @@ const EnterpriseOverviewTab: React.FC<EnterpriseOverviewTabProps> = ({
             <ExperimentOutlined style={{ color: COLORS.primary }} />,
             profile.models.tech,
             COLORS.primary,
-            true,
           )}
         </Col>
         <Col xs={24} md={8}>
           {renderSubModelCard(
-            "企业能力评分",
+            "专业能力评分",
             <ThunderboltOutlined style={{ color: COLORS.green }} />,
             profile.models.ability,
             COLORS.green,
-            false,
           )}
         </Col>
       </Row>
-    </>
+
+      <Modal
+        title={ipDetailModal.title}
+        open={ipDetailModal.open}
+        onCancel={() =>
+          setIpDetailModal({ open: false, title: "", columns: [], data: [] })
+        }
+        footer={null}
+        width={960}
+      >
+        <Table
+          rowKey="key"
+          columns={ipDetailModal.columns}
+          dataSource={ipDetailModal.data}
+          pagination={{ pageSize: 10, hideOnSinglePage: true }}
+          size="middle"
+          scroll={{ x: 860 }}
+          locale={{ emptyText: "暂无可展示的知识产权明细" }}
+        />
+      </Modal>
+    </div>
   );
 };
 

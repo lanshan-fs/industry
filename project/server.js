@@ -825,7 +825,7 @@ async function resolveAgentUserId(requestedByUserId) {
   return rows[0]?.userId || 1;
 }
 
-async function requestDashscopeChat(messages) {
+async function requestDashscopeChat(messages, options = {}) {
   if (!DASHSCOPE_API_KEY) {
     throw new Error("未配置 DASHSCOPE_API_KEY");
   }
@@ -834,18 +834,21 @@ async function requestDashscopeChat(messages) {
   for (const baseUrl of DASHSCOPE_BASE_URLS) {
     const chatUrl = `${baseUrl}/chat/completions`;
     try {
+      const payloadBody = {
+        model: DASHSCOPE_MODEL,
+        messages,
+        temperature: typeof options.temperature === "number" ? options.temperature : 0.2,
+      };
+      if (options.responseFormat) {
+        payloadBody.response_format = options.responseFormat;
+      }
       const response = await fetch(chatUrl, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${DASHSCOPE_API_KEY}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          model: DASHSCOPE_MODEL,
-          messages,
-          temperature: 0.2,
-          response_format: { type: "json_object" },
-        }),
+        body: JSON.stringify(payloadBody),
       });
       const text = await response.text();
       const payload = text ? JSON.parse(text) : {};
@@ -864,6 +867,71 @@ async function requestDashscopeChat(messages) {
   }
 
   throw new Error(`DashScope 请求失败：${errors.join(" | ")}`);
+}
+
+function splitAssistantText(rawText, chunkSize = 80) {
+  const text = String(rawText || "").trim();
+  if (!text) {
+    return [];
+  }
+  const chunks = [];
+  for (let index = 0; index < text.length; index += chunkSize) {
+    chunks.push(text.slice(index, index + chunkSize));
+  }
+  return chunks;
+}
+
+function writeNdjson(res, events) {
+  res.status(200);
+  res.setHeader("Content-Type", "application/x-ndjson; charset=utf-8");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection", "keep-alive");
+  if (typeof res.flushHeaders === "function") {
+    res.flushHeaders();
+  }
+  res.end(events.map((event) => JSON.stringify(event)).join("\n") + "\n");
+}
+
+async function buildDashscopeAssistantFallback(messages, sessionId) {
+  const result = await requestDashscopeChat(messages, { temperature: 0.6 });
+  const rawText = normalizeText(result.rawText) || "当前未获取到有效回答，请换个问法后再试。";
+  return {
+    success: true,
+    data: rawText,
+    meta: {
+      sessionId,
+      provider: result.provider,
+      modelName: result.modelName,
+      fallbackMode: "dashscope_direct",
+    },
+  };
+}
+
+async function writeDashscopeAssistantFallbackStream(res, messages, sessionId) {
+  const result = await requestDashscopeChat(messages, { temperature: 0.6 });
+  const rawText = normalizeText(result.rawText) || "当前未获取到有效回答，请换个问法后再试。";
+  const events = [
+    {
+      type: "meta",
+      sessionId,
+      provider: result.provider,
+      modelName: result.modelName,
+      fallbackMode: "dashscope_direct",
+    },
+    {
+      type: "status",
+      content: "已切换至千问直连模式，正在生成回答。",
+    },
+    ...splitAssistantText(rawText).map((content) => ({ type: "delta", content })),
+    {
+      type: "done",
+      sessionId,
+      provider: result.provider,
+      modelName: result.modelName,
+      fallbackMode: "dashscope_direct",
+    },
+  ];
+  writeNdjson(res, events);
 }
 
 function buildSceneLlmPrompt(profile, availableSceneTagNames, existingSceneTagNames) {
@@ -1077,7 +1145,10 @@ async function requestSceneLlmCandidates(profile, sceneTagOptions, agentUserId, 
   let dashscopeFailureMessage = "";
 
   try {
-    const dashscopeResult = await requestDashscopeChat(messages);
+    const dashscopeResult = await requestDashscopeChat(messages, {
+      temperature: 0.2,
+      responseFormat: { type: "json_object" },
+    });
     provider = dashscopeResult.provider;
     modelName = dashscopeResult.modelName;
     rawText = dashscopeResult.rawText;
@@ -1952,6 +2023,85 @@ async function runImportAutoTagEvaluateScript({ records, dimensionIds }) {
   }
 }
 
+async function fetchImportAutoTagRecordsByCompanyIds(companyIds) {
+  if (!Array.isArray(companyIds) || companyIds.length === 0) {
+    return [];
+  }
+
+  const [rows] = await pool.query(
+    `
+      SELECT
+        b.company_id AS companyId,
+        b.company_name AS company_name,
+        b.credit_code AS credit_code,
+        DATE_FORMAT(b.establish_date, '%Y-%m-%d') AS establish_date,
+        b.register_capital AS register_capital,
+        b.paid_capital AS paid_capital,
+        b.employee_count AS employee_count,
+        b.insured_count AS insured_count,
+        b.contact_phone AS contact_phone,
+        b.email_business AS email_business,
+        b.register_address AS register_address,
+        b.register_address_detail AS register_address_detail,
+        b.business_scope AS business_scope,
+        b.qualification_label AS qualification_label,
+        b.industry_belong AS industry_belong,
+        b.subdistrict AS subdistrict,
+        b.is_micro_enterprise AS is_micro_enterprise,
+        b.is_general_taxpayer AS is_general_taxpayer,
+        b.has_recruitment AS has_recruitment,
+        b.has_patent AS has_patent,
+        b.has_work_copyright AS has_work_copyright,
+        b.has_software_copyright AS has_software_copyright,
+        b.is_high_tech_enterprise AS is_high_tech_enterprise,
+        b.has_dishonest_execution AS has_dishonest_execution,
+        b.has_chattel_mortgage AS has_chattel_mortgage,
+        b.has_business_abnormal AS has_business_abnormal,
+        b.has_legal_document AS has_legal_document,
+        b.has_admin_penalty AS has_admin_penalty,
+        b.has_bankruptcy_overlap AS has_bankruptcy_overlap,
+        b.has_env_penalty AS has_env_penalty,
+        b.has_equity_freeze AS has_equity_freeze,
+        b.has_executed_person AS has_executed_person,
+        COALESCE(c.branch_count, 0) AS branch_count,
+        COALESCE(c.recruit_count, 0) AS recruit_count,
+        COALESCE(c.patent_count, 0) AS patent_count,
+        COALESCE(c.work_copyright_count, 0) AS work_copyright_count,
+        COALESCE(c.software_copyright_count, 0) AS software_copyright_count,
+        COALESCE(c.dishonest_execution_count, 0) AS dishonest_execution_count,
+        COALESCE(c.chattel_mortgage_count, 0) AS chattel_mortgage_count,
+        COALESCE(c.business_abnormal_count, 0) AS business_abnormal_count,
+        COALESCE(c.legal_doc_all_count, 0) AS legal_doc_all_count,
+        COALESCE(c.admin_penalty_count, 0) AS admin_penalty_count,
+        COALESCE(c.bankruptcy_overlap_count, 0) AS bankruptcy_overlap_count,
+        COALESCE(c.env_penalty_count, 0) AS env_penalty_count,
+        COALESCE(c.equity_freeze_count, 0) AS equity_freeze_count,
+        COALESCE(c.executed_person_count, 0) AS executed_person_count
+      FROM company_basic b
+      LEFT JOIN company_basic_count c
+        ON b.company_id = c.company_id
+      WHERE b.company_id IN (?)
+      ORDER BY b.company_id
+    `,
+    [companyIds],
+  );
+
+  return rows.map((row) => ({
+    ...row,
+    company_name: normalizeText(row.company_name),
+    credit_code: normalizeText(row.credit_code).toUpperCase(),
+    establish_date: normalizeText(row.establish_date),
+    contact_phone: normalizeText(row.contact_phone),
+    email_business: normalizeText(row.email_business),
+    register_address: normalizeText(row.register_address),
+    register_address_detail: normalizeText(row.register_address_detail),
+    business_scope: normalizeText(row.business_scope),
+    qualification_label: normalizeText(row.qualification_label),
+    industry_belong: normalizeText(row.industry_belong),
+    subdistrict: normalizeText(row.subdistrict),
+  }));
+}
+
 // ==========================================
 // 1. 用户认证模块 (Auth)
 // ==========================================
@@ -2091,42 +2241,6 @@ function buildCsvContent(rows) {
 const IMPORT_TEMPLATE_HEADERS = [
   "company_name",
   "credit_code",
-  "establish_date",
-  "register_capital",
-  "paid_capital",
-  "employee_count",
-  "insured_count",
-  "contact_phone",
-  "email_business",
-  "register_address",
-  "register_address_detail",
-  "business_scope",
-  "qualification_label",
-  "industry_belong",
-  "subdistrict",
-];
-
-const SYSTEM_COMPANY_TEMPLATE_HEADERS = [
-  "company_name",
-  "credit_code",
-  "legal_representative",
-  "establish_date",
-  "industry_belong",
-  "register_capital",
-  "paid_capital",
-  "financing_round",
-  "company_type",
-  "organization_type",
-  "investment_type",
-  "company_scale",
-  "contact_phone",
-  "email_business",
-  "register_address",
-  "shareholders",
-  "qualification_label",
-  "register_number",
-  "org_code",
-  "business_scope",
 ];
 
 function coerceImportCandidate(row, rowIndex) {
@@ -2168,31 +2282,6 @@ function serializeImportCandidate(candidate) {
     qualification_label: candidate.qualificationLabel,
     industry_belong: candidate.industryBelong,
     subdistrict: candidate.subdistrict,
-  };
-}
-
-function coerceSystemCompanyRow(row) {
-  return {
-    companyName: normalizeText(row.company_name),
-    creditCode: normalizeText(row.credit_code).toUpperCase(),
-    legalRepresentative: normalizeText(row.legal_representative),
-    establishDate: parseDateInput(row.establish_date),
-    industryBelong: normalizeText(row.industry_belong),
-    registerCapital: parseDecimalInput(row.register_capital),
-    paidCapital: parseDecimalInput(row.paid_capital),
-    financingRound: normalizeText(row.financing_round),
-    companyType: normalizeText(row.company_type),
-    organizationType: normalizeText(row.organization_type),
-    investmentType: normalizeText(row.investment_type),
-    companyScale: normalizeText(row.company_scale),
-    contactPhone: normalizeText(row.contact_phone),
-    emailBusiness: normalizeText(row.email_business),
-    registerAddress: normalizeText(row.register_address),
-    shareholders: normalizeText(row.shareholders),
-    qualificationLabel: normalizeText(row.qualification_label),
-    registerNumber: normalizeText(row.register_number),
-    orgCode: normalizeText(row.org_code),
-    businessScope: normalizeText(row.business_scope),
   };
 }
 
@@ -2665,190 +2754,39 @@ app.get("/api/companies/:id", async (req, res) => {
   } catch (e) { res.status(500).json({ success: false, message: e.message }); }
 });
 
-function mapSystemCompanyListRow(row) {
-  return {
-    company_id: row.company_id,
-    company_name: row.company_name,
-    credit_code: row.credit_code,
-    establish_date: formatDateOutput(row.establish_date),
-    register_capital: row.register_capital ?? "",
-    paid_capital: row.paid_capital ?? "",
-    company_type: row.company_type || "",
-    organization_type: row.org_type || "",
-    investment_type: row.investment_type || "",
-    company_scale: row.company_scale || "",
-    branch_count: row.branch_count || 0,
-    branch_name: row.branch_name || "",
-    register_address: row.register_address || "",
-    financing_round: row.financing_round || "",
-    company_qualification: row.qualification_label || "",
-    legal_representative: row.legal_representative || "",
-    register_number: row.register_number || "",
-    org_code: row.org_code || "",
-    industry_belong: row.industry_belong || "",
-    business_scope: row.business_scope || "",
-    email_business: row.email_business || "",
-    shareholders: row.latest_shareholder_name || "",
-    contact_phone: row.contact_phone || "",
-    updated_at: row.updated_at || null,
-  };
-}
-
-function mapSystemCompanyDetailRow(row) {
-  return {
-    ...mapSystemCompanyListRow(row),
-    approved_date: formatDateOutput(row.approved_date),
-    business_term: row.business_term || "",
-    company_status: row.company_status || "",
-    website: row.website || "",
-    contact_info: row.contact_info || "",
-    recommended_phone: row.recommended_phone || "",
-    register_sheng: row.register_sheng || "",
-    register_shi: row.register_shi || "",
-    register_xian: row.register_xian || "",
-    subdistrict: row.subdistrict || "",
-    register_address_detail: row.register_address_detail || "",
-    employee_count: row.employee_count || 0,
-    insured_count: row.insured_count || 0,
-    taxpayer_credit_rating: row.taxpayer_credit_rating || "",
-  };
-}
-
-async function fetchSystemCompanyDetailById(companyId) {
-  const [rows] = await pool.query(
-    `
-      SELECT
-        cb.*,
-        cbc.branch_count
-      FROM company_basic cb
-      LEFT JOIN company_basic_count cbc ON cbc.company_id = cb.company_id
-      WHERE cb.company_id = ?
-      LIMIT 1
-    `,
-    [companyId],
-  );
-  return rows[0] || null;
-}
-
-async function ensureCompanyBasicCount(connection, companyId) {
-  await connection.query(
-    `
-      INSERT INTO company_basic_count (company_id)
-      VALUES (?)
-      ON DUPLICATE KEY UPDATE company_id = VALUES(company_id)
-    `,
-    [companyId],
-  );
-}
-
-async function deleteCompaniesCascade(connection, companyIds) {
-  if (!Array.isArray(companyIds) || companyIds.length === 0) {
-    return;
-  }
-
-  await connection.query(
-    `
-      DELETE ptm
-      FROM company_patent_patent_type_map ptm
-      JOIN company_patent cp ON cp.company_patent_id = ptm.company_patent_id
-      WHERE cp.company_id IN (?)
-    `,
-    [companyIds],
-  );
-
-  await connection.query(
-    `
-      DELETE pcm
-      FROM company_patent_company_map pcm
-      LEFT JOIN company_patent cp ON cp.company_patent_id = pcm.company_patent_id
-      WHERE pcm.company_id IN (?) OR cp.company_id IN (?)
-    `,
-    [companyIds, companyIds],
-  );
-
-  await connection.query(
-    `
-      DELETE FROM company_customer
-      WHERE company_id IN (?) OR customer_company_id IN (?)
-    `,
-    [companyIds, companyIds],
-  );
-
-  await connection.query(
-    `
-      DELETE FROM company_supplier
-      WHERE company_id IN (?) OR supplier_company_id IN (?)
-    `,
-    [companyIds, companyIds],
-  );
-
-  const companyIdRefTables = [
-    "category_industry_company_map",
-    "company_address",
-    "company_bidding",
-    "company_branch",
-    "company_change",
-    "company_consumption_restriction",
-    "company_contact_info",
-    "company_contact_phone",
-    "company_employee_count",
-    "company_financing",
-    "company_former_name",
-    "company_listing_status",
-    "company_patent",
-    "company_qualification",
-    "company_ranking",
-    "company_recommended_phone",
-    "company_recruit",
-    "company_risk",
-    "company_shareholder",
-    "company_software_copyright",
-    "company_subdistrict",
-    "company_tag_batch_item",
-    "company_tag_llm_candidate",
-    "company_tag_map",
-    "company_trademark",
-    "company_website",
-    "company_work_copyright",
-    "scoring_scorelog",
-    "scoring_scoreresult",
-    "company_basic_count",
-  ];
-
-  for (const tableName of companyIdRefTables) {
-    const columnName = tableName.startsWith("scoring_") ? "enterprise_id" : "company_id";
-    await connection.query(`DELETE FROM ${tableName} WHERE ${columnName} IN (?)`, [companyIds]);
-  }
-
-  await connection.query("DELETE FROM company_basic WHERE company_id IN (?)", [companyIds]);
-}
-
 // ==========================================
 // 4. 智能诊断 AI 模块 (恢复)
 // ==========================================
 
 app.post("/api/chat", requireAuth, async (req, res) => {
   const { messages, sessionId } = req.body;
+  const nextSessionId = sessionId || crypto.randomUUID();
   try {
     const data = await agentRequest("/chat", {
       method: "POST",
       body: JSON.stringify({
         messages,
-        sessionId: sessionId || crypto.randomUUID(),
+        sessionId: nextSessionId,
         userId: req.authUser.id,
       }),
     });
     res.json(data);
-  } catch (error) {
-    res.json({
-      success: false,
-      message: `Qwen + RAG demo 服务不可用，请先启动 AGENT 服务 (${AGENT_API_URL})。${error.message}`,
-    });
+  } catch (_error) {
+    try {
+      const fallback = await buildDashscopeAssistantFallback(messages, nextSessionId);
+      res.json(fallback);
+    } catch (fallbackError) {
+      res.json({
+        success: false,
+        message: `AGENT 与千问直连均不可用。AGENT: ${AGENT_API_URL}；错误：${fallbackError.message}`,
+      });
+    }
   }
 });
 
 app.post("/api/chat/stream", requireAuth, async (req, res) => {
   const { messages, sessionId } = req.body;
+  const nextSessionId = sessionId || crypto.randomUUID();
   const controller = new AbortController();
   req.on("aborted", () => controller.abort());
   res.on("close", () => {
@@ -2863,7 +2801,7 @@ app.post("/api/chat/stream", requireAuth, async (req, res) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         messages,
-        sessionId: sessionId || crypto.randomUUID(),
+        sessionId: nextSessionId,
         userId: req.authUser.id,
       }),
       signal: controller.signal,
@@ -2909,14 +2847,16 @@ app.post("/api/chat/stream", requireAuth, async (req, res) => {
     if (controller.signal.aborted || res.destroyed) {
       return;
     }
-    res.status(200);
-    res.setHeader("Content-Type", "application/x-ndjson; charset=utf-8");
-    res.end(
-      `${JSON.stringify({
-        type: "error",
-        message: `Qwen + RAG 服务不可用，请先启动 AGENT 服务 (${AGENT_API_URL})。${error.message}`,
-      })}\n`,
-    );
+    try {
+      await writeDashscopeAssistantFallbackStream(res, messages, nextSessionId);
+    } catch (fallbackError) {
+      writeNdjson(res, [
+        {
+          type: "error",
+          message: `AGENT 与千问直连均不可用。AGENT: ${error.message}；千问: ${fallbackError.message}`,
+        },
+      ]);
+    }
   }
 });
 
@@ -2999,462 +2939,6 @@ app.delete("/api/chat/history", requireAuth, async (req, res) => {
 // ==========================================
 // 5. 系统管理模块
 // ==========================================
-
-/**
- * 系统管理：企业数据管理
- */
-app.get("/api/system/companies", requireAuth, requireAdmin, async (req, res) => {
-  const { page = 1, pageSize = 30, keyword = "" } = req.query;
-  const currentPage = toPositiveInt(page, 1);
-  const currentPageSize = toPositiveInt(pageSize, 30);
-  const offset = (currentPage - 1) * currentPageSize;
-  try {
-    let where = "WHERE 1=1";
-    const params = [];
-    const normalizedKeyword = normalizeText(keyword);
-    if (normalizedKeyword) {
-      where += " AND (cb.company_name LIKE ? OR cb.credit_code LIKE ?)";
-      params.push(`%${normalizedKeyword}%`, `%${normalizedKeyword}%`);
-    }
-
-    const [totalRows] = await pool.query(
-      `SELECT COUNT(*) AS total FROM company_basic cb ${where}`,
-      params,
-    );
-    const [rows] = await pool.query(
-      `
-        SELECT
-          cb.*,
-          cbc.branch_count
-        FROM company_basic cb
-        LEFT JOIN company_basic_count cbc ON cbc.company_id = cb.company_id
-        ${where}
-        ORDER BY cb.updated_at DESC, cb.company_id DESC
-        LIMIT ? OFFSET ?
-      `,
-      [...params, currentPageSize, offset],
-    );
-
-    res.json({
-      success: true,
-      data: rows.map(mapSystemCompanyListRow),
-      total: totalRows[0]?.total || 0,
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-app.get("/api/system/companies/:id", requireAuth, requireAdmin, async (req, res) => {
-  const companyId = toPositiveInt(req.params.id, 0);
-  if (!companyId) {
-    return res.status(400).json({ success: false, message: "无效的企业 ID" });
-  }
-  try {
-    const detail = await fetchSystemCompanyDetailById(companyId);
-    if (!detail) {
-      return res.status(404).json({ success: false, message: "未找到企业" });
-    }
-    res.json({ success: true, data: mapSystemCompanyDetailRow(detail) });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-app.post("/api/system/companies", requireAuth, requireAdmin, async (req, res) => {
-  const payload = coerceSystemCompanyRow(req.body || {});
-  if (!payload.companyName || !payload.creditCode) {
-    return res.status(400).json({ success: false, message: "企业名称和统一社会信用代码不能为空" });
-  }
-
-  const connection = await pool.getConnection();
-  try {
-    await connection.beginTransaction();
-    const [existsRows] = await connection.query(
-      "SELECT company_id FROM company_basic WHERE credit_code = ? LIMIT 1",
-      [payload.creditCode],
-    );
-    if (existsRows.length > 0) {
-      return res.status(409).json({ success: false, message: "统一社会信用代码已存在" });
-    }
-
-    const [result] = await connection.query(
-      `
-        INSERT INTO company_basic (
-          company_name,
-          credit_code,
-          legal_representative,
-          establish_date,
-          industry_belong,
-          register_capital,
-          paid_capital,
-          financing_round,
-          company_type,
-          org_type,
-          investment_type,
-          company_scale,
-          contact_phone,
-          email_business,
-          register_address,
-          latest_shareholder_name,
-          qualification_label,
-          register_number,
-          org_code,
-          business_scope
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `,
-      [
-        payload.companyName,
-        payload.creditCode,
-        payload.legalRepresentative || null,
-        payload.establishDate,
-        payload.industryBelong || null,
-        payload.registerCapital,
-        payload.paidCapital,
-        payload.financingRound || null,
-        payload.companyType || null,
-        payload.organizationType || null,
-        payload.investmentType || null,
-        payload.companyScale || null,
-        payload.contactPhone || null,
-        payload.emailBusiness || null,
-        payload.registerAddress || null,
-        payload.shareholders || null,
-        payload.qualificationLabel || null,
-        payload.registerNumber || null,
-        payload.orgCode || null,
-        payload.businessScope || null,
-      ],
-    );
-    await ensureCompanyBasicCount(connection, result.insertId);
-    await connection.commit();
-    const detail = await fetchSystemCompanyDetailById(result.insertId);
-    res.status(201).json({ success: true, data: mapSystemCompanyDetailRow(detail) });
-  } catch (error) {
-    await connection.rollback();
-    if (error?.code === "ER_DUP_ENTRY") {
-      return res.status(409).json({ success: false, message: "统一社会信用代码已存在" });
-    }
-    res.status(500).json({ success: false, message: error.message });
-  } finally {
-    connection.release();
-  }
-});
-
-app.put("/api/system/companies/:id", requireAuth, requireAdmin, async (req, res) => {
-  const companyId = toPositiveInt(req.params.id, 0);
-  const payload = coerceSystemCompanyRow(req.body || {});
-  if (!companyId) {
-    return res.status(400).json({ success: false, message: "无效的企业 ID" });
-  }
-  if (!payload.companyName || !payload.creditCode) {
-    return res.status(400).json({ success: false, message: "企业名称和统一社会信用代码不能为空" });
-  }
-
-  const connection = await pool.getConnection();
-  try {
-    await connection.beginTransaction();
-    const [existsRows] = await connection.query(
-      "SELECT company_id FROM company_basic WHERE company_id = ? LIMIT 1",
-      [companyId],
-    );
-    if (existsRows.length === 0) {
-      return res.status(404).json({ success: false, message: "未找到企业" });
-    }
-
-    const [duplicateRows] = await connection.query(
-      "SELECT company_id FROM company_basic WHERE credit_code = ? AND company_id <> ? LIMIT 1",
-      [payload.creditCode, companyId],
-    );
-    if (duplicateRows.length > 0) {
-      return res.status(409).json({ success: false, message: "统一社会信用代码已存在" });
-    }
-
-    await connection.query(
-      `
-        UPDATE company_basic
-        SET
-          company_name = ?,
-          credit_code = ?,
-          legal_representative = ?,
-          establish_date = ?,
-          industry_belong = ?,
-          register_capital = ?,
-          paid_capital = ?,
-          financing_round = ?,
-          company_type = ?,
-          org_type = ?,
-          investment_type = ?,
-          company_scale = ?,
-          contact_phone = ?,
-          email_business = ?,
-          register_address = ?,
-          latest_shareholder_name = ?,
-          qualification_label = ?,
-          register_number = ?,
-          org_code = ?,
-          business_scope = ?
-        WHERE company_id = ?
-      `,
-      [
-        payload.companyName,
-        payload.creditCode,
-        payload.legalRepresentative || null,
-        payload.establishDate,
-        payload.industryBelong || null,
-        payload.registerCapital,
-        payload.paidCapital,
-        payload.financingRound || null,
-        payload.companyType || null,
-        payload.organizationType || null,
-        payload.investmentType || null,
-        payload.companyScale || null,
-        payload.contactPhone || null,
-        payload.emailBusiness || null,
-        payload.registerAddress || null,
-        payload.shareholders || null,
-        payload.qualificationLabel || null,
-        payload.registerNumber || null,
-        payload.orgCode || null,
-        payload.businessScope || null,
-        companyId,
-      ],
-    );
-    await ensureCompanyBasicCount(connection, companyId);
-    await connection.commit();
-    const detail = await fetchSystemCompanyDetailById(companyId);
-    res.json({ success: true, data: mapSystemCompanyDetailRow(detail) });
-  } catch (error) {
-    await connection.rollback();
-    if (error?.code === "ER_DUP_ENTRY") {
-      return res.status(409).json({ success: false, message: "统一社会信用代码已存在" });
-    }
-    res.status(500).json({ success: false, message: error.message });
-  } finally {
-    connection.release();
-  }
-});
-
-app.delete("/api/system/companies/:id", requireAuth, requireAdmin, async (req, res) => {
-  const companyId = toPositiveInt(req.params.id, 0);
-  if (!companyId) {
-    return res.status(400).json({ success: false, message: "无效的企业 ID" });
-  }
-  const connection = await pool.getConnection();
-  try {
-    await connection.beginTransaction();
-    await deleteCompaniesCascade(connection, [companyId]);
-    await connection.commit();
-    res.json({ success: true, message: "企业数据已删除" });
-  } catch (error) {
-    await connection.rollback();
-    res.status(500).json({ success: false, message: error.message });
-  } finally {
-    connection.release();
-  }
-});
-
-app.post("/api/system/companies/batch-delete", requireAuth, requireAdmin, async (req, res) => {
-  const ids = Array.isArray(req.body?.ids) ? req.body.ids.map((item) => toPositiveInt(item, 0)).filter(Boolean) : [];
-  if (ids.length === 0) {
-    return res.status(400).json({ success: false, message: "请选择要删除的企业" });
-  }
-  const connection = await pool.getConnection();
-  try {
-    await connection.beginTransaction();
-    await deleteCompaniesCascade(connection, ids);
-    await connection.commit();
-    res.json({ success: true, message: `已删除 ${ids.length} 家企业` });
-  } catch (error) {
-    await connection.rollback();
-    res.status(500).json({ success: false, message: error.message });
-  } finally {
-    connection.release();
-  }
-});
-
-app.get("/api/system/companies/template/download", requireAuth, requireAdmin, async (_req, res) => {
-  const csv = buildCsvContent([
-    SYSTEM_COMPANY_TEMPLATE_HEADERS,
-    ["示例企业", "91110000123456789A", "张三", "2024-01-01", "生物制药", "1000", "500", "A轮", "有限责任公司", "企业法人", "民营", "100-499人", "010-12345678", "demo@example.com", "北京市朝阳区示例路1号", "示例股东", "高新技术企业", "110000000000001", "123456789", "技术开发；技术咨询；技术服务"],
-  ]);
-  res.setHeader("Content-Type", "text/csv; charset=utf-8");
-  res.setHeader("Content-Disposition", 'attachment; filename="enterprise-data-template.csv"');
-  res.send(`\uFEFF${csv}`);
-});
-
-app.post("/api/system/companies/import", requireAuth, requireAdmin, async (req, res) => {
-  const csvText = normalizeText(req.body?.csvText);
-  if (!csvText) {
-    return res.status(400).json({ success: false, message: "请先提供 CSV 内容" });
-  }
-
-  try {
-    const rows = parseCsvText(csvText);
-    if (rows.length < 2) {
-      return res.status(400).json({ success: false, message: "CSV 至少需要表头和一行数据" });
-    }
-
-    const headers = rows[0].map((header) => normalizeCsvHeader(header));
-    const headerSet = new Set(headers);
-    const missingHeaders = SYSTEM_COMPANY_TEMPLATE_HEADERS.filter((header) => !headerSet.has(header));
-    if (missingHeaders.length > 0) {
-      return res.status(400).json({ success: false, message: `CSV 缺少字段：${missingHeaders.join("、")}` });
-    }
-
-    const payloadRows = rows.slice(1).map((cells) => {
-      const raw = {};
-      headers.forEach((header, index) => {
-        raw[header] = normalizeText(cells[index] || "");
-      });
-      return coerceSystemCompanyRow(raw);
-    }).filter((item) => item.companyName || item.creditCode);
-
-    if (payloadRows.length === 0) {
-      return res.status(400).json({ success: false, message: "未识别到有效企业数据" });
-    }
-
-    const connection = await pool.getConnection();
-    try {
-      await connection.beginTransaction();
-      let insertedCount = 0;
-      let updatedCount = 0;
-
-      for (const payload of payloadRows) {
-        if (!payload.companyName || !payload.creditCode) {
-          throw new Error(`存在缺少企业名称或统一社会信用代码的行`);
-        }
-
-        const [existingRows] = await connection.query(
-          "SELECT company_id FROM company_basic WHERE credit_code = ? LIMIT 1",
-          [payload.creditCode],
-        );
-
-        if (existingRows.length > 0) {
-          await connection.query(
-            `
-              UPDATE company_basic
-              SET
-                company_name = ?,
-                legal_representative = ?,
-                establish_date = ?,
-                industry_belong = ?,
-                register_capital = ?,
-                paid_capital = ?,
-                financing_round = ?,
-                company_type = ?,
-                org_type = ?,
-                investment_type = ?,
-                company_scale = ?,
-                contact_phone = ?,
-                email_business = ?,
-                register_address = ?,
-                latest_shareholder_name = ?,
-                qualification_label = ?,
-                register_number = ?,
-                org_code = ?,
-                business_scope = ?
-              WHERE company_id = ?
-            `,
-            [
-              payload.companyName,
-              payload.legalRepresentative || null,
-              payload.establishDate,
-              payload.industryBelong || null,
-              payload.registerCapital,
-              payload.paidCapital,
-              payload.financingRound || null,
-              payload.companyType || null,
-              payload.organizationType || null,
-              payload.investmentType || null,
-              payload.companyScale || null,
-              payload.contactPhone || null,
-              payload.emailBusiness || null,
-              payload.registerAddress || null,
-              payload.shareholders || null,
-              payload.qualificationLabel || null,
-              payload.registerNumber || null,
-              payload.orgCode || null,
-              payload.businessScope || null,
-              existingRows[0].company_id,
-            ],
-          );
-          await ensureCompanyBasicCount(connection, existingRows[0].company_id);
-          updatedCount += 1;
-        } else {
-          const [insertResult] = await connection.query(
-            `
-              INSERT INTO company_basic (
-                company_name,
-                credit_code,
-                legal_representative,
-                establish_date,
-                industry_belong,
-                register_capital,
-                paid_capital,
-                financing_round,
-                company_type,
-                org_type,
-                investment_type,
-                company_scale,
-                contact_phone,
-                email_business,
-                register_address,
-                latest_shareholder_name,
-                qualification_label,
-                register_number,
-                org_code,
-                business_scope
-              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `,
-            [
-              payload.companyName,
-              payload.creditCode,
-              payload.legalRepresentative || null,
-              payload.establishDate,
-              payload.industryBelong || null,
-              payload.registerCapital,
-              payload.paidCapital,
-              payload.financingRound || null,
-              payload.companyType || null,
-              payload.organizationType || null,
-              payload.investmentType || null,
-              payload.companyScale || null,
-              payload.contactPhone || null,
-              payload.emailBusiness || null,
-              payload.registerAddress || null,
-              payload.shareholders || null,
-              payload.qualificationLabel || null,
-              payload.registerNumber || null,
-              payload.orgCode || null,
-              payload.businessScope || null,
-            ],
-          );
-          await ensureCompanyBasicCount(connection, insertResult.insertId);
-          insertedCount += 1;
-        }
-      }
-
-      await connection.commit();
-      res.json({
-        success: true,
-        message: `导入完成：新增 ${insertedCount} 家，更新 ${updatedCount} 家`,
-        data: {
-          insertedCount,
-          updatedCount,
-          totalCount: payloadRows.length,
-        },
-      });
-    } catch (error) {
-      await connection.rollback();
-      throw error;
-    } finally {
-      connection.release();
-    }
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
 
 // --- 系统管理：标签管理 ---
 
@@ -3869,23 +3353,7 @@ app.get("/api/tags/dimensions/:dimensionId/detail", async (req, res) => {
 app.get("/api/auto-tag/import/template", async (_req, res) => {
   const rows = [
     IMPORT_TEMPLATE_HEADERS,
-    [
-      "示例科技有限公司",
-      "91110105MA12345678",
-      "2021-06-18",
-      "1000",
-      "500",
-      "25",
-      "18",
-      "13800000000",
-      "demo@example.com",
-      "北京市朝阳区酒仙桥路 1 号",
-      "北京市朝阳区酒仙桥街道产业园 A 座",
-      "技术开发；软件服务；健康管理服务；医疗信息咨询。",
-      "高新技术企业",
-      "数字医疗、健康管理",
-      "酒仙桥街道",
-    ],
+    ["示例科技有限公司", "91110105MA12345678"],
   ];
   const csvContent = buildCsvContent(rows);
   res.setHeader("Content-Type", "text/csv; charset=utf-8");
@@ -3906,7 +3374,7 @@ app.post("/api/auto-tag/import/preview", async (req, res) => {
     }
 
     const headers = rows[0].map((value) => normalizeCsvHeader(value));
-    const requiredHeaders = ["company_name"];
+    const requiredHeaders = ["company_name", "credit_code"];
     const missingHeaders = requiredHeaders.filter((header) => !headers.includes(header));
     if (missingHeaders.length > 0) {
       return res.status(400).json({ success: false, message: `缺少必填列：${missingHeaders.join("、")}` });
@@ -3925,12 +3393,12 @@ app.post("/api/auto-tag/import/preview", async (req, res) => {
       });
 
       const candidate = coerceImportCandidate(raw, index + 1);
-      if (!candidate.companyName) {
+      if (!candidate.companyName || !candidate.creditCode) {
         invalidRows.push({
           rowIndex: candidate.rowIndex,
-          companyName: "",
+          companyName: candidate.companyName,
           creditCode: candidate.creditCode,
-          reason: "缺少企业名称",
+          reason: "缺少企业名称或统一社会信用代码",
         });
         continue;
       }
@@ -3965,12 +3433,16 @@ app.post("/api/auto-tag/import/preview", async (req, res) => {
     const [dbRows] = await pool.query(
       `
         SELECT
-          company_id AS companyId,
-          company_name AS companyName,
-          credit_code AS creditCode
-        FROM company_basic
-        WHERE UPPER(credit_code) IN (?)
-          OR company_name IN (?)
+          b.company_id AS companyId,
+          b.company_name AS companyName,
+          b.credit_code AS creditCode,
+          COUNT(DISTINCT m.company_tag_id) AS tagCount
+        FROM company_basic b
+        LEFT JOIN company_tag_map m
+          ON b.company_id = m.company_id
+        WHERE UPPER(b.credit_code) IN (?)
+          OR b.company_name IN (?)
+        GROUP BY b.company_id, b.company_name, b.credit_code
       `,
       [creditCodes.length > 0 ? creditCodes : [""], companyNames.length > 0 ? companyNames : [""]],
     );
@@ -4003,15 +3475,35 @@ app.post("/api/auto-tag/import/preview", async (req, res) => {
         continue;
       }
 
+      if (!creditCodeMatch && companyNameMatches.length === 0) {
+        invalidRows.push({
+          rowIndex: candidate.rowIndex,
+          companyName: candidate.companyName,
+          creditCode: candidate.creditCode,
+          reason: "企业尚未入库，当前自动打标签仅支持已导入但未打标的企业",
+        });
+        continue;
+      }
+
       if (creditCodeMatch) {
         if (normalizeText(creditCodeMatch.companyName) === candidate.companyName) {
-          existingCompanies.push({
+          const matched = {
             ...candidate,
-            reason: "统一社会信用代码已在库",
             matchedCompanyId: creditCodeMatch.companyId,
             matchedCompanyName: creditCodeMatch.companyName,
             matchedCreditCode: creditCodeMatch.creditCode,
-          });
+          };
+          if (Number(creditCodeMatch.tagCount || 0) > 0) {
+            existingCompanies.push({
+              ...matched,
+              reason: "企业已在库且已有标签",
+            });
+          } else {
+            newCompanies.push({
+              ...matched,
+              reason: "企业已在库且尚未打标，可进入自动打标",
+            });
+          }
         } else {
           duplicateCompanies.push({
             ...candidate,
@@ -4029,13 +3521,23 @@ app.post("/api/auto-tag/import/preview", async (req, res) => {
           candidate.creditCode && normalizeText(row.creditCode).toUpperCase() === candidate.creditCode,
         );
         if (exactCodeMatch) {
-          existingCompanies.push({
+          const matched = {
             ...candidate,
-            reason: "企业名称和统一社会信用代码均已在库",
             matchedCompanyId: exactCodeMatch.companyId,
             matchedCompanyName: exactCodeMatch.companyName,
             matchedCreditCode: exactCodeMatch.creditCode,
-          });
+          };
+          if (Number(exactCodeMatch.tagCount || 0) > 0) {
+            existingCompanies.push({
+              ...matched,
+              reason: "企业已在库且已有标签",
+            });
+          } else {
+            newCompanies.push({
+              ...matched,
+              reason: "企业已在库且尚未打标，可进入自动打标",
+            });
+          }
         } else {
           const firstMatch = companyNameMatches[0];
           duplicateCompanies.push({
@@ -4049,7 +3551,12 @@ app.post("/api/auto-tag/import/preview", async (req, res) => {
         continue;
       }
 
-      newCompanies.push(candidate);
+      invalidRows.push({
+        rowIndex: candidate.rowIndex,
+        companyName: candidate.companyName,
+        creditCode: candidate.creditCode,
+        reason: "企业匹配结果不明确，无法自动打标",
+      });
     }
 
     res.json({
@@ -4079,19 +3586,55 @@ app.post("/api/auto-tag/import/run", async (req, res) => {
   const dimensionIds = normalizeIntList(req.body?.dimensionIds);
 
   if (records.length === 0) {
-    return res.status(400).json({ success: false, message: "请先提供待入库企业" });
+    return res.status(400).json({ success: false, message: "请先提供待打标企业" });
   }
   if (dimensionIds.length === 0) {
     return res.status(400).json({ success: false, message: "请至少选择一个标签维度" });
   }
 
   try {
+    const companyIds = normalizeIntList(records.map((item) => item?.matchedCompanyId));
+    if (companyIds.length === 0) {
+      return res.status(400).json({ success: false, message: "未找到可自动打标的已入库企业" });
+    }
+
+    const dbRecords = await fetchImportAutoTagRecordsByCompanyIds(companyIds);
+    const dbRecordMap = new Map(dbRecords.map((item) => [item.companyId, item]));
+    const evaluateRecords = records
+      .map((item) => {
+        const companyId = toPositiveInt(item?.matchedCompanyId, 0);
+        const matched = dbRecordMap.get(companyId);
+        if (!matched) {
+          return null;
+        }
+        return {
+          ...matched,
+          row_index: toPositiveInt(item?.rowIndex, 0) || matched.companyId,
+        };
+      })
+      .filter(Boolean);
+
+    if (evaluateRecords.length === 0) {
+      return res.status(400).json({ success: false, message: "未找到可用于自动打标的企业完整信息" });
+    }
+
     const summary = await runImportAutoTagEvaluateScript({
-      records,
+      records: evaluateRecords,
       dimensionIds,
     });
 
+    const sourceByCode = new Map(
+      records
+        .map((item) => {
+          const key = normalizeText(item?.matchedCreditCode || item?.creditCode).toUpperCase();
+          return key ? [key, item] : null;
+        })
+        .filter(Boolean),
+    );
+
     const items = (summary.results || []).map((item, index) => {
+      const source = sourceByCode.get(normalizeText(item.credit_code).toUpperCase()) || records[index] || {};
+      const matchedCompanyId = toPositiveInt(source.matchedCompanyId, 0);
       const dimensions = emptyTagBuckets();
       const tags = (item.tags || []).map((tag) => {
         const meta = getTagDimensionMeta(tag.company_tag_dimension_name);
@@ -4111,9 +3654,9 @@ app.post("/api/auto-tag/import/run", async (req, res) => {
       return {
         batchItemId: index + 1,
         key: index + 1,
-        companyId: -(index + 1),
-        name: item.company_name,
-        code: item.credit_code || `待入库-${index + 1}`,
+        companyId: matchedCompanyId || index + 1,
+        name: source.matchedCompanyName || item.company_name,
+        code: source.matchedCreditCode || item.credit_code || `企业-${index + 1}`,
         updateTime: null,
         tagCount: item.tag_count || tags.length,
         tags,
@@ -4121,7 +3664,7 @@ app.post("/api/auto-tag/import/run", async (req, res) => {
         status: item.error_message ? AUTO_TAG_BATCH_ITEM_STATUS.FAILED : AUTO_TAG_BATCH_ITEM_STATUS.SUCCESS,
         errorMessage: item.error_message || "",
         result: {
-          company_id: -(index + 1),
+          company_id: matchedCompanyId || index + 1,
           tag_count: item.tag_count || tags.length,
           tags: item.tags || [],
         },
@@ -4132,7 +3675,7 @@ app.post("/api/auto-tag/import/run", async (req, res) => {
       success: true,
       data: {
         summary: {
-          companyCount: records.length,
+          companyCount: evaluateRecords.length,
           successCompanyCount: items.filter((item) => item.status === AUTO_TAG_BATCH_ITEM_STATUS.SUCCESS).length,
           failedCompanyCount: items.filter((item) => item.status === AUTO_TAG_BATCH_ITEM_STATUS.FAILED).length,
           assignmentCount: summary.assignment_count || 0,

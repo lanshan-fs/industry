@@ -4,6 +4,7 @@ import { Typography } from "antd";
 import { AppstoreOutlined } from "@ant-design/icons";
 
 import MainLayout from "./layouts/MainLayout";
+import AdminRoute from "./components/AdminRoute";
 
 import Login from "./pages/Auth/Login";
 import Register from "./pages/Auth/Register";
@@ -96,7 +97,7 @@ const App: React.FC = () => {
           </Route>
 
           {/* 6. 系统管理 */}
-          <Route path="system-mgmt">
+          <Route path="system-mgmt" element={<AdminRoute />}>
             <Route index element={<Navigate to="enterprise-data" replace />} />
 
             {/* 6.1 数据管理 */}

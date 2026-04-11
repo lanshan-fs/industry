@@ -237,5 +237,59 @@ CREATE TABLE IF NOT EXISTS `raw_import_company_subdistrict` (
   KEY `idx_raw_import_company_subdistrict_company_name` (`company_name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Excel 原始导入表-街道信息';
 
-SET FOREIGN_KEY_CHECKS = 1;
+CREATE TABLE IF NOT EXISTS `raw_import_company_ai_model_filing` (
+  `raw_id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '原始导入记录 ID',
+  `source_file` VARCHAR(255) DEFAULT NULL COMMENT '来源文件名',
+  `source_sheet` VARCHAR(128) DEFAULT NULL COMMENT '来源工作表',
+  `sheet_row_no` INT DEFAULT NULL COMMENT 'Excel 行号/序号',
+  `period_raw` VARCHAR(64) DEFAULT NULL COMMENT '时期原值',
+  `filing_type` VARCHAR(64) DEFAULT NULL COMMENT '类型',
+  `source_order_raw` VARCHAR(64) DEFAULT NULL COMMENT '原序号',
+  `territory` VARCHAR(255) DEFAULT NULL COMMENT '属地',
+  `model_name` VARCHAR(255) DEFAULT NULL COMMENT '模型名称',
+  `company_name` VARCHAR(255) DEFAULT NULL COMMENT '单位/企业名称',
+  `filing_number` VARCHAR(255) DEFAULT NULL COMMENT '备案编号',
+  `filed_at_raw` VARCHAR(64) DEFAULT NULL COMMENT '备案时间原值',
+  PRIMARY KEY (`raw_id`),
+  KEY `idx_raw_import_company_ai_model_filing_company_name` (`company_name`),
+  KEY `idx_raw_import_company_ai_model_filing_filing_number` (`filing_number`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Excel 原始导入表-算法备案医疗大模型';
 
+CREATE TABLE IF NOT EXISTS `raw_import_company_high_quality_dataset` (
+  `raw_id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '原始导入记录 ID',
+  `source_file` VARCHAR(255) DEFAULT NULL COMMENT '来源文件名',
+  `source_sheet` VARCHAR(128) DEFAULT NULL COMMENT '来源工作表',
+  `sheet_row_no` INT DEFAULT NULL COMMENT 'Excel 行号/序号',
+  `source_order_raw` VARCHAR(64) DEFAULT NULL COMMENT '原序号',
+  `dataset_name` VARCHAR(255) DEFAULT NULL COMMENT '案例/数据集名称',
+  `applicant_unit` TEXT COMMENT '申报单位原值',
+  `recommender_unit` VARCHAR(255) DEFAULT NULL COMMENT '推荐单位',
+  PRIMARY KEY (`raw_id`),
+  KEY `idx_raw_import_company_high_quality_dataset_dataset_name` (`dataset_name`),
+  KEY `idx_raw_import_company_high_quality_dataset_recommender_unit` (`recommender_unit`(191))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Excel 原始导入表-高质量数据集';
+
+CREATE TABLE IF NOT EXISTS `raw_import_company_innovation_notice` (
+  `raw_id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '原始导入记录 ID',
+  `source_file` VARCHAR(255) DEFAULT NULL COMMENT '来源文件名',
+  `source_sheet` VARCHAR(128) DEFAULT NULL COMMENT '来源工作表',
+  `notice_type` VARCHAR(64) DEFAULT NULL COMMENT '公示类型',
+  `sheet_row_no` INT DEFAULT NULL COMMENT 'Excel 行号/序号',
+  `source_order_raw` VARCHAR(64) DEFAULT NULL COMMENT '原序号',
+  `notice_title` VARCHAR(255) DEFAULT NULL COMMENT '公示标题',
+  `notice_category` VARCHAR(255) DEFAULT NULL COMMENT '类别',
+  `company_name` VARCHAR(512) DEFAULT NULL COMMENT '企业名称/申请人',
+  `owner_name` VARCHAR(255) DEFAULT NULL COMMENT '所有者名称',
+  `product_name` VARCHAR(255) DEFAULT NULL COMMENT '产品/事项名称',
+  `reg_no` VARCHAR(255) DEFAULT NULL COMMENT '注册证号/登记号',
+  `acceptance_no` VARCHAR(255) DEFAULT NULL COMMENT '受理号',
+  `public_date_raw` VARCHAR(64) DEFAULT NULL COMMENT '公示日期原值',
+  `public_end_date_raw` VARCHAR(64) DEFAULT NULL COMMENT '公示截止日期原值',
+  `rare_disease_flag_raw` VARCHAR(64) DEFAULT NULL COMMENT '是否为罕见病药物原值',
+  PRIMARY KEY (`raw_id`),
+  KEY `idx_raw_import_company_innovation_notice_company_name` (`company_name`),
+  KEY `idx_raw_import_company_innovation_notice_owner_name` (`owner_name`),
+  KEY `idx_raw_import_company_innovation_notice_notice_type` (`notice_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Excel 原始导入表-创新性公示';
+
+SET FOREIGN_KEY_CHECKS = 1;

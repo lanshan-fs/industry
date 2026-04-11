@@ -32,6 +32,7 @@ import {
   UndoOutlined,
 } from "@ant-design/icons";
 import * as echarts from "echarts";
+import { getAuthToken } from "../../../utils/auth";
 
 const { Title, Text } = Typography;
 
@@ -42,6 +43,13 @@ interface WeightItem {
   name: string;
   weight: number;
 }
+
+const LEVEL_EXPECTED_TOTALS: Record<ConfigLevel, number> = {
+  TOTAL: 100,
+  BASIC: 100,
+  TECH: 155,
+  PROFESSIONAL: 100,
+};
 
 const WeightData: React.FC = () => {
   const [level, setLevel] = useState<ConfigLevel>("TOTAL");
@@ -70,8 +78,7 @@ const WeightData: React.FC = () => {
   }, [level]);
 
   const getCleanToken = () => {
-    const token = localStorage.getItem("token") || "";
-    return token.trim().replace(/^["']+|["']+$/g, "");
+    return getAuthToken();
   };
 
   const fetchAllWeights = async (isReset = false) => {
@@ -106,10 +113,12 @@ const WeightData: React.FC = () => {
   }, []);
 
   const currentData = useMemo(() => dataMap[level] || [], [dataMap, level]);
+  const expectedTotal = LEVEL_EXPECTED_TOTALS[level];
   const currentSum = useMemo(() => {
     const sum = currentData.reduce((acc, cur) => acc + (Number(cur.weight) || 0), 0);
     return parseFloat(sum.toFixed(2));
   }, [currentData]);
+  const currentBalanced = useMemo(() => Math.abs(currentSum - expectedTotal) < 0.01, [currentSum, expectedTotal]);
 
   const handleWeightChange = (key: string, val: number | null) => {
     const newData = currentData.map((item) => (item.key === key ? { ...item, weight: val || 0 } : item));
@@ -120,12 +129,9 @@ const WeightData: React.FC = () => {
     if (currentData.length === 0) {
       return;
     }
-    const avg = Math.floor(100 / currentData.length);
-    const remainder = 100 % currentData.length;
-    const balanced = currentData.map((item, index) => ({
-      ...item,
-      weight: index === 0 ? avg + remainder : avg,
-    }));
+    const avg = Math.floor(expectedTotal / currentData.length);
+    const remainder = expectedTotal - (avg * currentData.length);
+    const balanced = currentData.map((item, index) => ({ ...item, weight: index === 0 ? avg + remainder : avg }));
     setDataMap((prev) => ({ ...prev, [level]: balanced }));
     message.info("已按数量平均分配权重");
   };
@@ -143,8 +149,8 @@ const WeightData: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (currentSum !== 100) {
-      message.error(`权重总和必须为 100%（当前 ${currentSum}%）`);
+    if (!currentBalanced) {
+      message.error(`当前分组总值必须为 ${expectedTotal}（当前 ${currentSum}）`);
       return;
     }
     setSaving(true);
@@ -199,7 +205,7 @@ const WeightData: React.FC = () => {
   };
 
   const handleRunScoring = async () => {
-    if (currentSum !== 100) {
+    if (!currentBalanced) {
       message.error("当前权重不平衡，无法开始评分");
       return;
     }
@@ -269,6 +275,8 @@ const WeightData: React.FC = () => {
         {(["TOTAL", "BASIC", "TECH", "PROFESSIONAL"] as ConfigLevel[]).map((itemLevel) => {
           const items = dataMap[itemLevel] || [];
           const sum = items.reduce((acc, item) => acc + (Number(item.weight) || 0), 0);
+          const expected = LEVEL_EXPECTED_TOTALS[itemLevel];
+          const balanced = Math.abs(sum - expected) < 0.01;
           const active = level === itemLevel;
           return (
             <Col span={6} key={itemLevel}>
@@ -287,12 +295,12 @@ const WeightData: React.FC = () => {
                   <Text type="secondary" style={{ fontSize: 12 }}>
                     {itemLevel} 配置状态
                   </Text>
-                  {sum === 100 ? <CheckCircleFilled style={{ color: "#52c41a" }} /> : <ExclamationCircleFilled style={{ color: "#ff4d4f" }} />}
+                  {balanced ? <CheckCircleFilled style={{ color: "#52c41a" }} /> : <ExclamationCircleFilled style={{ color: "#ff4d4f" }} />}
                 </div>
                 <Title level={3} style={{ margin: "8px 0" }}>
-                  {sum}%
+                  {sum} / {expected}
                 </Title>
-                <Progress percent={sum} size="small" showInfo={false} status={sum === 100 ? "success" : "exception"} />
+                <Progress percent={Math.min(100, Number(((sum / expected) * 100).toFixed(2)))} size="small" showInfo={false} status={balanced ? "success" : "exception"} />
               </Card>
             </Col>
           );
@@ -320,20 +328,19 @@ const WeightData: React.FC = () => {
               columns={[
                 { title: "指标项", dataIndex: "name", key: "name", width: "35%" },
                 {
-                  title: "权重分配 (总计100%)",
+                  title: `配置值（目标合计 ${expectedTotal}）`,
                   key: "weight",
                   render: (_value, record: WeightItem) => (
                     <Row gutter={16} align="middle">
                       <Col span={14}>
-                        <Slider min={0} max={100} value={record.weight} onChange={(value) => handleWeightChange(record.key, value)} />
+                        <Slider min={0} max={Math.max(expectedTotal, 100)} value={record.weight} onChange={(value) => handleWeightChange(record.key, value)} />
                       </Col>
                       <Col span={10}>
                         <InputNumber
                           min={0}
-                          max={100}
+                          max={Math.max(expectedTotal, 100)}
                           value={record.weight}
                           onChange={(value) => handleWeightChange(record.key, value)}
-                          formatter={(value) => `${value}%`}
                         />
                       </Col>
                     </Row>
@@ -359,11 +366,11 @@ const WeightData: React.FC = () => {
                 </Button>
                 <Popconfirm
                   title="确认执行评分？"
-                  description="这会先保存当前配置，再触发评分任务。当前阶段评分引擎仍在接入中。"
+                  description="这会先保存当前配置，再触发基于 Django 评分引擎的全量重算。"
                   onConfirm={() => void handleRunScoring()}
-                  disabled={currentSum !== 100 || scoring}
+                  disabled={!currentBalanced || scoring}
                 >
-                  <Button type="primary" danger icon={<RocketOutlined />} loading={scoring} disabled={currentSum !== 100}>
+                  <Button type="primary" danger icon={<RocketOutlined />} loading={scoring} disabled={!currentBalanced}>
                     {scoring ? "执行中..." : "保存并执行评分"}
                   </Button>
                 </Popconfirm>
@@ -377,11 +384,11 @@ const WeightData: React.FC = () => {
             <Steps
               direction="vertical"
               size="small"
-              current={currentSum === 100 ? 2 : 1}
-              status={currentSum > 100 ? "error" : "process"}
+              current={currentBalanced ? 2 : 1}
+              status={currentSum > expectedTotal ? "error" : "process"}
               items={[
                 { title: "切换指标维度", description: "点击上方卡片或分段控制器切换需要调整的指标组" },
-                { title: "调整权重比例", description: `拖动滑块或输入数值。当前总计：${currentSum}% (目标100%)` },
+                { title: "调整权重比例", description: `拖动滑块或输入数值。当前总计：${currentSum} (目标${expectedTotal})` },
                 { title: "执行任务控制", description: "权重配平后，点击下方保存或评分按钮应用更改" },
               ]}
             />
@@ -392,12 +399,12 @@ const WeightData: React.FC = () => {
             <div style={{ marginTop: 16 }}>
               <Alert
                 message="合规性检查"
-                type={currentSum === 100 ? "success" : "warning"}
+                type={currentBalanced ? "success" : "warning"}
                 showIcon
                 description={
-                  currentSum === 100
-                    ? "配置已达到 100%，可以保存。执行评分接口已打通，完整评分引擎待后续接入。"
-                    : `当前总权重为 ${currentSum}%，请调整至 100% 后再进行保存。`
+                  currentBalanced
+                    ? `配置已达到目标合计 ${expectedTotal}，可以保存并执行全量评分。`
+                    : `当前总值为 ${currentSum}，请调整至 ${expectedTotal} 后再进行保存。`
                 }
               />
             </div>

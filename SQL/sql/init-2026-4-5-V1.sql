@@ -208,9 +208,80 @@ CREATE TABLE `company_basic_count` (
   `env_penalty_count` int NOT NULL DEFAULT '0' COMMENT '环保处罚数量',
   `equity_freeze_count` int NOT NULL DEFAULT '0' COMMENT '股权冻结数量',
   `executed_person_count` int NOT NULL DEFAULT '0' COMMENT '被执行人数量',
+  `ai_model_filing_count` int NOT NULL DEFAULT '0' COMMENT '算法备案医疗大模型数量',
+  `high_quality_dataset_count` int NOT NULL DEFAULT '0' COMMENT '高质量数据集数量',
+  `innovation_notice_count` int NOT NULL DEFAULT '0' COMMENT '创新性公示数量',
   PRIMARY KEY (`company_id`),
   CONSTRAINT `fk_company_basic_count_company` FOREIGN KEY (`company_id`) REFERENCES `company_basic` (`company_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='企业聚合计数表';
+
+DROP TABLE IF EXISTS `company_ai_model_filing`;
+CREATE TABLE `company_ai_model_filing` (
+  `company_ai_model_filing_id` bigint NOT NULL AUTO_INCREMENT COMMENT '算法备案医疗大模型记录唯一标识',
+  `company_id` bigint NOT NULL COMMENT '企业唯一标识',
+  `company_name_raw` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '企业名称原值',
+  `model_name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '模型名称',
+  `filing_no` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '备案编号',
+  `filing_type` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '备案类型',
+  `territory` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '属地',
+  `filed_at` date DEFAULT NULL COMMENT '备案时间',
+  `source_period_raw` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '时期原值',
+  `source_file` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '来源文件',
+  `source_sheet` varchar(128) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '来源工作表',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`company_ai_model_filing_id`),
+  UNIQUE KEY `uk_company_ai_model_filing_company_no` (`company_id`,`filing_no`),
+  KEY `idx_company_ai_model_filing_company_id` (`company_id`),
+  KEY `idx_company_ai_model_filing_model_name` (`model_name`),
+  CONSTRAINT `fk_company_ai_model_filing_company` FOREIGN KEY (`company_id`) REFERENCES `company_basic` (`company_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='企业算法备案医疗大模型表';
+
+DROP TABLE IF EXISTS `company_high_quality_dataset`;
+CREATE TABLE `company_high_quality_dataset` (
+  `company_high_quality_dataset_id` bigint NOT NULL AUTO_INCREMENT COMMENT '高质量数据集记录唯一标识',
+  `company_id` bigint NOT NULL COMMENT '企业唯一标识',
+  `company_name_raw` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '企业名称原值',
+  `dataset_name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '案例/数据集名称',
+  `applicant_unit_raw` text COLLATE utf8mb4_unicode_ci COMMENT '申报单位原值',
+  `recommender_unit` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '推荐单位',
+  `announced_at` date DEFAULT NULL COMMENT '公布日期',
+  `source_file` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '来源文件',
+  `source_sheet` varchar(128) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '来源工作表',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`company_high_quality_dataset_id`),
+  UNIQUE KEY `uk_company_high_quality_dataset_company_name` (`company_id`,`dataset_name`),
+  KEY `idx_company_high_quality_dataset_company_id` (`company_id`),
+  CONSTRAINT `fk_company_high_quality_dataset_company` FOREIGN KEY (`company_id`) REFERENCES `company_basic` (`company_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='企业高质量数据集表';
+
+DROP TABLE IF EXISTS `company_innovation_notice`;
+CREATE TABLE `company_innovation_notice` (
+  `company_innovation_notice_id` bigint NOT NULL AUTO_INCREMENT COMMENT '创新性公示记录唯一标识',
+  `company_id` bigint NOT NULL COMMENT '企业唯一标识',
+  `company_name_raw` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '企业名称原值',
+  `notice_type` varchar(64) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '公示类型',
+  `notice_title` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '公示标题',
+  `notice_category` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '公示类别',
+  `product_name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '产品/事项名称',
+  `reg_no` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '注册证号/登记号',
+  `acceptance_no` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '受理号',
+  `owner_name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '所有者名称',
+  `public_date` date DEFAULT NULL COMMENT '公示日期',
+  `public_end_date` date DEFAULT NULL COMMENT '公示截止日期',
+  `rare_disease_flag` tinyint NOT NULL DEFAULT '0' COMMENT '是否为罕见病药物',
+  `source_file` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '来源文件',
+  `source_sheet` varchar(128) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '来源工作表',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`company_innovation_notice_id`),
+  KEY `idx_company_innovation_notice_company_id` (`company_id`),
+  KEY `idx_company_innovation_notice_type` (`notice_type`),
+  KEY `idx_company_innovation_notice_public_date` (`public_date`),
+  CONSTRAINT `fk_company_innovation_notice_company` FOREIGN KEY (`company_id`) REFERENCES `company_basic` (`company_id`),
+  CONSTRAINT `chk_company_innovation_notice_rare_disease` CHECK ((`rare_disease_flag` in (0,1)))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='企业创新性公示表';
 
 DROP TABLE IF EXISTS `company_bidding`;
 CREATE TABLE `company_bidding` (
@@ -881,6 +952,10 @@ CREATE TABLE `score_model_tech_weight` (
   `tech_technology_enterprise` decimal(5,2) NOT NULL DEFAULT '0.00' COMMENT '科技型企业',
   `industry_university_research` decimal(5,2) NOT NULL DEFAULT '0.00' COMMENT '产学研合作',
   `national_provincial_award` decimal(5,2) NOT NULL DEFAULT '0.00' COMMENT '国家/省级奖励',
+  `national_tech_honor` decimal(5,2) NOT NULL DEFAULT '0.00' COMMENT '科技荣誉（国家级）',
+  `provincial_tech_honor` decimal(5,2) NOT NULL DEFAULT '0.00' COMMENT '科技荣誉（省级）',
+  `medical_ai_model_filing` decimal(5,2) NOT NULL DEFAULT '0.00' COMMENT '算法备案的医疗大模型',
+  `high_quality_dataset` decimal(5,2) NOT NULL DEFAULT '0.00' COMMENT '高质量数据集',
   PRIMARY KEY (`model_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='科技属性评分模型权重表';
 

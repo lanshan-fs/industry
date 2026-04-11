@@ -269,14 +269,23 @@ def tag_library_options(_request):
 @require_GET
 def dimension_stats(_request):
     total_companies = int(_scalar("SELECT COUNT(*) FROM company_basic") or 0)
-    covered_enterprises = int(_scalar("SELECT COUNT(DISTINCT company_id) FROM company_tag_map") or 0)
+    covered_enterprises = int(
+        _scalar(
+            """
+            SELECT COUNT(DISTINCT b.company_id)
+            FROM company_tag_map m
+            JOIN company_basic b ON m.company_id = b.company_id
+            """
+        )
+        or 0
+    )
     rows = _rows(
         """
         SELECT
           d.company_tag_dimension_id AS id,
           d.company_tag_dimension_name AS name,
           COUNT(DISTINCT l.company_tag_id) AS tagCount,
-          COUNT(DISTINCT m.company_id) AS usedCount
+          COUNT(DISTINCT b.company_id) AS usedCount
         FROM company_tag_dimension d
         LEFT JOIN company_tag_subdimension sd
           ON d.company_tag_dimension_id = sd.company_tag_dimension_id
@@ -284,6 +293,8 @@ def dimension_stats(_request):
           ON sd.company_tag_subdimension_id = l.company_tag_subdimension_id
         LEFT JOIN company_tag_map m
           ON l.company_tag_id = m.company_tag_id
+        LEFT JOIN company_basic b
+          ON m.company_id = b.company_id
         GROUP BY d.company_tag_dimension_id, d.company_tag_dimension_name, d.sort_order
         ORDER BY d.sort_order, d.company_tag_dimension_id
         """
@@ -338,7 +349,7 @@ def dimension_detail(_request, dimension_id: str):
           d.company_tag_dimension_name AS name,
           d.company_tag_dimension_des AS description,
           COUNT(DISTINCT l.company_tag_id) AS tagCount,
-          COUNT(DISTINCT m.company_id) AS usedCount
+          COUNT(DISTINCT b.company_id) AS usedCount
         FROM company_tag_dimension d
         LEFT JOIN company_tag_subdimension sd
           ON d.company_tag_dimension_id = sd.company_tag_dimension_id
@@ -346,6 +357,8 @@ def dimension_detail(_request, dimension_id: str):
           ON sd.company_tag_subdimension_id = l.company_tag_subdimension_id
         LEFT JOIN company_tag_map m
           ON l.company_tag_id = m.company_tag_id
+        LEFT JOIN company_basic b
+          ON m.company_id = b.company_id
         WHERE d.company_tag_dimension_id = %s
         GROUP BY d.company_tag_dimension_id, d.company_tag_dimension_name, d.company_tag_dimension_des
         """,
@@ -362,12 +375,14 @@ def dimension_detail(_request, dimension_id: str):
           sd.company_tag_subdimension_id AS id,
           sd.company_tag_subdimension_name AS name,
           COUNT(DISTINCT l.company_tag_id) AS tagCount,
-          COUNT(DISTINCT m.company_id) AS usedCount
+          COUNT(DISTINCT b.company_id) AS usedCount
         FROM company_tag_subdimension sd
         LEFT JOIN company_tag_library l
           ON sd.company_tag_subdimension_id = l.company_tag_subdimension_id
         LEFT JOIN company_tag_map m
           ON l.company_tag_id = m.company_tag_id
+        LEFT JOIN company_basic b
+          ON m.company_id = b.company_id
         WHERE sd.company_tag_dimension_id = %s
         GROUP BY sd.company_tag_subdimension_id, sd.company_tag_subdimension_name, sd.sort_order
         ORDER BY sd.sort_order, sd.company_tag_subdimension_id
@@ -381,12 +396,14 @@ def dimension_detail(_request, dimension_id: str):
           l.company_tag_name AS name,
           sd.company_tag_subdimension_id AS subdimensionId,
           sd.company_tag_subdimension_name AS subdimensionName,
-          COUNT(DISTINCT m.company_id) AS usedCount
+          COUNT(DISTINCT b.company_id) AS usedCount
         FROM company_tag_library l
         JOIN company_tag_subdimension sd
           ON l.company_tag_subdimension_id = sd.company_tag_subdimension_id
         LEFT JOIN company_tag_map m
           ON l.company_tag_id = m.company_tag_id
+        LEFT JOIN company_basic b
+          ON m.company_id = b.company_id
         WHERE sd.company_tag_dimension_id = %s
         GROUP BY l.company_tag_id, l.company_tag_name, sd.company_tag_subdimension_id, sd.company_tag_subdimension_name, sd.sort_order, l.sort_order
         ORDER BY sd.sort_order, l.sort_order, l.company_tag_name

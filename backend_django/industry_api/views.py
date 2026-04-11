@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import json
 from collections import defaultdict
 from decimal import Decimal
-from pathlib import Path
+from statistics import median
 
 from django.db import connection
 from django.http import JsonResponse
@@ -14,8 +13,6 @@ from scoring_api.engine import get_company_scoring_snapshot
 from scoring_api.views import _company_tags, _normalize_text, _risk_profile
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-CHAIN_SEED_PATH = PROJECT_ROOT / "SQL" / "data" / "chain_industry_seed.json"
 STAGE_ROOTS = [
     {"key": "stage_上游", "title": "上游"},
     {"key": "stage_中游", "title": "中游"},
@@ -35,6 +32,19 @@ ROOT_KEY_TO_STAGE_DESC = {
     "stage_上游": "上游 - 研发与技术",
     "stage_中游": "中游 - 产品与制造",
     "stage_下游": "下游 - 应用与服务",
+}
+ROOT_CATEGORY_STAGE_KEY = {
+    "前沿技术": "upstream",
+    "AI 药物研": "upstream",
+    "医疗器械": "midstream",
+    "药品": "midstream",
+    "数字医疗": "downstream",
+    "医疗服务": "downstream",
+}
+STAGE_KEY_TO_TITLE = {
+    "upstream": "上游 - 研发与技术",
+    "midstream": "中游 - 产品与制造",
+    "downstream": "下游 - 应用与服务",
 }
 SUBDIMENSION_KEY_MAPPING = {
     "成立年限": "EST_AGE",
@@ -102,7 +112,39 @@ def _scalar(query: str, params: list | tuple | None = None):
 
 
 def _load_chain_seed() -> list[dict]:
-    return json.loads(CHAIN_SEED_PATH.read_text(encoding="utf-8"))
+    rows = _rows(
+        """
+        SELECT
+          ci.chain_id,
+          ci.chain_name,
+          c.category_level_code,
+          root.category_name AS root_name
+        FROM chain_industry ci
+        JOIN chain_industry_category_industry_map cic
+          ON cic.chain_id = ci.chain_id
+        JOIN category_industry c
+          ON c.category_id = cic.category_id
+        LEFT JOIN category_industry root
+          ON root.category_level_code = LEFT(c.category_level_code, 2)
+        ORDER BY ci.chain_id
+        """
+    )
+    seed_rows = []
+    for row in rows:
+        root_name = _normalize_text(row["root_name"])
+        stage_key = ROOT_CATEGORY_STAGE_KEY.get(root_name)
+        if not stage_key:
+            continue
+        seed_rows.append(
+            {
+                "chain_name": _normalize_text(row["chain_name"]),
+                "category_level_code": _normalize_text(row["category_level_code"]),
+                "stage_key": stage_key,
+                "stage_title": STAGE_KEY_TO_TITLE[stage_key],
+                "sort_order": int(row["chain_id"] or 0),
+            }
+        )
+    return seed_rows
 
 
 def _option_rows(values: list[str]) -> list[dict]:
@@ -350,6 +392,8 @@ def _resolve_category_ids(
     return {
         "selected": selected_names[0] if len(selected_names) == 1 else " / ".join(selected_names),
         "category_ids": descendant_ids,
+        "selected_category_ids": [int(row["category_id"]) for row in selected_rows],
+        "selected_codes": selected_codes,
         "company_ids": _company_ids_for_category_ids(descendant_ids),
         "stage": stage_display,
     }
@@ -766,35 +810,196 @@ def _aggregate_risk_sections(company_ids: list[int]) -> dict:
     return sections
 
 
-def _industry_weak_links(avg_basic: float, avg_tech: float, avg_professional: float, risk_sections: dict) -> list[dict]:
-    items = []
+def _overall_score_averages() -> dict[str, float]:
+    row = _rows(
+        """
+        SELECT
+          COALESCE(AVG(basic_score), 0) AS avg_basic_score,
+          COALESCE(AVG(tech_score), 0) AS avg_tech_score,
+          COALESCE(AVG(professional_score), 0) AS avg_professional_score
+        FROM scoring_scoreresult
+        """
+    )[0]
+    return {
+        "basic": round(float(row["avg_basic_score"] or 0), 2),
+        "tech": round(float(row["avg_tech_score"] or 0), 2),
+        "professional": round(float(row["avg_professional_score"] or 0), 2),
+    }
+
+
+def _selection_candidate_rows(selection: dict) -> list[dict]:
+    selected_ids = {int(category_id) for category_id in selection.get("selected_category_ids") or []}
+    if not selected_ids:
+        return []
+
+    category_rows, by_id, _ = _load_categories()
+    selected_rows = [by_id[category_id] for category_id in selected_ids if category_id in by_id]
+    if len(selected_rows) == 1:
+        parent_code = str(selected_rows[0]["category_level_code"])
+        children = [
+            row
+            for row in category_rows
+            if str(row["category_level_code_parent"] or "") == parent_code
+        ]
+        if children:
+            return children
+
+    selected_rows.sort(
+        key=lambda row: (
+            int(row["category_level"]),
+            len(str(row["category_level_code"])),
+            str(row["category_level_code"]),
+        )
+    )
+    return selected_rows
+
+
+def _category_aggregate_scores(category_ids: list[int]) -> dict[str, float]:
+    if not category_ids:
+        return {"company_count": 0, "avg_total_score": 0.0, "avg_tech_score": 0.0, "avg_professional_score": 0.0}
+    in_clause, params = _in_clause(category_ids)
+    row = _rows(
+        f"""
+        SELECT
+          COUNT(DISTINCT m.company_id) AS company_count,
+          COALESCE(AVG(sr.total_score), 0) AS avg_total_score,
+          COALESCE(AVG(sr.tech_score), 0) AS avg_tech_score,
+          COALESCE(AVG(sr.professional_score), 0) AS avg_professional_score
+        FROM category_industry_company_map m
+        LEFT JOIN scoring_scoreresult sr ON sr.enterprise_id = m.company_id
+        WHERE m.category_id IN {in_clause}
+        """,
+        params,
+    )[0]
+    return {
+        "company_count": int(row["company_count"] or 0),
+        "avg_total_score": round(float(row["avg_total_score"] or 0), 2),
+        "avg_tech_score": round(float(row["avg_tech_score"] or 0), 2),
+        "avg_professional_score": round(float(row["avg_professional_score"] or 0), 2),
+    }
+
+
+def _fallback_weak_dimensions(avg_basic: float, avg_tech: float, avg_professional: float) -> list[dict]:
+    benchmark = _overall_score_averages()
     dimension_rows = [
-        ("基础支撑能力", avg_basic, "行业内企业在经营规模、资本实力和经营稳定性上的平均表现偏弱。"),
-        ("科技创新能力", avg_tech, "行业内企业在专利、软著和科技属性资质上的累计得分偏低。"),
-        ("专业场景能力", avg_professional, "行业内企业在行业位置、资质证书与上下游协同方面仍有提升空间。"),
+        ("基础支撑能力", avg_basic, benchmark["basic"], "经营规模、资本实力与经营稳定性"),
+        ("科技创新能力", avg_tech, benchmark["tech"], "专利、软著与科技属性资质"),
+        ("专业场景能力", avg_professional, benchmark["professional"], "行业位置、资质证书与上下游协同"),
     ]
-    for name, score, reason in sorted(dimension_rows, key=lambda item: item[1])[:2]:
-        level = "高危" if score < 8 else "预警"
+    items = []
+    for name, score, baseline, scope in sorted(
+        dimension_rows,
+        key=lambda item: ((item[1] / item[2]) if item[2] else item[1], item[1]),
+    ):
+        if baseline <= 0:
+            continue
+        if score >= baseline * 0.9:
+            continue
+        level = "高危" if score < baseline * 0.75 else "预警"
         items.append(
             {
                 "name": name,
                 "level": level,
-                "reason": f"{reason} 当前行业均值为 {score:.2f} 分。",
+                "reason": f"{scope} 均分为 {score:.2f}，低于全库均值 {baseline:.2f}。",
                 "type": "dimension",
             }
         )
+    return items[:3]
 
-    if risk_sections["high"] or risk_sections["medium"]:
-        top_risk = (risk_sections["high"] or risk_sections["medium"])[0]
-        items.append(
+
+def _industry_weak_links(
+    selection: dict,
+    total_companies: int,
+    avg_total_score: float,
+    avg_basic: float,
+    avg_tech: float,
+    avg_professional: float,
+) -> list[dict]:
+    candidate_rows = _selection_candidate_rows(selection)
+    if len(candidate_rows) < 2 or total_companies <= 0:
+        return _fallback_weak_dimensions(avg_basic, avg_tech, avg_professional)
+
+    category_rows, _, _ = _load_categories()
+    stats = []
+    for row in candidate_rows:
+        code = str(row["category_level_code"])
+        descendant_ids = [
+            int(candidate["category_id"])
+            for candidate in category_rows
+            if str(candidate["category_level_code"]).startswith(code)
+        ]
+        aggregate = _category_aggregate_scores(descendant_ids)
+        stats.append(
             {
-                "name": "合规经营风险",
-                "level": "高危" if risk_sections["high"] else "预警",
-                "reason": f"{top_risk['name']} 相关风险记录累计 {top_risk['count']} 条，是当前行业最集中的风险类型。",
-                "type": "risk",
+                "name": _normalize_text(row["category_name"]),
+                "company_count": aggregate["company_count"],
+                "avg_total_score": aggregate["avg_total_score"],
+                "avg_tech_score": aggregate["avg_tech_score"],
+                "avg_professional_score": aggregate["avg_professional_score"],
             }
         )
-    return items[:3]
+
+    counts = [item["company_count"] for item in stats]
+    if len(counts) < 2:
+        return _fallback_weak_dimensions(avg_basic, avg_tech, avg_professional)
+
+    median_count = float(median(counts))
+    items = []
+    for item in stats:
+        company_count = int(item["company_count"])
+        share = company_count / total_companies if total_companies else 0.0
+        coverage_gap = company_count == 0 or share < 0.05 or (
+            median_count >= 5 and company_count < median_count * 0.35
+        )
+        total_gap = avg_total_score >= 1 and item["avg_total_score"] < avg_total_score * 0.8
+        tech_gap = avg_tech >= 0.5 and item["avg_tech_score"] < avg_tech * 0.7
+        professional_gap = avg_professional >= 1 and item["avg_professional_score"] < avg_professional * 0.8
+        signal_count = sum([coverage_gap, total_gap, tech_gap, professional_gap])
+        if company_count > 0 and signal_count == 0:
+            continue
+
+        level = "高危" if company_count == 0 or (coverage_gap and signal_count >= 2) else "预警"
+        reasons = [f"库内企业 {company_count} 家，占当前行业 {share * 100:.1f}%"]
+        if coverage_gap:
+            reasons.append(f"同层级企业数中位数为 {median_count:.0f} 家")
+        if total_gap:
+            reasons.append(f"综合均分 {item['avg_total_score']:.2f}，低于行业均值 {avg_total_score:.2f}")
+        if tech_gap:
+            reasons.append(f"科技均分 {item['avg_tech_score']:.2f}，低于行业均值 {avg_tech:.2f}")
+        elif professional_gap:
+            reasons.append(
+                f"专业均分 {item['avg_professional_score']:.2f}，低于行业均值 {avg_professional:.2f}"
+            )
+        items.append(
+            {
+                "name": item["name"],
+                "level": level,
+                "reason": "；".join(reasons) + "。",
+                "type": "segment",
+                "signalCount": signal_count,
+                "companyCount": company_count,
+            }
+        )
+
+    items.sort(
+        key=lambda item: (
+            0 if item["level"] == "高危" else 1,
+            -int(item["signalCount"]),
+            int(item["companyCount"]),
+            item["name"],
+        )
+    )
+    if items:
+        return [
+            {
+                "name": item["name"],
+                "level": item["level"],
+                "reason": item["reason"],
+                "type": item["type"],
+            }
+            for item in items[:3]
+        ]
+    return _fallback_weak_dimensions(avg_basic, avg_tech, avg_professional)
 
 
 def _detail_rows(snapshot: dict, group: str) -> list[dict]:
@@ -883,28 +1088,51 @@ def _build_top_company_rows(company_ids: list[int], limit: int = 10) -> list[dic
 def _build_migration_risk_rows(company_ids: list[int], limit: int = 15) -> list[dict]:
     if not company_ids:
         return []
-    risk_map = _company_risk_map(company_ids)
-    tags_map = _company_tags_map(company_ids, limit=3)
-    snapshots: list[dict] = []
-    for company_id in company_ids:
-        profile = _risk_profile(risk_map.get(company_id, {}))
-        if profile["score"] <= 15:
-            continue
-        company_name = _scalar("SELECT company_name FROM company_basic WHERE company_id = %s", [company_id]) or str(company_id)
-        labels = [factor["name"] for factor in profile["factors"][:2]]
-        if not labels:
-            labels = tags_map.get(company_id, [])[:2]
-        snapshots.append(
+    in_clause, params = _in_clause(company_ids)
+    row = _rows(
+        f"""
+        SELECT
+          SUM(
+            CASE
+              WHEN COALESCE(cc.recruit_count, 0) = 0 AND COALESCE(cb.has_recruitment, 0) = 0
+              THEN 1 ELSE 0
+            END
+          ) AS high_count,
+          SUM(
+            CASE
+              WHEN COALESCE(cc.recruit_count, 0) BETWEEN 1 AND 4 AND COALESCE(cb.has_recruitment, 0) = 0
+              THEN 1 ELSE 0
+            END
+          ) AS medium_count,
+          SUM(
+            CASE
+              WHEN COALESCE(cc.recruit_count, 0) >= 5 OR COALESCE(cb.has_recruitment, 0) = 1
+              THEN 1 ELSE 0
+            END
+          ) AS low_count
+        FROM company_basic cb
+        LEFT JOIN company_basic_count cc ON cc.company_id = cb.company_id
+        WHERE cb.company_id IN {in_clause}
+        """,
+        params,
+    )[0]
+    total = len(company_ids)
+    definitions = [
+        ("高", int(row["high_count"] or 0), "库内未检出招聘记录"),
+        ("中", int(row["medium_count"] or 0), "库内检出 1-4 条招聘记录"),
+        ("低", int(row["low_count"] or 0), "库内检出 >=5 条招聘记录或招聘状态为“有”"),
+    ]
+    result = []
+    for level, company_count, rule in definitions:
+        result.append(
             {
-                "id": company_id,
-                "name": _normalize_text(company_name),
-                "riskLevel": profile["level"],
-                "riskScore": int(profile["score"]),
-                "labels": labels or ["风险待核实"],
+                "riskLevel": level,
+                "companyCount": company_count,
+                "ratio": round(company_count / total * 100, 2) if total else 0.0,
+                "rule": rule,
             }
         )
-    snapshots.sort(key=lambda item: (-item["riskScore"], item["name"]))
-    return snapshots[:limit]
+    return result
 
 
 @require_GET
@@ -1119,7 +1347,14 @@ def industry_profile(request):
             "ability": {"score": avg_professional_score, "companies": model_professional_companies},
         },
         "risks": risk_sections,
-        "weakLinks": _industry_weak_links(avg_basic_score, avg_tech_score, avg_professional_score, risk_sections),
+        "weakLinks": _industry_weak_links(
+            selection,
+            total_companies,
+            avg_total_score,
+            avg_basic_score,
+            avg_tech_score,
+            avg_professional_score,
+        ),
         "migrationRisks": migration_risks,
         "topCompanies": top_companies,
     }

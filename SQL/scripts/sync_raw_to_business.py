@@ -271,6 +271,23 @@ def truncate_business_tables(env: Dict[str, str]) -> None:
     run_mysql_sql("\n".join(statements) + "\n", env)
 
 
+def cleanup_orphan_tag_rows(env: Dict[str, str]) -> None:
+    run_mysql_sql(
+        """
+        DELETE ctm
+        FROM company_tag_map ctm
+        LEFT JOIN company_basic cb ON ctm.company_id = cb.company_id
+        WHERE cb.company_id IS NULL;
+
+        DELETE bt
+        FROM company_tag_batch_item bt
+        LEFT JOIN company_basic cb ON bt.company_id = cb.company_id
+        WHERE cb.company_id IS NULL;
+        """,
+        env,
+    )
+
+
 def drop_raw_tables(env: Dict[str, str]) -> None:
     statements = ["SET FOREIGN_KEY_CHECKS = 0;"]
     for table in RAW_TABLE_COLUMNS:
@@ -331,6 +348,21 @@ def refresh_actual_count_columns(env: Dict[str, str]) -> None:
         LEFT JOIN (SELECT company_id, COUNT(DISTINCT company_patent_id) AS cnt FROM company_patent_company_map GROUP BY company_id) t ON c.company_id = t.company_id
         SET c.patent_count = COALESCE(t.cnt, 0);
         """,
+        """
+        UPDATE company_basic_count c
+        LEFT JOIN (SELECT company_id, COUNT(*) AS cnt FROM company_ai_model_filing GROUP BY company_id) t ON c.company_id = t.company_id
+        SET c.ai_model_filing_count = COALESCE(t.cnt, 0);
+        """,
+        """
+        UPDATE company_basic_count c
+        LEFT JOIN (SELECT company_id, COUNT(*) AS cnt FROM company_high_quality_dataset GROUP BY company_id) t ON c.company_id = t.company_id
+        SET c.high_quality_dataset_count = COALESCE(t.cnt, 0);
+        """,
+        """
+        UPDATE company_basic_count c
+        LEFT JOIN (SELECT company_id, COUNT(*) AS cnt FROM company_innovation_notice GROUP BY company_id) t ON c.company_id = t.company_id
+        SET c.innovation_notice_count = COALESCE(t.cnt, 0);
+        """,
     ]
     run_mysql_sql("\n".join(statements) + "\n", env)
 
@@ -383,25 +415,42 @@ def main() -> int:
     recruit_by_company: DefaultDict[str, List[Dict[str, Any]]] = defaultdict(list)
     license_by_company: DefaultDict[str, List[Dict[str, Any]]] = defaultdict(list)
     qualification_by_company: DefaultDict[str, List[Dict[str, Any]]] = defaultdict(list)
-    company_names: set[str] = set()
-
-    def add_single(target: Dict[str, Dict[str, Any]], row: Dict[str, Any]) -> None:
+    for row in raw_tables["raw_import_company_basic"]:
         company_name = normalize_company_name(row.get("company_name"))
         if not company_name:
-            return
-        target[company_name] = row
-        company_names.add(company_name)
+            continue
+        basic_by_company[company_name] = row
 
-    def add_multi(target: DefaultDict[str, List[Dict[str, Any]]], rows: Iterable[Dict[str, Any]]) -> None:
-        for row in rows:
-            company_name = normalize_company_name(row.get("company_name"))
-            if not company_name:
+    company_names: set[str] = set(basic_by_company.keys())
+
+    def resolve_company_names(value: Any, *, allow_split: bool = False) -> List[str]:
+        company_name = normalize_company_name(value)
+        if not company_name:
+            return []
+        if company_name in basic_by_company:
+            return [company_name]
+        if not allow_split:
+            return []
+
+        matches: List[str] = []
+        seen: set[str] = set()
+        for candidate in split_multi_value(company_name, r"[;\n；、]+"):
+            normalized = normalize_company_name(candidate)
+            if not normalized or normalized in seen or normalized not in basic_by_company:
                 continue
-            target[company_name].append(row)
-            company_names.add(company_name)
+            seen.add(normalized)
+            matches.append(normalized)
+        return matches
 
-    for row in raw_tables["raw_import_company_basic"]:
-        add_single(basic_by_company, row)
+    def add_single(target: Dict[str, Dict[str, Any]], row: Dict[str, Any]) -> None:
+        for company_name in resolve_company_names(row.get("company_name")):
+            target[company_name] = row
+
+    def add_multi(target: DefaultDict[str, List[Dict[str, Any]]], rows: Iterable[Dict[str, Any]], *, allow_split: bool = False) -> None:
+        for row in rows:
+            for company_name in resolve_company_names(row.get("company_name"), allow_split=allow_split):
+                target[company_name].append(row)
+
     for row in raw_tables["raw_import_company_operation"]:
         add_single(operation_by_company, row)
     for row in raw_tables["raw_import_company_ip_overview"]:
@@ -415,7 +464,7 @@ def main() -> int:
     add_multi(ranking_by_company, raw_tables["raw_import_company_ranking"])
     add_multi(customer_by_company, raw_tables["raw_import_company_customer"])
     add_multi(work_by_company, raw_tables["raw_import_company_work_copyright"])
-    add_multi(patent_by_company, raw_tables["raw_import_company_patent"])
+    add_multi(patent_by_company, raw_tables["raw_import_company_patent"], allow_split=True)
     add_multi(recruit_by_company, raw_tables["raw_import_company_recruit"])
     add_multi(license_by_company, raw_tables["raw_import_company_license"])
     add_multi(qualification_by_company, raw_tables["raw_import_company_qualification"])
@@ -712,6 +761,7 @@ def main() -> int:
                 truncate_text(clean_text(basic.get("register_number")), 15),
                 truncate_text(clean_text(basic.get("org_code")), 9),
                 parse_date(basic.get("establish_info")),
+                "存续",
                 truncate_text(clean_text(basic.get("business_scope_raw")), 65535),
                 first_non_empty(basic.get("email_business"), operation.get("email_business")),
                 None,
@@ -862,6 +912,7 @@ def main() -> int:
             "register_number",
             "org_code",
             "establish_date",
+            "company_status",
             "business_scope",
             "email_business",
             "email_auth",
@@ -927,6 +978,8 @@ def main() -> int:
         company_basic_rows,
         batch_size=args.batch_size,
     )
+
+    cleanup_orphan_tag_rows(env)
 
     company_id_map = query_company_id_map(env)
 

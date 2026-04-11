@@ -4,9 +4,12 @@ export type StoredUser = {
   realName?: string;
   role?: string;
   roleName?: string;
+  role_name?: string;
+  user_role?: string;
   domain?: string | null;
   organization?: string | null;
   isAdmin?: boolean;
+  is_superuser?: boolean;
 };
 
 export function getStoredUser(): StoredUser {
@@ -26,11 +29,30 @@ export function getAuthToken(): string {
   return token.trim().replace(/^["']+|["']+$/g, "");
 }
 
+function normalizeStoredRole(user: StoredUser): string {
+  const rawRole =
+    user.role ??
+    user.user_role ??
+    user.roleName ??
+    user.role_name ??
+    "";
+  const normalized = String(rawRole).trim().toUpperCase();
+  if (normalized === "系统管理员") {
+    return "ADMIN";
+  }
+  return normalized;
+}
+
 export function isAdminUser(user: StoredUser | null | undefined): boolean {
   if (!user) {
     return false;
   }
-  return Boolean(user.isAdmin) || String(user.role || "").toUpperCase() === "ADMIN";
+  return (
+    Boolean(user.isAdmin) ||
+    Boolean(user.is_superuser) ||
+    normalizeStoredRole(user) === "ADMIN" ||
+    String(user.username || "").trim().toLowerCase() === "admin"
+  );
 }
 
 export async function syncCurrentUserProfile(): Promise<StoredUser> {

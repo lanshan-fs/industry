@@ -8,7 +8,6 @@ import {
   InputNumber,
   Modal,
   Popconfirm,
-  Result,
   Row,
   Select,
   Space,
@@ -37,7 +36,7 @@ import {
   UserAddOutlined,
   UserOutlined,
 } from "@ant-design/icons";
-import { getAuthToken, resolveAdminStatus } from "../../../utils/auth";
+import { getAuthToken } from "../../../utils/auth";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -68,7 +67,6 @@ const DOMAIN_OPTIONS = [
 
 const UserMgmt: React.FC = () => {
   const [activeTab, setActiveTab] = useState("1");
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [userLoading, setUserLoading] = useState(false);
   const [userData, setUserData] = useState<UserDataType[]>([]);
   const [searchText, setSearchText] = useState("");
@@ -85,23 +83,9 @@ const UserMgmt: React.FC = () => {
   const [createLoading, setCreateLoading] = useState(false);
 
   useEffect(() => {
-    let active = true;
-    void resolveAdminStatus().then((admin) => {
-      if (!active) {
-        return;
-      }
-      if (admin) {
-        setIsAdmin(true);
-        void fetchRoles();
-        void fetchUsers();
-        void fetchInviteCodes();
-      } else {
-        setIsAdmin(false);
-      }
-    });
-    return () => {
-      active = false;
-    };
+    void fetchRoles();
+    void fetchUsers();
+    void fetchInviteCodes();
   }, []);
 
   const getToken = () => getAuthToken();
@@ -266,14 +250,6 @@ const UserMgmt: React.FC = () => {
       user.user_name.toLowerCase().includes(searchText.toLowerCase()) ||
       user.user_id.toString().includes(searchText),
   );
-
-  if (isAdmin === null) {
-    return null;
-  }
-
-  if (isAdmin === false) {
-    return <Result status="403" title="无权访问" subTitle="该页面仅对系统管理员开放" />;
-  }
 
   return (
     <div style={{ padding: 24, background: "#f0f2f5", minHeight: "100vh" }}>

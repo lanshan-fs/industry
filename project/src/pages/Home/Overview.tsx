@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Row,
   Col,
@@ -74,6 +74,12 @@ interface WeakLinkDetail {
   count: number;
 }
 
+interface WeakLinkItem extends SuggestionItem {
+  layer?: string;
+  count?: number;
+  urgency?: number;
+}
+
 // 弹窗用：推荐引育数据结构
 interface RecommendEnterpriseDetail {
   id: string;
@@ -81,6 +87,7 @@ interface RecommendEnterpriseDetail {
   matchScore: number;
   location: string;
   tags: string[];
+  disabled?: boolean;
 }
 
 interface NoticeItem {
@@ -171,8 +178,8 @@ const DEFAULT_NOTICES: NoticeItem[] = [
 
 // 5. 热搜数据
 const DEFAULT_HOT_SEARCHES = {
-  industries: ["数字医疗", "严肃医疗", "消费医疗", "医疗零售"],
-  enterprises: ["京东方", "阿里云", "美团", "泡泡玛特"],
+  industries: ["暂无行业热词"],
+  enterprises: ["暂无企业热词"],
 };
 
 // 6. 热门产业标签
@@ -228,7 +235,7 @@ const Overview: React.FC = () => {
   const [selectedNotice, setSelectedNotice] = useState<NoticeItem | null>(null);
 
   // 首页展示用的简略数据
-  const [weakLinksFull, setWeakLinksFull] = useState<SuggestionItem[]>([]);
+  const [weakLinksFull, setWeakLinksFull] = useState<WeakLinkItem[]>([]);
   const [recommendEnterprisesFull, setRecommendEnterprisesFull] = useState<
     SuggestionItem[]
   >([]);
@@ -276,6 +283,46 @@ const Overview: React.FC = () => {
       ),
   }));
 
+  const heroHighlights = useMemo(
+    () => [
+      {
+        label: "库内企业",
+        value: `${Number(keyMetricsData[0]?.value || 0).toLocaleString()}家`,
+        tone: "#e6f4ff",
+        color: "#1677ff",
+      },
+      {
+        label: "平均评分",
+        value: `${Number(keyMetricsData[1]?.value || 0)}分`,
+        tone: "#f6ffed",
+        color: "#389e0d",
+      },
+      {
+        label: "待补链环节",
+        value: `${weakLinksFull.filter((item) => !item.disabled).length}项`,
+        tone: "#fff7e6",
+        color: "#d46b08",
+      },
+      {
+        label: "平台公告",
+        value: `${noticeItems.length}条`,
+        tone: "#f9f0ff",
+        color: "#722ed1",
+      },
+    ],
+    [keyMetricsData, noticeItems.length, weakLinksFull],
+  );
+
+  const activeWeakLinks = useMemo(
+    () => weakLinksFull.filter((item) => !item.disabled),
+    [weakLinksFull],
+  );
+
+  const activeRecommendations = useMemo(
+    () => recEnterprisesDetail.filter((item) => !item.disabled),
+    [recEnterprisesDetail],
+  );
+
   const openNotice = (notice: NoticeItem, index?: number) => {
     setSelectedNotice(notice);
     setIsNoticeModalVisible(true);
@@ -303,85 +350,37 @@ const Overview: React.FC = () => {
       {
         title: "上游 · 研发与技术",
         type: "upstream",
-        total: 120,
-        subTags: [
-          { name: "芯片设计", count: 40 },
-          { name: "算法模型", count: 30, isWeak: true },
-          { name: "EDA工具", count: 12 },
-          { name: "IP核", count: 8, isWeak: true },
-        ],
+        total: 0,
+        subTags: [],
       },
       {
         title: "中游 · 产品与制造",
         type: "midstream",
-        total: 340,
-        subTags: [
-          { name: "智能硬件", count: 150 },
-          { name: "系统集成", count: 190 },
-        ],
+        total: 0,
+        subTags: [],
       },
       {
         title: "下游 · 应用与服务",
         type: "downstream",
-        total: 560,
-        subTags: [
-          { name: "智慧医疗", count: 200 },
-          { name: "智慧金融", count: 360 },
-        ],
+        total: 0,
+        subTags: [],
       },
     ];
 
-    const buildWeakLinkDetails = (basicLinks: SuggestionItem[]) =>
+    const buildWeakLinkDetails = (basicLinks: WeakLinkItem[]) =>
       basicLinks.map((item, index) => ({
         id: String(index + 1),
         name: item.name,
-        layer: index % 2 === 0 ? "上游-核心组件" : "中游-关键设备",
-        urgency: index < 3 ? 5 : 4,
-        count: index,
+        layer: item.layer || "待补充",
+        urgency: Number(item.urgency || 0),
+        count: Number(item.count || 0),
       }));
 
-    const fallbackRecommendations: RecommendEnterpriseDetail[] = [
-      {
-        id: "1",
-        name: "北京神州生物原料有限公司",
-        matchScore: 98,
-        location: "北京·海淀",
-        tags: ["生物医药", "专精特新"],
-      },
-      {
-        id: "2",
-        name: "中关村工业软件研发院",
-        matchScore: 95,
-        location: "北京·海淀",
-        tags: ["工业软件", "国资背景"],
-      },
-      {
-        id: "3",
-        name: "京北医药冷链物流集团",
-        matchScore: 92,
-        location: "北京·顺义",
-        tags: ["物流服务", "独角兽"],
-      },
-      {
-        id: "4",
-        name: "智谱AI科技有限公司",
-        matchScore: 90,
-        location: "北京·海淀",
-        tags: ["人工智能", "大模型"],
-      },
-      {
-        id: "5",
-        name: "寒武纪科技股份有限公司",
-        matchScore: 89,
-        location: "北京·海淀",
-        tags: ["芯片设计", "上市企业"],
-      },
-    ];
-
     const applyDashboardData = (data: any) => {
-      const nextChainData = data?.chainData?.length
-        ? data.chainData
-        : fallbackChainData;
+      const nextChainData =
+        Array.isArray(data?.chainData) && data.chainData.length > 0
+          ? data.chainData
+          : fallbackChainData;
       setChainData(nextChainData);
 
       const computedWeakLinks = nextChainData.flatMap((layer: any) =>
@@ -390,37 +389,68 @@ const Overview: React.FC = () => {
           .map((tag: any) => ({
             name: tag.name,
             highlight: true,
-            desc: tag.count ? `${tag.count}家` : undefined,
+            desc: tag.count ? `库内${tag.count}家` : "库内暂缺",
+            layer: layer.title || layer.type || "待补充",
+            count: Number(tag.count || 0),
+            urgency:
+              Number(tag.count || 0) === 0
+                ? 5
+                : Number(tag.count || 0) <= 3
+                  ? 4
+                  : Number(tag.count || 0) <= 10
+                    ? 3
+                    : Number(tag.count || 0) <= 30
+                      ? 2
+                      : 1,
           })),
       );
       const weakLinks = computedWeakLinks.length
         ? computedWeakLinks
         : [
-            { name: "高性能传感器", highlight: true },
-            { name: "AI 药物研发平台", highlight: true },
-            { name: "精密减速器", highlight: true },
+            {
+              name: "暂无待补链环节",
+              desc: "待更多产业链数据",
+              disabled: true,
+              layer: "待补充",
+              count: 0,
+              urgency: 0,
+            },
           ];
       setWeakLinksFull(weakLinks);
       setWeakLinksDetail(buildWeakLinkDetails(weakLinks));
 
-      const recommendations =
-        data?.recommendedEnterprises?.length
-          ? data.recommendedEnterprises
-          : fallbackRecommendations;
+      const recommendations = Array.isArray(data?.recommendedEnterprises)
+        ? data.recommendedEnterprises
+        : [];
       setRecEnterprisesDetail(
-        recommendations.map((item: any) => ({
-          id: String(item.id),
-          name: item.name,
-          matchScore: Number(item.matchScore || 0),
-          location: item.location || "北京市",
-          tags: Array.isArray(item.tags) ? item.tags : [],
-        })),
+        recommendations.length > 0
+          ? recommendations.map((item: any) => ({
+              id: String(item.id),
+              name: item.name,
+              matchScore: Number(item.matchScore || 0),
+              location: item.location || "北京市",
+              tags: Array.isArray(item.tags) ? item.tags : [],
+            }))
+          : [
+              {
+                id: "placeholder",
+                name: "暂无推荐引育企业",
+                matchScore: 0,
+                location: "待更多评分数据",
+                tags: [],
+                disabled: true,
+              },
+            ],
       );
       setRecommendEnterprisesFull(
-        recommendations.map((item: any) => ({
-          name: item.name,
-          desc: `匹配度 ${Number(item.matchScore || 0)}%`,
-        })),
+        recommendations.length > 0
+          ? recommendations.map((item: any) => ({
+              name: item.name,
+              desc: item.location
+                ? `${item.location} · 匹配度 ${Number(item.matchScore || 0)}%`
+                : `匹配度 ${Number(item.matchScore || 0)}%`,
+            }))
+          : [{ name: "暂无推荐引育企业", desc: "待更多评分数据", disabled: true }],
       );
 
       setKeyMetricsData([
@@ -464,12 +494,12 @@ const Overview: React.FC = () => {
           Array.isArray(data?.hotSearches?.industries) &&
           data.hotSearches.industries.length
             ? data.hotSearches.industries
-            : DEFAULT_HOT_SEARCHES.industries,
+            : ["暂无行业热词"],
         enterprises:
           Array.isArray(data?.hotSearches?.enterprises) &&
           data.hotSearches.enterprises.length
             ? data.hotSearches.enterprises
-            : DEFAULT_HOT_SEARCHES.enterprises,
+            : ["暂无企业热词"],
       });
       setNoticeItems(
         Array.isArray(data?.notices) && data.notices.length
@@ -533,14 +563,18 @@ const Overview: React.FC = () => {
       background: "#fff",
       border: "1px solid #f0f0f0",
       marginTop: 24,
+      borderRadius: 20,
+      overflow: "hidden",
+      boxShadow: "0 16px 48px rgba(15, 23, 42, 0.06)",
     },
     panelLeft: {
       borderRight: "1px solid #f0f0f0",
-      padding: 24,
+      padding: 28,
+      background: "linear-gradient(180deg, #ffffff 0%, #fcfdff 100%)",
     },
     panelRightItem: {
       borderBottom: "1px solid #f0f0f0",
-      padding: "16px 24px",
+      padding: "20px 24px",
     },
     panelHeader: {
       fontSize: 16,
@@ -553,15 +587,15 @@ const Overview: React.FC = () => {
     },
     tagCard: {
       cursor: "pointer",
-      borderRadius: 4,
-      padding: "8px 12px",
+      borderRadius: 12,
+      padding: "10px 14px",
       background: "#fff",
       border: "1px solid #f0f0f0",
       transition: "all 0.3s",
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
-      height: 48,
+      height: 54,
     },
     tagCardWeak: {
       background: "#fff7e6",
@@ -628,11 +662,15 @@ const Overview: React.FC = () => {
       width: 150,
       sorter: (a, b) => a.urgency - b.urgency,
       render: (value) => (
-        <Rate
-          disabled
-          defaultValue={value}
-          style={{ fontSize: 14, color: "#fa8c16" }}
-        />
+        value > 0 ? (
+          <Rate
+            disabled
+            defaultValue={value}
+            style={{ fontSize: 14, color: "#fa8c16" }}
+          />
+        ) : (
+          <Text type="secondary">待补充</Text>
+        )
       ),
     },
     {
@@ -662,13 +700,23 @@ const Overview: React.FC = () => {
               level={1}
               style={{
                 color: "#fff",
-                marginBottom: 32,
-                fontWeight: 500,
+                marginBottom: 12,
+                fontWeight: 600,
                 letterSpacing: 2,
               }}
             >
               产业链洞察专家
             </Title>
+            <div
+              style={{
+                color: "rgba(255,255,255,0.72)",
+                fontSize: 15,
+                marginBottom: 28,
+                letterSpacing: 0.2,
+              }}
+            >
+              用企业评分、风险信号和产业链映射，快速定位重点行业、关键企业与待补链环节
+            </div>
 
             <div style={{ maxWidth: 840, margin: "0 auto", textAlign: "left" }}>
               <Tabs
@@ -785,10 +833,15 @@ const Overview: React.FC = () => {
                     style={{
                       background: "rgba(255,255,255,0.15)",
                       color: "#fff",
-                      cursor: "pointer",
+                      cursor: item.startsWith("暂无") ? "default" : "pointer",
                       border: "none",
+                      opacity: item.startsWith("暂无") ? 0.75 : 1,
                     }}
-                    onClick={() => openIndustryProfile(item)}
+                    onClick={() => {
+                      if (!item.startsWith("暂无")) {
+                        openIndustryProfile(item);
+                      }
+                    }}
                   >
                     {item}
                   </Tag>
@@ -800,15 +853,57 @@ const Overview: React.FC = () => {
                     key={item}
                     style={{
                       marginRight: 16,
-                      cursor: "pointer",
-                      borderBottom: "1px dashed rgba(255,255,255,0.5)",
+                      cursor: item.startsWith("暂无") ? "default" : "pointer",
+                      borderBottom: item.startsWith("暂无")
+                        ? "none"
+                        : "1px dashed rgba(255,255,255,0.5)",
+                      opacity: item.startsWith("暂无") ? 0.75 : 1,
                     }}
-                    onClick={() => openEnterpriseProfile(item)}
+                    onClick={() => {
+                      if (!item.startsWith("暂无")) {
+                        openEnterpriseProfile(item);
+                      }
+                    }}
                   >
                     {item}
                   </span>
                 ))}
               </div>
+
+              <Row gutter={[12, 12]} style={{ marginTop: 20 }}>
+                {heroHighlights.map((item) => (
+                  <Col xs={12} md={6} key={item.label}>
+                    <div
+                      style={{
+                        padding: "14px 16px",
+                        borderRadius: 14,
+                        background: item.tone,
+                        border: "1px solid rgba(255,255,255,0.14)",
+                        backdropFilter: "blur(8px)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          color: "#5f6b7a",
+                          fontSize: 12,
+                          marginBottom: 6,
+                        }}
+                      >
+                        {item.label}
+                      </div>
+                      <div
+                        style={{
+                          color: item.color,
+                          fontSize: 22,
+                          fontWeight: 700,
+                        }}
+                      >
+                        {item.value}
+                      </div>
+                    </div>
+                  </Col>
+                ))}
+              </Row>
             </div>
           </div>
         </div>
@@ -921,50 +1016,50 @@ const Overview: React.FC = () => {
               {/* 关键指标 */}
               <div
                 style={{
-                  background: "#f5f7fa",
-                  padding: "16px 24px",
-                  borderRadius: 8,
+                  background: "#f7faff",
+                  padding: "12px",
+                  borderRadius: 16,
                   marginBottom: 24,
+                  border: "1px solid #e6f4ff",
                 }}
               >
-                <Row gutter={24}>
-                  {keyMetricsData.map((m, idx) => (
+                <Row gutter={[12, 12]}>
+                  {[...keyMetricsData, { label: "待补链环节", value: activeWeakLinks.length, suffix: "项", color: "#fa8c16" }].map(
+                    (m, idx) => (
                     <Col
-                      span={8}
+                      xs={12}
+                      md={6}
                       key={idx}
-                      style={{
-                        textAlign: "center",
-                        borderRight: idx !== 2 ? "1px solid #e8e8e8" : "none",
-                      }}
                     >
                       <div
-                        style={{ fontSize: 13, color: "#666", marginBottom: 4 }}
+                        style={{
+                          textAlign: "center",
+                          background: "#fff",
+                          borderRadius: 14,
+                          border: "1px solid #edf2f7",
+                          padding: "14px 12px",
+                          height: "100%",
+                        }}
                       >
-                        {m.label}
-                      </div>
-                      <div>
-                        <span
-                          style={{
-                            fontSize: 24,
-                            fontWeight: "bold",
-                            color:
-                              idx === 0
-                                ? "#1890ff"
-                                : idx === 1
-                                  ? "#52c41a"
-                                  : "#fa8c16",
-                          }}
-                        >
-                          {m.value}
-                        </span>
-                        <span
-                          style={{ fontSize: 12, color: "#999", marginLeft: 4 }}
-                        >
-                          {m.suffix}
-                        </span>
+                        <div style={{ fontSize: 12, color: "#667085", marginBottom: 6 }}>
+                          {m.label}
+                        </div>
+                        <div>
+                          <span
+                            style={{
+                              fontSize: 24,
+                              fontWeight: "bold",
+                              color: idx === 0 ? "#1890ff" : idx === 1 ? "#389e0d" : idx === 2 ? "#fa8c16" : "#d46b08",
+                            }}
+                          >
+                            {m.value}
+                          </span>
+                          <span style={{ fontSize: 12, color: "#999", marginLeft: 4 }}>{m.suffix}</span>
+                        </div>
                       </div>
                     </Col>
-                  ))}
+                    ),
+                  )}
                 </Row>
               </div>
 
@@ -1396,7 +1491,9 @@ const Overview: React.FC = () => {
       >
         <div style={{ marginBottom: 16, color: "#666" }}>
           <InfoCircleOutlined style={{ marginRight: 6, color: "#1890ff" }} />
-          基于全产业链图谱分析，以下环节存在产能或技术缺口，建议重点关注。
+          {activeWeakLinks.length > 0
+            ? `以下 ${activeWeakLinks.length} 个环节基于库内产业链映射被识别为相对薄弱项，紧缺指数按当前入库企业数倒推。`
+            : "当前库内暂无可识别的待补链环节，待更多产业链映射数据补充。"}
         </div>
         <Table
           dataSource={weakLinksDetail}
@@ -1427,31 +1524,37 @@ const Overview: React.FC = () => {
       >
         <div style={{ marginBottom: 16, color: "#666" }}>
           <InfoCircleOutlined style={{ marginRight: 6, color: "#1890ff" }} />
-          智能匹配高潜力企业，助力产业强链补链。
+          {activeRecommendations.length > 0
+            ? `当前共筛出 ${activeRecommendations.length} 家推荐引育企业，排序依据为库内综合评分与风险标签匹配结果。`
+            : "当前库内暂无可推荐的引育企业，待更多评分结果补充。"}
         </div>
         <List
           itemLayout="horizontal"
           dataSource={recEnterprisesDetail}
           renderItem={(item) => (
             <List.Item
-              actions={[
-                <Button
-                  key="view"
-                  type="primary"
-                  ghost
-                  size="small"
-                  onClick={() => {
-                    setIsRecModalVisible(false);
-                    navigate(
-                      `/industry-portrait/enterprise-profile?company=${encodeURIComponent(
-                        item.name,
-                      )}`,
-                    );
-                  }}
-                >
-                  查看详情
-                </Button>,
-              ]}
+              actions={
+                item.disabled
+                  ? []
+                  : [
+                      <Button
+                        key="view"
+                        type="primary"
+                        ghost
+                        size="small"
+                        onClick={() => {
+                          setIsRecModalVisible(false);
+                          navigate(
+                            `/industry-portrait/enterprise-profile?company=${encodeURIComponent(
+                              item.name,
+                            )}`,
+                          );
+                        }}
+                      >
+                        查看详情
+                      </Button>,
+                    ]
+              }
               style={{
                 padding: "12px 16px",
                 border: "1px solid #f0f0f0",
@@ -1499,13 +1602,17 @@ const Overview: React.FC = () => {
                 }}
               >
                 <div style={{ fontSize: 12, color: "#999", marginBottom: 4 }}>
-                  匹配度
+                  {item.disabled ? "状态" : "匹配度"}
                 </div>
-                <Progress
-                  percent={item.matchScore}
-                  size="small"
-                  strokeColor="#1890ff"
-                />
+                {item.disabled ? (
+                  <Text type="secondary">待补充</Text>
+                ) : (
+                  <Progress
+                    percent={item.matchScore}
+                    size="small"
+                    strokeColor="#1890ff"
+                  />
+                )}
               </div>
             </List.Item>
           )}

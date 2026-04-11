@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Layout,
   Button,
@@ -125,6 +125,32 @@ const IndustryProfile: React.FC = () => {
   const [loadingTree, setLoadingTree] = useState(false);
   const [expandedKeys, setExpandedKeys] = useState<React.Key[]>([]);
 
+  const overviewCards = useMemo(() => {
+    if (!data) return [];
+    return [
+      {
+        label: "收录企业",
+        value: `${data.basicInfo.totalCompanies} 家`,
+        color: COLORS.primary,
+      },
+      {
+        label: "资本规模",
+        value: `${data.basicInfo.totalCapital} 亿元`,
+        color: COLORS.gold,
+      },
+      {
+        label: "高风险事项",
+        value: `${data.risks.high.length} 项`,
+        color: COLORS.riskHigh,
+      },
+      {
+        label: "产业链位置",
+        value: data.basicInfo.chainLink || "-",
+        color: COLORS.green,
+      },
+    ];
+  }, [data]);
+
   useEffect(() => {
     const fetchTree = async () => {
       setLoadingTree(true);
@@ -132,6 +158,9 @@ const IndustryProfile: React.FC = () => {
         const response = await fetch("/api/industry/tree");
         const resData = await response.json();
         if (resData.success) {
+          const params = new URLSearchParams(location.search);
+          const presetIndustry =
+            params.get("industryName") || params.get("industry") || "";
           const flatTreeData = resData.data.reduce((acc: any[], stage: any) => {
             if (stage.children && stage.children.length > 0)
               return [...acc, ...stage.children];
@@ -140,6 +169,9 @@ const IndustryProfile: React.FC = () => {
           setTreeData(flatTreeData);
           if (flatTreeData.length > 0)
             setExpandedKeys(flatTreeData.map((node: any) => node.key));
+          if (!presetIndustry && flatTreeData.length > 0) {
+            setSelectedIndustry(String(flatTreeData[0].title || ""));
+          }
         }
       } catch (error) {
         console.error("Failed to fetch tree:", error);
@@ -148,11 +180,11 @@ const IndustryProfile: React.FC = () => {
       }
     };
     fetchTree();
-  }, []);
+  }, [location.search]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const industryName = params.get("industryName");
+    const industryName = params.get("industryName") || params.get("industry");
     if (industryName) {
       setSelectedIndustry(industryName);
     }
@@ -193,7 +225,12 @@ const IndustryProfile: React.FC = () => {
   };
 
   const handleEnterpriseClick = (enterpriseId: string) => {
-    navigate(`/industry-portrait/enterprise-profile?id=${enterpriseId}`);
+    const nextIndustry = selectedIndustry
+      ? `&industryName=${encodeURIComponent(selectedIndustry)}`
+      : "";
+    navigate(
+      `/industry-portrait/enterprise-profile?id=${enterpriseId}&from=industry-profile${nextIndustry}`,
+    );
   };
 
   const renderSubModelCard = (
@@ -351,11 +388,19 @@ const IndustryProfile: React.FC = () => {
               padding: "16px 24px",
               borderBottom: BORDER_STYLE,
               display: "flex",
-              justifyContent: "flex-end",
+              justifyContent: "space-between",
               alignItems: "center",
               background: "#fff",
             }}
           >
+            <div>
+              <Text strong style={{ fontSize: 16, color: "#1f1f1f" }}>
+                行业画像
+              </Text>
+              <div style={{ fontSize: 12, color: "#8c8c8c", marginTop: 2 }}>
+                聚合行业评分、风险与重点企业，展示当前产业链位置与结构信号
+              </div>
+            </div>
             {data && (
               <ReportActionButtons
                 reportTitle={`${data.basicInfo.industryName}行业分析报告`}
@@ -398,6 +443,13 @@ const IndustryProfile: React.FC = () => {
                         <Tag color="geekblue">朝阳区重点行业</Tag>{" "}
                         <Tag color="success">{data.level}级</Tag>
                       </Space>
+                      <Alert
+                        type="info"
+                        showIcon
+                        style={{ marginBottom: 16, borderRadius: 10 }}
+                        message={`当前聚合范围：${data.basicInfo.industryName}`}
+                        description={`画像基于行业归属企业的评分、标签和风险记录动态汇总；产业链位置为 ${data.basicInfo.chainLink || "待补充"}。`}
+                      />
                       <Descriptions
                         column={2}
                         size="small"
@@ -457,47 +509,36 @@ const IndustryProfile: React.FC = () => {
                     </div>
 
                     {/* 统计数据栏 */}
-                    <div
-                      style={{
-                        background: "#fafafa",
-                        padding: "16px 20px",
-                        border: BORDER_STYLE,
-                        display: "flex",
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <Statistic
-                        title="收录企业"
-                        value={data.basicInfo.totalCompanies}
-                        suffix="家"
-                        valueStyle={{ fontSize: 20, fontWeight: 500 }}
-                        prefix={
-                          <BankOutlined style={{ color: COLORS.primary }} />
-                        }
-                      />
-                      <Divider type="vertical" style={{ height: 40, top: 5 }} />
-                      <Statistic
-                        title="资本规模"
-                        value={data.basicInfo.totalCapital}
-                        suffix="亿元"
-                        valueStyle={{ fontSize: 20, fontWeight: 500 }}
-                        prefix={
-                          <ContainerOutlined style={{ color: COLORS.gold }} />
-                        }
-                      />
-                      <Divider type="vertical" style={{ height: 40, top: 5 }} />
-                      <Statistic
-                        title="主要风险"
-                        value={data.risks.high.length}
-                        suffix="项"
-                        valueStyle={{
-                          fontSize: 20,
-                          fontWeight: 500,
-                          color: COLORS.riskHigh,
-                        }}
-                        prefix={<WarningOutlined />}
-                      />
-                    </div>
+                    <Row gutter={[12, 12]}>
+                      {overviewCards.map((item) => (
+                        <Col xs={12} xl={6} key={item.label}>
+                          <div
+                            style={{
+                              background: "#fafafa",
+                              padding: "14px 16px",
+                              border: BORDER_STYLE,
+                              borderRadius: 12,
+                              height: "100%",
+                            }}
+                          >
+                            <Text type="secondary" style={{ fontSize: 12 }}>
+                              {item.label}
+                            </Text>
+                            <div
+                              style={{
+                                marginTop: 6,
+                                color: item.color,
+                                fontSize: item.label === "产业链位置" ? 15 : 22,
+                                fontWeight: 700,
+                                lineHeight: 1.3,
+                              }}
+                            >
+                              {item.value}
+                            </div>
+                          </div>
+                        </Col>
+                      ))}
+                    </Row>
                   </div>
                 </Col>
                 <Col xs={24} lg={9}>
@@ -516,7 +557,7 @@ const IndustryProfile: React.FC = () => {
                         多维能力雷达图
                       </Text>
                       <div style={{ fontSize: 12, color: "#999" }}>
-                        （近6个月动态评估）
+                        当前行业评分结构快照
                       </div>
                     </div>
                     <Radar {...MAIN_RADAR_CONFIG(data.overallRadar)} />
@@ -588,37 +629,53 @@ const IndustryProfile: React.FC = () => {
                         overflowY: "auto",
                       }}
                     >
-                      <List
-                        dataSource={data.weakLinks}
-                        split={false}
-                        renderItem={(item: any) => (
-                          <List.Item style={{ padding: "8px 0" }}>
-                            <Alert
-                              message={<Text strong>{item.name}</Text>}
-                              description={
-                                <div style={{ marginTop: 4 }}>
-                                  <Tag
-                                    color={
-                                      item.level === "高危" ? "red" : "orange"
-                                    }
-                                  >
-                                    {item.level}
-                                  </Tag>{" "}
-                                  <Text type="secondary">{item.reason}</Text>
-                                </div>
-                              }
-                              type={item.level === "高危" ? "error" : "warning"}
-                              showIcon
-                              style={{
-                                width: "100%",
-                                border: "none",
-                                background:
-                                  item.level === "高危" ? "#fff1f0" : "#fffbe6",
-                              }}
-                            />
-                          </List.Item>
-                        )}
+                      <Alert
+                        type="info"
+                        showIcon
+                        style={{ marginBottom: 16, borderRadius: 10 }}
+                        message="规则说明"
+                        description="优先比较当前行业下各子环节的企业数占比、综合评分和科技/专业均分；若当前层级已无可比子环节，则退化为与全库均值对比的能力短板识别。"
                       />
+                      {data.weakLinks.length > 0 ? (
+                        <List
+                          dataSource={data.weakLinks}
+                          split={false}
+                          renderItem={(item: any) => (
+                            <List.Item style={{ padding: "8px 0" }}>
+                              <Alert
+                                message={<Text strong>{item.name}</Text>}
+                                description={
+                                  <div style={{ marginTop: 4 }}>
+                                    <Tag
+                                      color={
+                                        item.level === "高危" ? "red" : "orange"
+                                      }
+                                    >
+                                      {item.level}
+                                    </Tag>{" "}
+                                    <Text type="secondary">{item.reason}</Text>
+                                  </div>
+                                }
+                                type={item.level === "高危" ? "error" : "warning"}
+                                showIcon
+                                style={{
+                                  width: "100%",
+                                  border: "none",
+                                  background:
+                                    item.level === "高危" ? "#fff1f0" : "#fffbe6",
+                                }}
+                              />
+                            </List.Item>
+                          )}
+                        />
+                      ) : (
+                        <Alert
+                          type="success"
+                          showIcon
+                          message="当前未识别到明显薄弱环节"
+                          description="现有评分维度下，暂未出现明显短板行业环节。"
+                        />
+                      )}
                     </div>
                   </div>
                 </Col>
@@ -648,40 +705,24 @@ const IndustryProfile: React.FC = () => {
                       </Space>
                     </div>
                     {/* 表格容器高度统一，表格 Scroll 高度适配 */}
-                    <div style={{ height: CONTENT_BODY_HEIGHT, padding: 0 }}>
+                    <div style={{ height: CONTENT_BODY_HEIGHT, padding: 16 }}>
+                      <Alert
+                        type="info"
+                        showIcon
+                        style={{ marginBottom: 16, borderRadius: 10 }}
+                        message="聚合口径"
+                        description="完全复用企业画像的招聘规则并在行业内聚合：0 条招聘记录判高风险，1-4 条判中风险，>=5 条或招聘状态为“有”判低风险。"
+                      />
                       <Table
                         dataSource={data.migrationRisks}
-                        rowKey="name"
+                        rowKey="riskLevel"
                         pagination={false}
                         size="small"
                         // 减去表头大约高度 (40-50px) 保证不出现双重滚动条
-                        scroll={{ y: CONTENT_BODY_HEIGHT - 40 }}
+                        scroll={{ y: CONTENT_BODY_HEIGHT - 116 }}
                         bordered={false}
+                        locale={{ emptyText: "当前行业暂无迁出风险聚合结果" }}
                         columns={[
-                          {
-                            title: "排名",
-                            key: "index",
-                            width: 60,
-                            align: "center",
-                            render: (_, __, index) => (
-                              <Badge
-                                count={index + 1}
-                                style={{
-                                  backgroundColor:
-                                    index < 3 ? COLORS.riskHigh : "#d9d9d9",
-                                  boxShadow: "none",
-                                }}
-                              />
-                            ),
-                          },
-                          {
-                            title: "企业名称",
-                            dataIndex: "name",
-                            ellipsis: true,
-                            render: (t) => (
-                              <Text style={{ fontSize: 13 }}>{t}</Text>
-                            ),
-                          },
                           {
                             title: "风险等级",
                             dataIndex: "riskLevel",
@@ -698,44 +739,25 @@ const IndustryProfile: React.FC = () => {
                             },
                           },
                           {
-                            title: "风险标签",
-                            dataIndex: "labels",
-                            render: (labels) => (
-                              <Space size={2}>
-                                {labels.map((l: string) => (
-                                  <Tag
-                                    key={l}
-                                    bordered={false}
-                                    style={{ fontSize: 10 }}
-                                  >
-                                    {l}
-                                  </Tag>
-                                ))}
-                              </Space>
-                            ),
+                            title: "企业数",
+                            dataIndex: "companyCount",
+                            width: 100,
+                            align: "center",
+                            render: (count) => <Text strong>{count}</Text>,
                           },
                           {
-                            title: "",
-                            key: "action",
-                            width: 40,
-                            render: (_, record: any) => (
-                              <Button
-                                type="text"
-                                size="small"
-                                icon={
-                                  <RightOutlined
-                                    style={{ fontSize: 10, color: "#ccc" }}
-                                  />
-                                }
-                                onClick={() => handleEnterpriseClick(record.id)}
-                              />
-                            ),
+                            title: "占比",
+                            dataIndex: "ratio",
+                            width: 100,
+                            align: "center",
+                            render: (ratio) => <Text>{Number(ratio || 0).toFixed(2)}%</Text>,
+                          },
+                          {
+                            title: "判定口径",
+                            dataIndex: "rule",
+                            render: (rule) => <Text type="secondary">{rule}</Text>,
                           },
                         ]}
-                        onRow={(record: any) => ({
-                          onClick: () => handleEnterpriseClick(record.id),
-                          style: { cursor: "pointer" },
-                        })}
                       />
                     </div>
                   </div>
@@ -762,6 +784,7 @@ const IndustryProfile: React.FC = () => {
                   rowKey="name"
                   bordered={false}
                   style={{ margin: 0 }}
+                  locale={{ emptyText: "当前行业暂无重点企业数据" }}
                   columns={[
                     {
                       title: "排名",
@@ -779,7 +802,14 @@ const IndustryProfile: React.FC = () => {
                     {
                       title: "企业名称",
                       dataIndex: "name",
-                      render: (t) => <a style={{ fontWeight: 500 }}>{t}</a>,
+                      render: (t, record: any) => (
+                        <a
+                          style={{ fontWeight: 500 }}
+                          onClick={() => handleEnterpriseClick(record.id || "")}
+                        >
+                          {t}
+                        </a>
+                      ),
                     },
                     {
                       title: "注册资本",

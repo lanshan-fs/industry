@@ -8,7 +8,6 @@ import {
   InputNumber,
   Modal,
   Popconfirm,
-  Result,
   Select,
   Space,
   Switch,
@@ -24,7 +23,7 @@ import {
   PlusOutlined,
   ReloadOutlined,
 } from "@ant-design/icons";
-import { getAuthToken, resolveAdminStatus } from "../../../utils/auth";
+import { getAuthToken } from "../../../utils/auth";
 
 const { Text, Title } = Typography;
 const { TextArea } = Input;
@@ -46,7 +45,6 @@ const NOTICE_TYPES = ["通知", "动态", "系统", "报告", "活动"];
 const AnnouncementMgmt: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [data, setData] = useState<NoticeRow[]>([]);
   const [editing, setEditing] = useState<NoticeRow | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -74,21 +72,7 @@ const AnnouncementMgmt: React.FC = () => {
   };
 
   useEffect(() => {
-    let active = true;
-    void resolveAdminStatus().then((admin) => {
-      if (!active) {
-        return;
-      }
-      if (admin) {
-        setIsAdmin(true);
-        void fetchNotices();
-      } else {
-        setIsAdmin(false);
-      }
-    });
-    return () => {
-      active = false;
-    };
+    void fetchNotices();
   }, []);
 
   const openCreate = () => {
@@ -184,16 +168,6 @@ const AnnouncementMgmt: React.FC = () => {
       message.error("删除失败");
     }
   };
-
-  if (isAdmin === false) {
-    return (
-      <Result
-        status="403"
-        title="无权访问"
-        subTitle="仅系统管理员可维护首页公告。"
-      />
-    );
-  }
 
   const columns = [
     {

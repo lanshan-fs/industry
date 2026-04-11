@@ -422,7 +422,7 @@ const AutoTag: React.FC = () => {
 
   const handlePreview = async () => {
     if (!csvText.trim()) {
-      message.warning("请先上传待入库企业 CSV");
+      message.warning("请先上传待打标企业 CSV");
       return;
     }
     setLoadingPreview(true);
@@ -446,7 +446,7 @@ const AutoTag: React.FC = () => {
       setSavedResultItems([]);
       setRunSummary(null);
       setDirtyCompanyIds(new Set());
-      message.success(`预检完成，可新增企业 ${result.data.summary.newCount} 家`);
+      message.success(`预检完成，可自动打标企业 ${result.data.summary.newCount} 家`);
     } catch (error) {
       console.error(error);
       message.error("CSV 预检失败");
@@ -457,7 +457,7 @@ const AutoTag: React.FC = () => {
 
   const handleStartTagging = async () => {
     if (!previewData || previewData.newCompanies.length === 0) {
-      message.warning("当前没有可新增企业可供自动打标签");
+      message.warning("当前没有可自动打标的已入库企业");
       return;
     }
     if (selectedDimensionIds.length === 0) {
@@ -488,7 +488,7 @@ const AutoTag: React.FC = () => {
       setSavedResultItems(result.data.items);
       setRunSummary(result.data.summary);
       setDirtyCompanyIds(new Set());
-      message.success("待入库企业自动打标签完成");
+      message.success("已入库未打标企业自动打标签完成");
     } catch (error) {
       console.error(error);
       message.error("自动打标签失败");
@@ -507,7 +507,7 @@ const AutoTag: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `待入库企业自动打标签结果-${Date.now()}.csv`;
+    link.download = `已入库企业自动打标签结果-${Date.now()}.csv`;
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -716,7 +716,7 @@ const AutoTag: React.FC = () => {
         <Steps
           current={currentStep}
           items={[
-            { title: "上传文件", icon: <CloudUploadOutlined />, description: "选择企业数据文件" },
+            { title: "上传文件", icon: <CloudUploadOutlined />, description: "选择企业身份文件" },
             { title: "预览确认", icon: <FileTextOutlined />, description: "确认数据格式" },
             { title: "自动打标", icon: <ThunderboltOutlined />, description: "系统智能打标" },
             { title: "查看结果", icon: <FundViewOutlined />, description: "筛选和分析标签" },
@@ -732,7 +732,7 @@ const AutoTag: React.FC = () => {
             title={(
               <Space>
                 <Avatar style={{ background: "#1890ff" }} icon={<CloudUploadOutlined />} />
-                <span>上传企业数据</span>
+                <span>上传企业身份信息</span>
               </Space>
             )}
           >
@@ -742,7 +742,7 @@ const AutoTag: React.FC = () => {
                 type="info"
                 message={(
                   <Space wrap>
-                    <span>支持 CSV 模板上传，上传后可直接预览并开始自动打标。</span>
+                    <span>模板仅需企业名称、统一社会信用代码，打标时将自动补齐数据库中的企业全量信息。</span>
                     <Button type="link" size="small" icon={<DownloadOutlined />} href="/api/auto-tag/import/template" target="_blank">
                       下载模板
                     </Button>
@@ -765,7 +765,7 @@ const AutoTag: React.FC = () => {
                 <p className="ant-upload-text" style={{ fontSize: 16 }}>
                   点击或拖拽文件到此区域
                 </p>
-                <p className="ant-upload-hint">系统将基于企业字段自动生成标签建议</p>
+                <p className="ant-upload-hint">系统将识别已入库未打标企业，并基于数据库全量字段自动生成标签建议</p>
               </Dragger>
 
               {fileList.length > 0 ? (
@@ -864,7 +864,7 @@ const AutoTag: React.FC = () => {
                 {loadingPreview ? "预览中..." : "开始预览确认"}
               </Button>
               <Text type="secondary" style={{ fontSize: 12 }}>
-                补充规则：系统会先做库内查重，只对不在数据库内、拟入库的企业执行自动打标签。
+                当前流程只面向已导入数据库但尚未打标的企业；已打标企业会被识别出来，未入库企业不会进入本次自动打标。
               </Text>
             </Space>
           </Card>
@@ -886,7 +886,7 @@ const AutoTag: React.FC = () => {
               <Space direction="vertical" style={{ width: "100%" }} size="middle">
                 <Text type="secondary">
                   {previewData.newCompanies.length > 0
-                    ? "已完成预览确认，以下为即将进入自动打标的企业预览。"
+                    ? "已完成预览确认，以下为即将进入自动打标的已入库企业。"
                     : "已完成预览确认，当前文件中没有可进入自动打标的企业。"}
                 </Text>
 
@@ -930,7 +930,7 @@ const AutoTag: React.FC = () => {
                             {item.creditCode || "未提供统一社会信用代码"}
                           </Text>
                         </div>
-                        {previewData.newCompanies.length > 0 ? <Tag color="success">可新增</Tag> : <Tag>库内/重复</Tag>}
+                        {previewData.newCompanies.length > 0 ? <Tag color="success">可打标</Tag> : <Tag>已打标/重复</Tag>}
                       </div>
                     ))}
                   </Space>
@@ -939,8 +939,8 @@ const AutoTag: React.FC = () => {
                 <Space style={{ width: "100%", justifyContent: "space-between" }}>
                   <Space size={[6, 6]} wrap>
                     <Tag color="processing">总计 {previewData.summary.inputCount} 家</Tag>
-                    <Tag color="success">可新增 {previewData.summary.newCount} 家</Tag>
-                    <Tag color="default">已在库 {previewData.summary.existingCount} 家</Tag>
+                    <Tag color="success">可打标 {previewData.summary.newCount} 家</Tag>
+                    <Tag color="default">已打标 {previewData.summary.existingCount} 家</Tag>
                     <Tag color="warning">疑似重复 {previewData.summary.duplicateCount} 家</Tag>
                     {previewData.summary.invalidCount > 0 ? <Tag color="error">无效 {previewData.summary.invalidCount} 行</Tag> : null}
                   </Space>
@@ -1132,18 +1132,18 @@ const AutoTag: React.FC = () => {
             </Text>
           </Space>
         ) : (
-          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="请先上传文件并开始自动打标" style={{ paddingBlock: 48 }} />
+          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="请先上传身份文件并开始自动打标" style={{ paddingBlock: 48 }} />
         )}
       </Card>
 
       <Modal title="完整文件预览" open={previewModalOpen} onCancel={() => setPreviewModalOpen(false)} footer={null} width={980}>
         {previewData ? (
           <Space direction="vertical" style={{ width: "100%" }} size="middle">
-            <Alert showIcon type="success" message={`当前文件共 ${previewData.summary.inputCount} 家企业，其中可新增 ${previewData.summary.newCount} 家。`} />
+            <Alert showIcon type="success" message={`当前文件共 ${previewData.summary.inputCount} 家企业，其中可自动打标 ${previewData.summary.newCount} 家。`} />
             {previewData.existingCompanies.length > 0 ? (
               <>
                 <Title level={5} style={{ marginBottom: 0 }}>
-                  已在库企业
+                  已有标签企业
                 </Title>
                 <Table rowKey={(record) => `existing-${record.rowIndex}`} columns={previewColumns} dataSource={previewData.existingCompanies} pagination={false} />
               </>
@@ -1159,7 +1159,7 @@ const AutoTag: React.FC = () => {
             {previewData.newCompanies.length > 0 ? (
               <>
                 <Title level={5} style={{ marginBottom: 0 }}>
-                  可新增企业
+                  可自动打标企业
                 </Title>
                 <Table rowKey={(record) => `new-${record.rowIndex}`} columns={previewColumns} dataSource={previewData.newCompanies} pagination={false} />
               </>
@@ -1316,7 +1316,7 @@ const AutoTag: React.FC = () => {
             </div>
 
             <Space style={{ width: "100%", justifyContent: "space-between" }}>
-              <Text type="secondary">这里的修改只作用于当前待入库企业打标签结果，不会写入正式数据库。</Text>
+              <Text type="secondary">这里的修改只作用于当前已入库企业打标签结果的会话视图，不会直接写入正式数据库。</Text>
               <Button type="primary" icon={<SaveOutlined />} onClick={handleLocalSaveChanges}>
                 保存当前会话修改
               </Button>
