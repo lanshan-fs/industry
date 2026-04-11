@@ -7,6 +7,8 @@
 start-codex.sh
 data/*
 my-undergraduate-graduation-project-thesis/*
+SQL/data/*
+externals/*
 
 # Node.js
 project/node_modules/

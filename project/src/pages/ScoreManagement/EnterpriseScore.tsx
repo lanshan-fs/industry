@@ -139,11 +139,14 @@ const EnterpriseScore: React.FC = () => {
               <Card bordered={false} style={{ height: "100%", textAlign: "center" }}>
                 <div style={{ padding: "40px 0" }}>
                   <Title level={5} type="secondary">
-                    企业综合评分
+                    企业综合评分 / {data.overview.maxScore || 100}
                   </Title>
                   <Title style={{ fontSize: 64, margin: "10px 0", color: "#1890ff" }}>
                     {data.overview.totalScore}
                   </Title>
+                  <Text type="secondary" style={{ display: "block", marginBottom: 12 }}>
+                    其中附加分：{data.overview.extraScore || 0} / 55
+                  </Text>
                   <div style={{ marginBottom: 20 }}>
                     <Tag color="gold" style={{ fontSize: 16, padding: "5px 15px" }}>
                       评级：{data.overview.level}

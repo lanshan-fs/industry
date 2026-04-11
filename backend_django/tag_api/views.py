@@ -53,18 +53,22 @@ def _positive_int(value, fallback: int) -> int:
     return int(text) if text.isdigit() and int(text) > 0 else fallback
 
 
+def _credit_code(value) -> str:
+    return _normalize_text(value)
+
+
 def _tag_dimension_meta(dimension_name: str) -> dict:
     return TAG_DIMENSION_META_BY_NAME.get(_normalize_text(dimension_name), {"key": "other", "color": "#8c8c8c"})
 
 
-def _fetch_company_tags(company_ids: list[int]) -> list[dict]:
-    if not company_ids:
+def _fetch_company_tags(credit_codes: list[str]) -> list[dict]:
+    if not credit_codes:
         return []
-    placeholders = ", ".join(["%s"] * len(company_ids))
+    placeholders = ", ".join(["%s"] * len(credit_codes))
     return _rows(
         f"""
         SELECT
-          ctm.company_id AS companyId,
+          ctm.credit_code AS companyId,
           ctm.create_time AS taggedAt,
           l.company_tag_id AS companyTagId,
           l.company_tag_name AS tagName,
@@ -79,10 +83,10 @@ def _fetch_company_tags(company_ids: list[int]) -> list[dict]:
           ON l.company_tag_subdimension_id = sd.company_tag_subdimension_id
         JOIN company_tag_dimension d
           ON sd.company_tag_dimension_id = d.company_tag_dimension_id
-        WHERE ctm.company_id IN ({placeholders})
-        ORDER BY ctm.company_id, d.sort_order, sd.sort_order, l.sort_order, l.company_tag_name
+        WHERE ctm.credit_code IN ({placeholders})
+        ORDER BY ctm.credit_code, d.sort_order, sd.sort_order, l.sort_order, l.company_tag_name
         """,
-        company_ids,
+        credit_codes,
     )
 
 
@@ -93,13 +97,13 @@ def _empty_tag_buckets() -> dict:
 def _build_company_tag_view(company_rows: list[dict], tag_rows: list[dict]) -> list[dict]:
     grouped = defaultdict(list)
     for row in tag_rows:
-        grouped[int(row["companyId"])].append(row)
+        grouped[_credit_code(row["companyId"])].append(row)
 
     result = []
     for row in company_rows:
-        company_id = int(row["companyId"])
+        credit_code = _credit_code(row["companyId"])
         dimensions = _empty_tag_buckets()
-        related_tags = grouped.get(company_id, [])
+        related_tags = grouped.get(credit_code, [])
         tag_details = []
         for tag_row in related_tags:
             meta = _tag_dimension_meta(tag_row["dimensionName"])
@@ -119,10 +123,10 @@ def _build_company_tag_view(company_rows: list[dict], tag_rows: list[dict]) -> l
 
         result.append(
             {
-                "key": company_id,
-                "companyId": company_id,
+                "key": credit_code,
+                "companyId": credit_code,
                 "name": _normalize_text(row["companyName"]),
-                "code": _normalize_text(row["creditCode"]) or str(company_id),
+                "code": _normalize_text(row["creditCode"]) or credit_code,
                 "updateTime": row["updateTime"].isoformat(sep=" ") if row.get("updateTime") else "",
                 "dimensions": dimensions,
                 "tagCount": len(tag_details),
@@ -149,18 +153,18 @@ def tag_companies(request):
     rows = _rows(
         f"""
         SELECT
-          company_id AS companyId,
+          credit_code AS companyId,
           company_name AS companyName,
           credit_code AS creditCode,
           updated_at AS updateTime
         FROM company_basic
         {where}
-        ORDER BY updated_at DESC, company_id DESC
+        ORDER BY updated_at DESC, credit_code DESC
         LIMIT %s OFFSET %s
         """,
         [*params, page_size, offset],
     )
-    tag_rows = _fetch_company_tags([int(row["companyId"]) for row in rows])
+    tag_rows = _fetch_company_tags([_credit_code(row["companyId"]) for row in rows])
     return JsonResponse({"success": True, "data": {"list": _build_company_tag_view(rows, tag_rows), "total": total}})
 
 
@@ -168,10 +172,10 @@ def tag_companies(request):
 @require_POST
 def tag_add(request):
     payload = _json_body(request)
-    company_id = _positive_int(payload.get("companyId"), 0)
+    credit_code = _credit_code(payload.get("companyId") or payload.get("creditCode"))
     tag_id = _positive_int(payload.get("tagId"), 0)
     tag_name = _normalize_text(payload.get("tagName"))
-    if not company_id or (not tag_id and not tag_name):
+    if not credit_code or (not tag_id and not tag_name):
         return _json_error("缺少企业或标签参数")
 
     resolved_tag_id = tag_id
@@ -182,11 +186,11 @@ def tag_add(request):
 
     _execute(
         """
-        INSERT INTO company_tag_map (company_id, company_tag_id, source, confidence, user_id)
+        INSERT INTO company_tag_map (credit_code, company_tag_id, source, confidence, user_id)
         VALUES (%s, %s, 1, 1.00, NULL)
         ON DUPLICATE KEY UPDATE source = VALUES(source), confidence = VALUES(confidence), create_time = CURRENT_TIMESTAMP
         """,
-        [company_id, resolved_tag_id],
+        [credit_code, resolved_tag_id],
     )
     return JsonResponse({"success": True})
 
@@ -195,17 +199,17 @@ def tag_add(request):
 @require_POST
 def tag_delete(request):
     payload = _json_body(request)
-    company_id = _positive_int(payload.get("companyId"), 0)
+    credit_code = _credit_code(payload.get("companyId") or payload.get("creditCode"))
     tag_id = _positive_int(payload.get("tagId"), 0)
     tag_name = _normalize_text(payload.get("tagName"))
-    if not company_id or (not tag_id and not tag_name):
+    if not credit_code or (not tag_id and not tag_name):
         return _json_error("缺少企业或标签参数")
 
     resolved_tag_id = tag_id
     if not resolved_tag_id and tag_name:
         resolved_tag_id = int(_scalar("SELECT company_tag_id FROM company_tag_library WHERE company_tag_name = %s LIMIT 1", [tag_name]) or 0)
     if resolved_tag_id:
-        _execute("DELETE FROM company_tag_map WHERE company_id = %s AND company_tag_id = %s", [company_id, resolved_tag_id])
+        _execute("DELETE FROM company_tag_map WHERE credit_code = %s AND company_tag_id = %s", [credit_code, resolved_tag_id])
     return JsonResponse({"success": True})
 
 
@@ -272,9 +276,9 @@ def dimension_stats(_request):
     covered_enterprises = int(
         _scalar(
             """
-            SELECT COUNT(DISTINCT b.company_id)
+            SELECT COUNT(DISTINCT b.credit_code)
             FROM company_tag_map m
-            JOIN company_basic b ON m.company_id = b.company_id
+            JOIN company_basic b ON m.credit_code = b.credit_code
             """
         )
         or 0
@@ -285,7 +289,7 @@ def dimension_stats(_request):
           d.company_tag_dimension_id AS id,
           d.company_tag_dimension_name AS name,
           COUNT(DISTINCT l.company_tag_id) AS tagCount,
-          COUNT(DISTINCT b.company_id) AS usedCount
+          COUNT(DISTINCT b.credit_code) AS usedCount
         FROM company_tag_dimension d
         LEFT JOIN company_tag_subdimension sd
           ON d.company_tag_dimension_id = sd.company_tag_dimension_id
@@ -294,7 +298,7 @@ def dimension_stats(_request):
         LEFT JOIN company_tag_map m
           ON l.company_tag_id = m.company_tag_id
         LEFT JOIN company_basic b
-          ON m.company_id = b.company_id
+          ON m.credit_code = b.credit_code
         GROUP BY d.company_tag_dimension_id, d.company_tag_dimension_name, d.sort_order
         ORDER BY d.sort_order, d.company_tag_dimension_id
         """
@@ -349,7 +353,7 @@ def dimension_detail(_request, dimension_id: str):
           d.company_tag_dimension_name AS name,
           d.company_tag_dimension_des AS description,
           COUNT(DISTINCT l.company_tag_id) AS tagCount,
-          COUNT(DISTINCT b.company_id) AS usedCount
+          COUNT(DISTINCT b.credit_code) AS usedCount
         FROM company_tag_dimension d
         LEFT JOIN company_tag_subdimension sd
           ON d.company_tag_dimension_id = sd.company_tag_dimension_id
@@ -358,7 +362,7 @@ def dimension_detail(_request, dimension_id: str):
         LEFT JOIN company_tag_map m
           ON l.company_tag_id = m.company_tag_id
         LEFT JOIN company_basic b
-          ON m.company_id = b.company_id
+          ON m.credit_code = b.credit_code
         WHERE d.company_tag_dimension_id = %s
         GROUP BY d.company_tag_dimension_id, d.company_tag_dimension_name, d.company_tag_dimension_des
         """,
@@ -375,14 +379,14 @@ def dimension_detail(_request, dimension_id: str):
           sd.company_tag_subdimension_id AS id,
           sd.company_tag_subdimension_name AS name,
           COUNT(DISTINCT l.company_tag_id) AS tagCount,
-          COUNT(DISTINCT b.company_id) AS usedCount
+          COUNT(DISTINCT b.credit_code) AS usedCount
         FROM company_tag_subdimension sd
         LEFT JOIN company_tag_library l
           ON sd.company_tag_subdimension_id = l.company_tag_subdimension_id
         LEFT JOIN company_tag_map m
           ON l.company_tag_id = m.company_tag_id
         LEFT JOIN company_basic b
-          ON m.company_id = b.company_id
+          ON m.credit_code = b.credit_code
         WHERE sd.company_tag_dimension_id = %s
         GROUP BY sd.company_tag_subdimension_id, sd.company_tag_subdimension_name, sd.sort_order
         ORDER BY sd.sort_order, sd.company_tag_subdimension_id
@@ -396,14 +400,14 @@ def dimension_detail(_request, dimension_id: str):
           l.company_tag_name AS name,
           sd.company_tag_subdimension_id AS subdimensionId,
           sd.company_tag_subdimension_name AS subdimensionName,
-          COUNT(DISTINCT b.company_id) AS usedCount
+          COUNT(DISTINCT b.credit_code) AS usedCount
         FROM company_tag_library l
         JOIN company_tag_subdimension sd
           ON l.company_tag_subdimension_id = sd.company_tag_subdimension_id
         LEFT JOIN company_tag_map m
           ON l.company_tag_id = m.company_tag_id
         LEFT JOIN company_basic b
-          ON m.company_id = b.company_id
+          ON m.credit_code = b.credit_code
         WHERE sd.company_tag_dimension_id = %s
         GROUP BY l.company_tag_id, l.company_tag_name, sd.company_tag_subdimension_id, sd.company_tag_subdimension_name, sd.sort_order, l.sort_order
         ORDER BY sd.sort_order, l.sort_order, l.company_tag_name
@@ -426,9 +430,9 @@ def dimension_detail(_request, dimension_id: str):
     company_total = int(
         _scalar(
             f"""
-            SELECT COUNT(DISTINCT b.company_id)
+            SELECT COUNT(DISTINCT b.credit_code)
             FROM company_basic b
-            JOIN company_tag_map m ON b.company_id = m.company_id
+            JOIN company_tag_map m ON b.credit_code = m.credit_code
             JOIN company_tag_library l ON m.company_tag_id = l.company_tag_id
             JOIN company_tag_subdimension sd ON l.company_tag_subdimension_id = sd.company_tag_subdimension_id
             WHERE {' AND '.join(company_conditions)}
@@ -440,26 +444,26 @@ def dimension_detail(_request, dimension_id: str):
     company_rows = _rows(
         f"""
         SELECT
-          b.company_id AS companyId,
+          b.credit_code AS companyId,
           b.company_name AS companyName,
           b.credit_code AS creditCode,
           MAX(m.create_time) AS lastMatchedUsed
         FROM company_basic b
-        JOIN company_tag_map m ON b.company_id = m.company_id
+        JOIN company_tag_map m ON b.credit_code = m.credit_code
         JOIN company_tag_library l ON m.company_tag_id = l.company_tag_id
         JOIN company_tag_subdimension sd ON l.company_tag_subdimension_id = sd.company_tag_subdimension_id
         WHERE {' AND '.join(company_conditions)}
-        GROUP BY b.company_id, b.company_name, b.credit_code
-        ORDER BY lastMatchedUsed DESC, b.company_id DESC
+        GROUP BY b.credit_code, b.company_name, b.credit_code
+        ORDER BY lastMatchedUsed DESC, b.credit_code DESC
         LIMIT %s OFFSET %s
         """,
         [*company_params, company_page_size, company_offset],
     )
-    matched_company_ids = [int(row["companyId"]) for row in company_rows]
+    matched_company_ids = [_credit_code(row["companyId"]) for row in company_rows]
     company_list = []
     if matched_company_ids:
         placeholders = ", ".join(["%s"] * len(matched_company_ids))
-        tag_conditions = ["sd.company_tag_dimension_id = %s", f"b.company_id IN ({placeholders})"]
+        tag_conditions = ["sd.company_tag_dimension_id = %s", f"b.credit_code IN ({placeholders})"]
         tag_params: list = [dimension_pk, *matched_company_ids]
         if subdimension_id:
             tag_conditions.append("sd.company_tag_subdimension_id = %s")
@@ -467,33 +471,33 @@ def dimension_detail(_request, dimension_id: str):
         company_tag_rows = _rows(
             f"""
             SELECT
-              b.company_id AS companyId,
+              b.credit_code AS companyId,
               COUNT(DISTINCT m.company_tag_id) AS tagCount,
               GROUP_CONCAT(DISTINCT l.company_tag_name ORDER BY l.company_tag_name SEPARATOR '||') AS tagNames,
               MAX(m.create_time) AS lastUsed
             FROM company_basic b
-            JOIN company_tag_map m ON b.company_id = m.company_id
+            JOIN company_tag_map m ON b.credit_code = m.credit_code
             JOIN company_tag_library l ON m.company_tag_id = l.company_tag_id
             JOIN company_tag_subdimension sd ON l.company_tag_subdimension_id = sd.company_tag_subdimension_id
             WHERE {' AND '.join(tag_conditions)}
-            GROUP BY b.company_id
+            GROUP BY b.credit_code
             """,
             tag_params,
         )
-        company_tag_map = {int(row["companyId"]): row for row in company_tag_rows}
+        company_tag_map = {_credit_code(row["companyId"]): row for row in company_tag_rows}
         company_list = [
             {
-                "id": int(row["companyId"]),
+                "id": _credit_code(row["companyId"]),
                 "name": _normalize_text(row["companyName"]),
-                "code": _normalize_text(row["creditCode"]) or str(row["companyId"]),
-                "tagCount": int(company_tag_map.get(int(row["companyId"]), {}).get("tagCount") or 0),
-                "tags": company_tag_map.get(int(row["companyId"]), {}).get("tagNames", "").split("||")
-                if company_tag_map.get(int(row["companyId"]), {}).get("tagNames")
+                "code": _normalize_text(row["creditCode"]) or _credit_code(row["companyId"]),
+                "tagCount": int(company_tag_map.get(_credit_code(row["companyId"]), {}).get("tagCount") or 0),
+                "tags": company_tag_map.get(_credit_code(row["companyId"]), {}).get("tagNames", "").split("||")
+                if company_tag_map.get(_credit_code(row["companyId"]), {}).get("tagNames")
                 else [],
                 "lastUsed": (
-                    company_tag_map.get(int(row["companyId"]), {}).get("lastUsed") or row.get("lastMatchedUsed")
+                    company_tag_map.get(_credit_code(row["companyId"]), {}).get("lastUsed") or row.get("lastMatchedUsed")
                 ).isoformat(sep=" ")
-                if (company_tag_map.get(int(row["companyId"]), {}).get("lastUsed") or row.get("lastMatchedUsed"))
+                if (company_tag_map.get(_credit_code(row["companyId"]), {}).get("lastUsed") or row.get("lastMatchedUsed"))
                 else "",
             }
             for row in company_rows

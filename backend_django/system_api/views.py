@@ -12,7 +12,7 @@ from django.views.decorators.http import require_GET, require_http_methods
 
 from auth_api.views import _admin_user, _json_body, _json_error, _normalize_text
 from industry_api.views import _rows, _scalar
-from scoring_api.views import _resolve_company_id
+from scoring_api.views import _resolve_credit_code
 
 
 SYSTEM_COMPANY_TEMPLATE_HEADERS = [
@@ -145,39 +145,39 @@ CHINESE_TOKEN_MAP = {
 }
 
 COMPANY_DELETE_TABLES = [
-    ("category_industry_company_map", "company_id"),
-    ("company_address", "company_id"),
-    ("company_ai_model_filing", "company_id"),
-    ("company_bidding", "company_id"),
-    ("company_branch", "company_id"),
-    ("company_change", "company_id"),
-    ("company_consumption_restriction", "company_id"),
-    ("company_contact_info", "company_id"),
-    ("company_contact_phone", "company_id"),
-    ("company_employee_count", "company_id"),
-    ("company_financing", "company_id"),
-    ("company_former_name", "company_id"),
-    ("company_high_quality_dataset", "company_id"),
-    ("company_innovation_notice", "company_id"),
-    ("company_listing_status", "company_id"),
-    ("company_patent", "company_id"),
-    ("company_qualification", "company_id"),
-    ("company_ranking", "company_id"),
-    ("company_recommended_phone", "company_id"),
-    ("company_recruit", "company_id"),
-    ("company_risk", "company_id"),
-    ("company_shareholder", "company_id"),
-    ("company_software_copyright", "company_id"),
-    ("company_subdistrict", "company_id"),
-    ("company_tag_batch_item", "company_id"),
-    ("company_tag_llm_candidate", "company_id"),
-    ("company_tag_map", "company_id"),
-    ("company_trademark", "company_id"),
-    ("company_website", "company_id"),
-    ("company_work_copyright", "company_id"),
-    ("scoring_scorelog", "enterprise_id"),
-    ("scoring_scoreresult", "enterprise_id"),
-    ("company_basic_count", "company_id"),
+    ("category_industry_company_map", "credit_code"),
+    ("company_address", "credit_code"),
+    ("company_ai_model_filing", "credit_code"),
+    ("company_bidding", "credit_code"),
+    ("company_branch", "credit_code"),
+    ("company_change", "credit_code"),
+    ("company_consumption_restriction", "credit_code"),
+    ("company_contact_info", "credit_code"),
+    ("company_contact_phone", "credit_code"),
+    ("company_employee_count", "credit_code"),
+    ("company_financing", "credit_code"),
+    ("company_former_name", "credit_code"),
+    ("company_high_quality_dataset", "credit_code"),
+    ("company_innovation_notice", "credit_code"),
+    ("company_listing_status", "credit_code"),
+    ("company_patent", "credit_code"),
+    ("company_qualification", "credit_code"),
+    ("company_ranking", "credit_code"),
+    ("company_recommended_phone", "credit_code"),
+    ("company_recruit", "credit_code"),
+    ("company_risk", "credit_code"),
+    ("company_shareholder", "credit_code"),
+    ("company_software_copyright", "credit_code"),
+    ("company_subdistrict", "credit_code"),
+    ("company_tag_batch_item", "credit_code"),
+    ("company_tag_llm_candidate", "credit_code"),
+    ("company_tag_map", "credit_code"),
+    ("company_trademark", "credit_code"),
+    ("company_website", "credit_code"),
+    ("company_work_copyright", "credit_code"),
+    ("scoring_scorelog", "enterprise_credit_code"),
+    ("scoring_scoreresult", "enterprise_credit_code"),
+    ("company_basic_count", "credit_code"),
 ]
 
 
@@ -220,6 +220,9 @@ def _unique_column_labels(columns: list[dict]) -> list[dict]:
 
 BUSINESS_IDENTIFIER_COLUMN_NAMES = {
     "credit_code",
+    "enterprise_credit_code",
+    "customer_credit_code",
+    "supplier_credit_code",
     "register_number",
     "org_code",
     "license_number",
@@ -243,7 +246,15 @@ def _is_business_identifier_column(column_name: str, *, is_unique_key: bool, is_
 
 def _candidate_relation_table_name(column_name: str, table_names: set[str]) -> str | None:
     normalized = _normalize_text(column_name).lower()
-    if normalized in {"company_id", "customer_company_id", "supplier_company_id"} or normalized.endswith("_company_id"):
+    if normalized in {
+        "company_id",
+        "customer_company_id",
+        "supplier_company_id",
+        "credit_code",
+        "enterprise_credit_code",
+        "customer_credit_code",
+        "supplier_credit_code",
+    } or normalized.endswith("_company_id") or normalized.endswith("_credit_code"):
         return "company_basic" if "company_basic" in table_names else None
     if normalized.endswith("_id"):
         candidate = normalized[:-3]
@@ -311,7 +322,7 @@ def _attach_relation_metadata(table_map: dict[str, dict]):
         frontend_columns: list[dict] = []
         for column in table["columns"]:
             relation = None
-            if column["system_identifier"]:
+            if column["system_identifier"] or column["business_identifier"]:
                 target_table_name = _candidate_relation_table_name(column["name"], table_names)
                 target_table = table_map.get(target_table_name) if target_table_name else None
                 if target_table:
@@ -444,6 +455,7 @@ def _managed_table_map() -> dict[str, dict]:
             is_unique_key=is_unique_key,
             is_internal_identifier=is_internal_identifier,
         )
+        is_system_identifier = is_internal_identifier and not is_business_identifier
         form_type = "text"
         if data_type in {"text", "longtext", "mediumtext", "json"}:
           form_type = "textarea"
@@ -468,9 +480,9 @@ def _managed_table_map() -> dict[str, dict]:
             "primary_key": is_primary_key,
             "auto_increment": is_auto,
             "unique_key": is_unique_key,
-            "system_identifier": is_internal_identifier,
+            "system_identifier": is_system_identifier,
             "business_identifier": is_business_identifier,
-            "creatable": not is_auto and not is_audit_field and not is_primary_key,
+            "creatable": not is_auto and not is_audit_field and (not is_primary_key or is_business_identifier),
             "editable": not is_auto and not is_audit_field and not is_primary_key and not is_internal_identifier and not is_business_identifier,
             "searchable": data_type in {"char", "varchar", "text", "longtext", "mediumtext"},
             "listable": not is_internal_identifier and not is_business_identifier and not (data_type in {"longtext", "mediumtext"} and column_name not in {"business_scope"}),
@@ -696,31 +708,35 @@ def _coerce_system_company_row(row: dict) -> dict:
     }
 
 
-def _ensure_company_basic_count(company_id: int):
+def _ensure_company_basic_count(credit_code: str):
+    normalized = _normalize_text(credit_code).upper()
+    if not normalized:
+        return
     _execute(
         """
-        INSERT INTO company_basic_count (company_id)
+        INSERT INTO company_basic_count (credit_code)
         VALUES (%s)
-        ON DUPLICATE KEY UPDATE company_id = VALUES(company_id)
+        ON DUPLICATE KEY UPDATE credit_code = VALUES(credit_code)
         """,
-        [company_id],
+        [normalized],
     )
 
 
-def _delete_companies_cascade(company_ids: list[int]):
-    if not company_ids:
+def _delete_companies_cascade(credit_codes: list[str]):
+    normalized_codes = [_normalize_text(code).upper() for code in credit_codes if _normalize_text(code)]
+    if not normalized_codes:
         return
 
-    placeholders = ", ".join(["%s"] * len(company_ids))
+    placeholders = ", ".join(["%s"] * len(normalized_codes))
 
     _execute(
         f"""
         DELETE ptm
         FROM company_patent_patent_type_map ptm
         JOIN company_patent cp ON cp.company_patent_id = ptm.company_patent_id
-        WHERE cp.company_id IN ({placeholders})
+        WHERE cp.credit_code IN ({placeholders})
         """,
-        company_ids,
+        normalized_codes,
     )
 
     _execute(
@@ -728,37 +744,71 @@ def _delete_companies_cascade(company_ids: list[int]):
         DELETE pcm
         FROM company_patent_company_map pcm
         LEFT JOIN company_patent cp ON cp.company_patent_id = pcm.company_patent_id
-        WHERE pcm.company_id IN ({placeholders}) OR cp.company_id IN ({placeholders})
+        WHERE pcm.credit_code IN ({placeholders}) OR cp.credit_code IN ({placeholders})
         """,
-        [*company_ids, *company_ids],
+        [*normalized_codes, *normalized_codes],
     )
 
     _execute(
         f"""
         DELETE FROM company_customer
-        WHERE company_id IN ({placeholders}) OR customer_company_id IN ({placeholders})
+        WHERE credit_code IN ({placeholders}) OR customer_credit_code IN ({placeholders})
         """,
-        [*company_ids, *company_ids],
+        [*normalized_codes, *normalized_codes],
     )
 
     _execute(
         f"""
         DELETE FROM company_supplier
-        WHERE company_id IN ({placeholders}) OR supplier_company_id IN ({placeholders})
+        WHERE credit_code IN ({placeholders}) OR supplier_credit_code IN ({placeholders})
         """,
-        [*company_ids, *company_ids],
+        [*normalized_codes, *normalized_codes],
     )
 
     for table_name, column_name in COMPANY_DELETE_TABLES:
         _execute(
             f"DELETE FROM {table_name} WHERE {column_name} IN ({placeholders})",
-            company_ids,
+            normalized_codes,
         )
 
     _execute(
-        f"DELETE FROM company_basic WHERE company_id IN ({placeholders})",
-        company_ids,
+        f"DELETE FROM company_basic WHERE credit_code IN ({placeholders})",
+        normalized_codes,
     )
+
+
+def _rekey_company_credit_code(old_credit_code: str, new_credit_code: str):
+    old_code = _normalize_text(old_credit_code).upper()
+    new_code = _normalize_text(new_credit_code).upper()
+    if not old_code or not new_code or old_code == new_code:
+        return
+
+    _execute(
+        "UPDATE company_patent_company_map SET credit_code = %s WHERE credit_code = %s",
+        [new_code, old_code],
+    )
+    _execute(
+        "UPDATE company_customer SET credit_code = %s WHERE credit_code = %s",
+        [new_code, old_code],
+    )
+    _execute(
+        "UPDATE company_customer SET customer_credit_code = %s WHERE customer_credit_code = %s",
+        [new_code, old_code],
+    )
+    _execute(
+        "UPDATE company_supplier SET credit_code = %s WHERE credit_code = %s",
+        [new_code, old_code],
+    )
+    _execute(
+        "UPDATE company_supplier SET supplier_credit_code = %s WHERE supplier_credit_code = %s",
+        [new_code, old_code],
+    )
+
+    for table_name, column_name in COMPANY_DELETE_TABLES:
+        _execute(
+            f"UPDATE {table_name} SET {column_name} = %s WHERE {column_name} = %s",
+            [new_code, old_code],
+        )
 
 
 def _list_stats(keyword: str) -> dict:
@@ -773,10 +823,10 @@ def _list_stats(keyword: str) -> dict:
         SELECT
           COUNT(*) AS total,
           SUM(CASE WHEN COALESCE(cb.is_high_tech_enterprise, 0) = 1 THEN 1 ELSE 0 END) AS highTech,
-          SUM(CASE WHEN ss.enterprise_id IS NOT NULL THEN 1 ELSE 0 END) AS scored,
+          SUM(CASE WHEN ss.enterprise_credit_code IS NOT NULL THEN 1 ELSE 0 END) AS scored,
           SUM(CASE WHEN cb.updated_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 ELSE 0 END) AS recentUpdated
         FROM company_basic cb
-        LEFT JOIN scoring_scoreresult ss ON ss.enterprise_id = cb.company_id
+        LEFT JOIN scoring_scoreresult ss ON ss.enterprise_credit_code = cb.credit_code
         {where}
         """,
         params,
@@ -791,10 +841,11 @@ def _list_stats(keyword: str) -> dict:
 
 
 def _map_company_list_row(row: dict) -> dict:
+    credit_code = _normalize_text(row.get("credit_code") or row.get("company_id"))
     return {
-        "company_id": int(row["company_id"]),
+        "company_id": credit_code,
         "company_name": _normalize_text(row["company_name"]),
-        "credit_code": _normalize_text(row["credit_code"]),
+        "credit_code": credit_code,
         "establish_date": _format_date_output(row.get("establish_date")),
         "register_capital": row.get("register_capital") or "",
         "paid_capital": row.get("paid_capital") or "",
@@ -824,7 +875,7 @@ def _map_company_list_row(row: dict) -> dict:
     }
 
 
-def _fetch_company_detail_by_id(company_id: int) -> dict | None:
+def _fetch_company_detail_by_credit_code(credit_code: str) -> dict | None:
     rows = _rows(
         """
         SELECT
@@ -835,14 +886,38 @@ def _fetch_company_detail_by_id(company_id: int) -> dict | None:
           ss.tech_score,
           ss.professional_score
         FROM company_basic cb
-        LEFT JOIN company_basic_count cbc ON cbc.company_id = cb.company_id
-        LEFT JOIN scoring_scoreresult ss ON ss.enterprise_id = cb.company_id
-        WHERE cb.company_id = %s
+        LEFT JOIN company_basic_count cbc ON cbc.credit_code = cb.credit_code
+        LEFT JOIN scoring_scoreresult ss ON ss.enterprise_credit_code = cb.credit_code
+        WHERE cb.credit_code = %s
         LIMIT 1
         """,
-        [company_id],
+        [_normalize_text(credit_code).upper()],
     )
     return rows[0] if rows else None
+
+
+def _clone_company_basic_row(source_credit_code: str, overrides: dict):
+    rows = _rows(
+        """
+        SELECT *
+        FROM company_basic
+        WHERE credit_code = %s
+        LIMIT 1
+        """,
+        [_normalize_text(source_credit_code).upper()],
+    )
+    if not rows:
+        raise ValueError("未找到企业")
+
+    row = rows[0]
+    row.update(overrides)
+    columns = list(row.keys())
+    columns_sql = ", ".join([f"`{column}`" for column in columns])
+    placeholders = ", ".join(["%s"] * len(columns))
+    _execute(
+        f"INSERT INTO company_basic ({columns_sql}) VALUES ({placeholders})",
+        [row[column] for column in columns],
+    )
 
 
 def _map_company_detail_row(row: dict) -> dict:
@@ -889,7 +964,6 @@ def company_list(request):
     rows = _rows(
         f"""
         SELECT
-          cb.company_id,
           cb.company_name,
           cb.credit_code,
           cb.establish_date,
@@ -919,10 +993,10 @@ def company_list(request):
           cbc.branch_count,
           ss.total_score
         FROM company_basic cb
-        LEFT JOIN company_basic_count cbc ON cbc.company_id = cb.company_id
-        LEFT JOIN scoring_scoreresult ss ON ss.enterprise_id = cb.company_id
+        LEFT JOIN company_basic_count cbc ON cbc.credit_code = cb.credit_code
+        LEFT JOIN scoring_scoreresult ss ON ss.enterprise_credit_code = cb.credit_code
         {where}
-        ORDER BY cb.updated_at DESC, cb.company_id DESC
+        ORDER BY cb.updated_at DESC, cb.credit_code DESC
         LIMIT %s OFFSET %s
         """,
         [*params, page_size, offset],
@@ -945,19 +1019,19 @@ def company_detail(request, identifier: str):
     if not admin:
         return _json_error("无权访问", status=403)
 
-    company_id = _resolve_company_id(identifier, identifier)
-    if not company_id:
+    credit_code = _resolve_credit_code(identifier, identifier)
+    if not credit_code:
         return _json_error("未找到对应企业", status=404)
 
     if request.method == "GET":
-        company = _fetch_company_detail_by_id(company_id)
+        company = _fetch_company_detail_by_credit_code(credit_code)
         if not company:
             return _json_error("未找到对应企业", status=404)
         return JsonResponse({"success": True, "data": _map_company_detail_row(company)})
 
     if request.method == "DELETE":
         with transaction.atomic():
-            _delete_companies_cascade([company_id])
+            _delete_companies_cascade([credit_code])
         return JsonResponse({"success": True, "message": "企业数据已删除"})
 
     payload = _json_body(request)
@@ -969,71 +1043,101 @@ def company_detail(request, identifier: str):
     if not company["company_name"] or not company["credit_code"]:
         return _json_error("企业名称和统一社会信用代码不能为空")
 
-    existing = _scalar("SELECT company_id FROM company_basic WHERE company_id = %s LIMIT 1", [company_id])
+    existing = _scalar("SELECT credit_code FROM company_basic WHERE credit_code = %s LIMIT 1", [credit_code])
     if not existing:
         return _json_error("未找到企业", status=404)
 
     duplicate = _scalar(
-        "SELECT company_id FROM company_basic WHERE credit_code = %s AND company_id <> %s LIMIT 1",
-        [company["credit_code"], company_id],
+        "SELECT credit_code FROM company_basic WHERE credit_code = %s AND credit_code <> %s LIMIT 1",
+        [company["credit_code"], credit_code],
     )
     if duplicate:
         return _json_error("统一社会信用代码已存在", status=409)
 
     with transaction.atomic():
-        _execute(
-            """
-            UPDATE company_basic
-            SET
-              company_name = %s,
-              credit_code = %s,
-              legal_representative = %s,
-              establish_date = %s,
-              industry_belong = %s,
-              register_capital = %s,
-              paid_capital = %s,
-              financing_round = %s,
-              company_type = %s,
-              org_type = %s,
-              investment_type = %s,
-              company_scale = %s,
-              contact_phone = %s,
-              email_business = %s,
-              register_address = %s,
-              latest_shareholder_name = %s,
-              qualification_label = %s,
-              register_number = %s,
-              org_code = %s,
-              business_scope = %s
-            WHERE company_id = %s
-            """,
-            [
-                company["company_name"],
-                company["credit_code"],
-                company["legal_representative"],
-                company["establish_date"],
-                company["industry_belong"],
-                company["register_capital"],
-                company["paid_capital"],
-                company["financing_round"],
-                company["company_type"],
-                company["organization_type"],
-                company["investment_type"],
-                company["company_scale"],
-                company["contact_phone"],
-                company["email_business"],
-                company["register_address"],
-                company["shareholders"],
-                company["qualification_label"],
-                company["register_number"],
-                company["org_code"],
-                company["business_scope"],
-                company_id,
-            ],
-        )
-        _ensure_company_basic_count(company_id)
+        if company["credit_code"] != credit_code:
+            _clone_company_basic_row(
+                credit_code,
+                {
+                    "company_name": company["company_name"],
+                    "credit_code": company["credit_code"],
+                    "legal_representative": company["legal_representative"],
+                    "establish_date": company["establish_date"],
+                    "industry_belong": company["industry_belong"],
+                    "register_capital": company["register_capital"],
+                    "paid_capital": company["paid_capital"],
+                    "financing_round": company["financing_round"],
+                    "company_type": company["company_type"],
+                    "org_type": company["organization_type"],
+                    "investment_type": company["investment_type"],
+                    "company_scale": company["company_scale"],
+                    "contact_phone": company["contact_phone"],
+                    "email_business": company["email_business"],
+                    "register_address": company["register_address"],
+                    "latest_shareholder_name": company["shareholders"],
+                    "qualification_label": company["qualification_label"],
+                    "register_number": company["register_number"],
+                    "org_code": company["org_code"],
+                    "business_scope": company["business_scope"],
+                    "updated_at": datetime.now(),
+                },
+            )
+            _rekey_company_credit_code(credit_code, company["credit_code"])
+            _execute("DELETE FROM company_basic WHERE credit_code = %s", [credit_code])
+        else:
+            _execute(
+                """
+                UPDATE company_basic
+                SET
+                  company_name = %s,
+                  credit_code = %s,
+                  legal_representative = %s,
+                  establish_date = %s,
+                  industry_belong = %s,
+                  register_capital = %s,
+                  paid_capital = %s,
+                  financing_round = %s,
+                  company_type = %s,
+                  org_type = %s,
+                  investment_type = %s,
+                  company_scale = %s,
+                  contact_phone = %s,
+                  email_business = %s,
+                  register_address = %s,
+                  latest_shareholder_name = %s,
+                  qualification_label = %s,
+                  register_number = %s,
+                  org_code = %s,
+                  business_scope = %s
+                WHERE credit_code = %s
+                """,
+                [
+                    company["company_name"],
+                    company["credit_code"],
+                    company["legal_representative"],
+                    company["establish_date"],
+                    company["industry_belong"],
+                    company["register_capital"],
+                    company["paid_capital"],
+                    company["financing_round"],
+                    company["company_type"],
+                    company["organization_type"],
+                    company["investment_type"],
+                    company["company_scale"],
+                    company["contact_phone"],
+                    company["email_business"],
+                    company["register_address"],
+                    company["shareholders"],
+                    company["qualification_label"],
+                    company["register_number"],
+                    company["org_code"],
+                    company["business_scope"],
+                    credit_code,
+                ],
+            )
+        _ensure_company_basic_count(company["credit_code"])
 
-    detail = _fetch_company_detail_by_id(company_id)
+    detail = _fetch_company_detail_by_credit_code(company["credit_code"])
     return JsonResponse({"success": True, "data": _map_company_detail_row(detail)})
 
 
@@ -1054,7 +1158,7 @@ def company_create(request):
         return _json_error("企业名称和统一社会信用代码不能为空")
 
     duplicate = _scalar(
-        "SELECT company_id FROM company_basic WHERE credit_code = %s LIMIT 1",
+        "SELECT credit_code FROM company_basic WHERE credit_code = %s LIMIT 1",
         [company["credit_code"]],
     )
     if duplicate:
@@ -1110,10 +1214,9 @@ def company_create(request):
                     company["business_scope"],
                 ],
             )
-            company_id = int(cursor.lastrowid)
-        _ensure_company_basic_count(company_id)
+        _ensure_company_basic_count(company["credit_code"])
 
-    detail = _fetch_company_detail_by_id(company_id)
+    detail = _fetch_company_detail_by_credit_code(company["credit_code"])
     return JsonResponse({"success": True, "data": _map_company_detail_row(detail)}, status=201)
 
 
@@ -1125,18 +1228,18 @@ def company_batch_delete(request):
         return _json_error("无权访问", status=403)
 
     payload = _json_body(request)
-    ids = [
-        _positive_int(value, 0)
-        for value in (payload.get("ids") or [])
-        if _positive_int(value, 0)
-    ]
-    if not ids:
+    credit_codes: list[str] = []
+    for value in payload.get("ids") or []:
+        resolved = _resolve_credit_code(value, value)
+        if resolved and resolved not in credit_codes:
+            credit_codes.append(resolved)
+    if not credit_codes:
         return _json_error("请选择要删除的企业")
 
     with transaction.atomic():
-        _delete_companies_cascade(ids)
+        _delete_companies_cascade(credit_codes)
 
-    return JsonResponse({"success": True, "message": f"已删除 {len(ids)} 家企业"})
+    return JsonResponse({"success": True, "message": f"已删除 {len(credit_codes)} 家企业"})
 
 
 @require_GET
@@ -1225,7 +1328,7 @@ def company_import(request):
                 return _json_error("存在缺少企业名称或统一社会信用代码的行")
 
             existing_id = _scalar(
-                "SELECT company_id FROM company_basic WHERE credit_code = %s LIMIT 1",
+                "SELECT credit_code FROM company_basic WHERE credit_code = %s LIMIT 1",
                 [company["credit_code"]],
             )
 
@@ -1253,7 +1356,7 @@ def company_import(request):
                       register_number = %s,
                       org_code = %s,
                       business_scope = %s
-                    WHERE company_id = %s
+                    WHERE credit_code = %s
                     """,
                     [
                         company["company_name"],
@@ -1275,10 +1378,10 @@ def company_import(request):
                         company["register_number"],
                         company["org_code"],
                         company["business_scope"],
-                        int(existing_id),
+                        existing_id,
                     ],
                 )
-                _ensure_company_basic_count(int(existing_id))
+                _ensure_company_basic_count(str(existing_id))
                 updated_count += 1
             else:
                 with connection.cursor() as cursor:
@@ -1330,8 +1433,7 @@ def company_import(request):
                             company["business_scope"],
                         ],
                     )
-                    company_id = int(cursor.lastrowid)
-                _ensure_company_basic_count(company_id)
+                _ensure_company_basic_count(company["credit_code"])
                 inserted_count += 1
 
     return JsonResponse(
@@ -1597,10 +1699,14 @@ def managed_table_row_detail(request, table_name: str, row_id: str):
         return JsonResponse({"success": True, "data": record})
 
     if request.method == "DELETE":
-        _execute(
-            f"DELETE FROM `{table['table_name']}` WHERE `{table['primary_key']}` = %s",
-            [pk_value],
-        )
+        with transaction.atomic():
+            if table["table_name"] == "company_basic":
+                _delete_companies_cascade([str(pk_value)])
+            else:
+                _execute(
+                    f"DELETE FROM `{table['table_name']}` WHERE `{table['primary_key']}` = %s",
+                    [pk_value],
+                )
         return JsonResponse({"success": True, "message": "记录已删除"})
 
     payload = _json_body(request)
@@ -1660,8 +1766,8 @@ def managed_table_row_create(request, table_name: str):
             )
             inserted_id = cursor.lastrowid
 
-        if table["table_name"] == "company_basic" and inserted_id:
-            _ensure_company_basic_count(int(inserted_id))
+        if table["table_name"] == "company_basic":
+            _ensure_company_basic_count(str(values.get(table["primary_key"]) or ""))
 
     pk_column = next((column for column in table["columns"] if column["name"] == table["primary_key"]), None)
     if inserted_id and pk_column and pk_column["auto_increment"]:
@@ -1707,10 +1813,13 @@ def managed_table_batch_delete(request, table_name: str):
 
     placeholders = ", ".join(["%s"] * len(ids))
     with transaction.atomic():
-        _execute(
-            f"DELETE FROM `{table['table_name']}` WHERE `{table['primary_key']}` IN ({placeholders})",
-            ids,
-        )
+        if table["table_name"] == "company_basic":
+            _delete_companies_cascade([str(value) for value in ids])
+        else:
+            _execute(
+                f"DELETE FROM `{table['table_name']}` WHERE `{table['primary_key']}` IN ({placeholders})",
+                ids,
+            )
     return JsonResponse({"success": True, "message": f"已删除 {len(ids)} 条记录"})
 
 
@@ -1787,8 +1896,8 @@ def managed_table_import(request, table_name: str):
                     list(values.values()),
                 )
                 inserted_id = cursor.lastrowid
-            if table["table_name"] == "company_basic" and inserted_id:
-                _ensure_company_basic_count(int(inserted_id))
+            if table["table_name"] == "company_basic":
+                _ensure_company_basic_count(str(values.get(table["primary_key"]) or ""))
             inserted_count += 1
 
     return JsonResponse(

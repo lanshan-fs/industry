@@ -22,10 +22,8 @@ import {
   AppstoreOutlined,
   DeploymentUnitOutlined,
   ExperimentOutlined,
-  MedicineBoxOutlined,
   ReloadOutlined,
   SearchOutlined,
-  UsergroupAddOutlined,
 } from "@ant-design/icons";
 
 const { Content } = Layout;
@@ -39,29 +37,15 @@ interface IndustryNode {
   company_count?: number;
 }
 
-const INDUSTRY_COLORS = {
-  数字医疗: "#B3D9FF",
-  药物: "#D9C2E0",
-  医疗器械: "#B3E6B3",
-  医疗服务: "#FFE0B3",
-} as const;
+const MAX_TOTAL_SCORE = 355;
+const ROOT_CARD_COLORS = ["#1677ff", "#52c41a", "#fa8c16", "#722ed1", "#13c2c2", "#eb2f96"];
 
 const SCORE_RANGES = {
-  high: [85, 100],
-  mid: [70, 85],
-  low: [0, 70],
-  all: [0, 100],
+  high: [160, MAX_TOTAL_SCORE],
+  mid: [89, 159.99],
+  low: [0, 88.99],
+  all: [0, MAX_TOTAL_SCORE],
 } as const;
-
-const INDUSTRIES = ["数字医疗", "药物", "医疗器械", "医疗服务"] as const;
-
-const calculateIndustryAverage = (data: IndustryNode[], industryName: string) => {
-  const industry = data.find((item) => item.name === industryName);
-  if (industry?.value !== undefined && industry?.value !== null) {
-    return Number(industry.value).toFixed(1);
-  }
-  return "N/A";
-};
 
 const findNodesWithTag = (nodes: IndustryNode[], tag: string): IndustryNode[] => {
   const result: IndustryNode[] = [];
@@ -119,7 +103,7 @@ const filterData = (
     filteredNodes = filterByText(filteredNodes);
   }
 
-  if (range[0] !== 0 || range[1] !== 100) {
+  if (range[0] !== 0 || range[1] !== MAX_TOTAL_SCORE) {
     const filterByScore = (nodes: IndustryNode[]): IndustryNode[] =>
       nodes
         .map((node) => {
@@ -149,12 +133,22 @@ const organizeTagsByLevel = (rawData: IndustryNode[]) => {
   return organized;
 };
 
+const topLevelMetrics = (rawData: IndustryNode[]) =>
+  rawData
+    .filter((item) => item.value !== undefined && item.value !== null)
+    .map((item) => ({
+      name: item.name,
+      value: Number(item.value || 0),
+      companyCount: Number(item.company_count || 0),
+    }))
+    .sort((a, b) => b.value - a.value);
+
 const IndustryScore: React.FC = () => {
   const navigate = useNavigate();
   const [rawData, setRawData] = useState<IndustryNode[]>([]);
   const [treeData, setTreeData] = useState<IndustryNode[]>([]);
   const [searchText, setSearchText] = useState("");
-  const [scoreRange, setScoreRange] = useState<[number, number]>([0, 100]);
+  const [scoreRange, setScoreRange] = useState<[number, number]>([0, MAX_TOTAL_SCORE]);
   const [selectedIndustry, setSelectedIndustry] = useState<string>("all");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -183,6 +177,8 @@ const IndustryScore: React.FC = () => {
   }, []);
 
   const organizedTags = useMemo(() => organizeTagsByLevel(rawData), [rawData]);
+  const metricCards = useMemo(() => topLevelMetrics(rawData).slice(0, 4), [rawData]);
+  const availableIndustries = useMemo(() => rawData.map((item) => item.name), [rawData]);
 
   const handleSearch = (value: string) => {
     setSearchText(value);
@@ -215,7 +211,7 @@ const IndustryScore: React.FC = () => {
         const treePath = info.treePathInfo.slice(1).map((item: any) => item.name);
         return [
           `<div class="tooltip-title">${echarts.format.encodeHTML(treePath.join(" / "))}</div>`,
-          `产业评分: ${info.value ?? "-"} 分`,
+          `产业评分: ${info.value ?? "-"} / ${MAX_TOTAL_SCORE} 分`,
           info.data.company_count !== undefined ? `企业数量: ${info.data.company_count}` : "",
         ]
           .filter(Boolean)
@@ -275,14 +271,20 @@ const IndustryScore: React.FC = () => {
     ],
   });
 
-  const renderMetricCard = (title: string, icon: React.ReactNode, color: string) => (
-    <Card bordered={false} style={{ borderTop: `4px solid ${color}` }}>
+  const renderMetricCard = (node: { name: string; value: number; companyCount: number }, index: number) => (
+    <Card bordered={false} style={{ borderTop: `4px solid ${ROOT_CARD_COLORS[index % ROOT_CARD_COLORS.length]}` }}>
       <Statistic
-        title={<Space>{icon}<span>{title}</span></Space>}
-        value={calculateIndustryAverage(rawData, title)}
-        suffix="Avg"
+        title={
+          <Space>
+            <DeploymentUnitOutlined style={{ color: ROOT_CARD_COLORS[index % ROOT_CARD_COLORS.length] }} />
+            <span>{node.name}</span>
+          </Space>
+        }
+        value={Number(node.value || 0).toFixed(1)}
+        suffix="分"
         valueStyle={{ fontWeight: 600 }}
       />
+      <Text type="secondary">覆盖企业 {node.companyCount} 家</Text>
     </Card>
   );
 
@@ -296,7 +298,12 @@ const IndustryScore: React.FC = () => {
                 <ExperimentOutlined style={{ marginRight: 12 }} />
                 产业评分全景图
               </Title>
-              <Text type="secondary">基于 `score_industry_path` 的当前产业赛道评分视图</Text>
+              <Space size={8} wrap>
+                <Text type="secondary">基于 `score_industry_path` 的当前产业赛道评分视图</Text>
+                <Tag color="blue" bordered={false}>
+                  最新总分口径 355 分
+                </Tag>
+              </Space>
             </Col>
             <Col xs={24} md={12} style={{ textAlign: "right" }}>
               <Space>
@@ -308,10 +315,11 @@ const IndustryScore: React.FC = () => {
           </Row>
 
           <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
-            <Col span={6}>{renderMetricCard("数字医疗", <DeploymentUnitOutlined />, INDUSTRY_COLORS["数字医疗"])}</Col>
-            <Col span={6}>{renderMetricCard("药物", <MedicineBoxOutlined />, INDUSTRY_COLORS["药物"])}</Col>
-            <Col span={6}>{renderMetricCard("医疗器械", <ExperimentOutlined />, INDUSTRY_COLORS["医疗器械"])}</Col>
-            <Col span={6}>{renderMetricCard("医疗服务", <UsergroupAddOutlined />, INDUSTRY_COLORS["医疗服务"])}</Col>
+            {metricCards.map((item, index) => (
+              <Col key={item.name} span={6}>
+                {renderMetricCard(item, index)}
+              </Col>
+            ))}
           </Row>
         </div>
 
@@ -319,7 +327,7 @@ const IndustryScore: React.FC = () => {
           <Row gutter={16} align="middle">
             <Col flex="auto">
               <Input
-                placeholder="搜索赛道、细分领域"
+                placeholder="搜索产业链节点、赛道或细分环节"
                 prefix={<SearchOutlined style={{ color: "#bfbfbf" }} />}
                 size="large"
                 allowClear
@@ -330,15 +338,15 @@ const IndustryScore: React.FC = () => {
             <Col>
               <Select defaultValue="all" size="large" style={{ width: 180 }} onChange={handleScoreChange} disabled={loading}>
                 <Option value="all">全部分值</Option>
-                <Option value="high">高评分 (85-100)</Option>
-                <Option value="mid">中评分 (70-85)</Option>
-                <Option value="low">低评分 (0-70)</Option>
+                <Option value="high">高评分 (160-355)</Option>
+                <Option value="mid">中评分 (89-159)</Option>
+                <Option value="low">低评分 (0-88)</Option>
               </Select>
             </Col>
             <Col>
               <Select defaultValue="all" size="large" style={{ width: 180 }} onChange={handleIndustryChange} disabled={loading}>
                 <Option value="all">全部行业</Option>
-                {INDUSTRIES.map((industry) => (
+                {availableIndustries.map((industry) => (
                   <Option key={industry} value={industry}>
                     {industry}
                   </Option>

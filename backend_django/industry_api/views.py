@@ -8,6 +8,8 @@ from django.db import connection
 from django.http import JsonResponse
 from django.views.decorators.http import require_GET
 
+MAX_TOTAL_SCORE = 355.0
+
 from industry_api.ecology_rules import ecology_keywords
 from scoring_api.engine import get_company_scoring_snapshot
 from scoring_api.views import _company_tags, _normalize_text, _risk_profile
@@ -232,16 +234,27 @@ def _build_category_paths(rows: list[dict], by_code: dict[str, dict]) -> dict[in
     return path_map
 
 
-def _score_industry_count_map() -> dict[str, int]:
-    rows = _rows("SELECT industry_path, company_count FROM score_industry_path")
-    return {_normalize_text(row["industry_path"]): int(row["company_count"] or 0) for row in rows}
+def _category_company_count_map() -> dict[int, int]:
+    rows = _rows(
+        """
+        SELECT
+          parent.category_id,
+          COUNT(DISTINCT cicm.credit_code) AS company_count
+        FROM category_industry parent
+        LEFT JOIN category_industry child
+          ON child.category_level_code LIKE CONCAT(parent.category_level_code, '%%')
+        LEFT JOIN category_industry_company_map cicm
+          ON cicm.category_id = child.category_id
+        GROUP BY parent.category_id
+        """
+    )
+    return {int(row["category_id"]): int(row["company_count"] or 0) for row in rows}
 
 
 def _industry_tree_payload() -> list[dict]:
     seed_rows = _load_chain_seed()
     category_rows, _, by_code = _load_categories()
-    path_map = _build_category_paths(category_rows, by_code)
-    count_map = _score_industry_count_map()
+    count_map = _category_company_count_map()
 
     node_map: dict[int, dict] = {}
     child_ids: set[int] = set()
@@ -252,7 +265,7 @@ def _industry_tree_payload() -> list[dict]:
         node_map[category_id] = {
             "key": category_id,
             "title": _normalize_text(row["category_name"]),
-            "count": count_map.get(path_map.get(category_id, ""), 0),
+            "count": count_map.get(category_id, 0),
             "children": [],
         }
 
@@ -288,6 +301,10 @@ def _industry_tree_payload() -> list[dict]:
             stage_tree[stage_key]["children"].append(node)
             attached_level1_ids.add(category_id)
 
+    for stage_key, stage_node in stage_tree.items():
+        stage_node["count"] = sum(int(child.get("count") or 0) for child in stage_node["children"])
+        stage_node["stage"] = ROOT_KEY_TO_STAGE_TEXT.get(stage_key, "")
+
     return [stage_tree[root["key"]] for root in STAGE_ROOTS]
 
 
@@ -305,20 +322,20 @@ def _tree_select_payload(nodes: list[dict]) -> list[dict]:
     return result
 
 
-def _company_ids_for_category_ids(category_ids: list[int]) -> list[int]:
+def _company_ids_for_category_ids(category_ids: list[int]) -> list[str]:
     if not category_ids:
         return []
     in_clause, params = _in_clause(category_ids)
     rows = _rows(
         f"""
-        SELECT DISTINCT company_id
+        SELECT DISTINCT credit_code
         FROM category_industry_company_map
         WHERE category_id IN {in_clause}
-        ORDER BY company_id
+        ORDER BY credit_code
         """,
         params,
     )
-    return [int(row["company_id"]) for row in rows]
+    return [_normalize_text(row["credit_code"]) for row in rows]
 
 
 def _resolve_category_ids(
@@ -399,27 +416,27 @@ def _resolve_category_ids(
     }
 
 
-def _company_tags_map(company_ids: list[int], limit: int = 8) -> dict[int, list[str]]:
+def _company_tags_map(company_ids: list[str], limit: int = 8) -> dict[str, list[str]]:
     if not company_ids:
         return {}
     in_clause, params = _in_clause(company_ids)
     rows = _rows(
         f"""
         SELECT
-          m.company_id,
+          m.credit_code,
           l.company_tag_name,
           COALESCE(m.confidence, 0) AS confidence,
           m.company_tag_map_id
         FROM company_tag_map m
         JOIN company_tag_library l ON l.company_tag_id = m.company_tag_id
-        WHERE m.company_id IN {in_clause}
-        ORDER BY m.company_id, confidence DESC, m.company_tag_map_id DESC
+        WHERE m.credit_code IN {in_clause}
+        ORDER BY m.credit_code, confidence DESC, m.company_tag_map_id DESC
         """,
         params,
     )
-    result: dict[int, list[str]] = defaultdict(list)
+    result: dict[str, list[str]] = defaultdict(list)
     for row in rows:
-        company_id = int(row["company_id"])
+        company_id = _normalize_text(row["credit_code"])
         tag_name = _normalize_text(row["company_tag_name"])
         if not tag_name or tag_name in result[company_id]:
             continue
@@ -429,21 +446,21 @@ def _company_tags_map(company_ids: list[int], limit: int = 8) -> dict[int, list[
     return result
 
 
-def _company_risk_map(company_ids: list[int]) -> dict[int, dict[str, int]]:
+def _company_risk_map(company_ids: list[str]) -> dict[str, dict[str, int]]:
     if not company_ids:
         return {}
     in_clause, params = _in_clause(company_ids)
     rows = _rows(
         f"""
-        SELECT company_id, company_risk_category_name, company_risk_category_count
+        SELECT credit_code, company_risk_category_name, company_risk_category_count
         FROM company_risk
-        WHERE company_id IN {in_clause}
+        WHERE credit_code IN {in_clause}
         """,
         params,
     )
-    result: dict[int, dict[str, int]] = defaultdict(dict)
+    result: dict[str, dict[str, int]] = defaultdict(dict)
     for row in rows:
-        result[int(row["company_id"])][_normalize_text(row["company_risk_category_name"])] = int(row["company_risk_category_count"] or 0)
+        result[_normalize_text(row["credit_code"])][_normalize_text(row["company_risk_category_name"])] = int(row["company_risk_category_count"] or 0)
     return result
 
 
@@ -544,7 +561,7 @@ def _apply_tag_exists(where_clauses: list[str], query_params: list, subdimension
           FROM company_tag_map {alias}m
           JOIN company_tag_library {alias}l ON {alias}l.company_tag_id = {alias}m.company_tag_id
           JOIN company_tag_subdimension {alias}s ON {alias}s.company_tag_subdimension_id = {alias}l.company_tag_subdimension_id
-          WHERE {alias}m.company_id = c.company_id
+          WHERE {alias}m.credit_code = c.credit_code
             AND {alias}s.company_tag_subdimension_name = %s
             AND {alias}l.company_tag_name IN {in_clause}
         )
@@ -566,7 +583,7 @@ def _apply_patent_type(where_clauses: list[str], query_params: list, values: lis
           FROM company_patent p
           JOIN company_patent_patent_type_map pm ON pm.company_patent_id = p.company_patent_id
           JOIN company_patent_type pt ON pt.company_patent_type_id = pm.company_patent_type_id
-          WHERE p.company_id = c.company_id
+          WHERE p.credit_code = c.credit_code
             AND pt.company_patent_type_name IN {in_clause}
         )
         """
@@ -621,7 +638,7 @@ def _apply_ecology_filter(where_clauses: list[str], query_params: list, values: 
         where_clauses.append(f"({' OR '.join(ecology_conditions)})")
 
 
-def _industry_company_base_rows(params: dict) -> list[dict]:
+def _industry_company_query_parts(params: dict) -> tuple[list[str], list, str]:
     selected_company_ids = params.get("selected_company_ids") or []
     query_params: list = []
     where_clauses = ["1 = 1"]
@@ -629,7 +646,7 @@ def _industry_company_base_rows(params: dict) -> list[dict]:
 
     if selected_company_ids:
         in_clause, company_params = _in_clause(selected_company_ids)
-        where_clauses.append(f"c.company_id IN {in_clause}")
+        where_clauses.append(f"c.credit_code IN {in_clause}")
         query_params.extend(company_params)
 
     keyword = _normalize_text(params.get("keyword"))
@@ -646,7 +663,7 @@ def _industry_company_base_rows(params: dict) -> list[dict]:
                   OR EXISTS (
                     SELECT 1
                     FROM company_qualification q
-                    WHERE q.company_id = c.company_id
+                    WHERE q.credit_code = c.credit_code
                       AND (q.qualification_name LIKE %s OR q.qualification_type LIKE %s)
                   )
                 )
@@ -659,17 +676,15 @@ def _industry_company_base_rows(params: dict) -> list[dict]:
                 EXISTS (
                   SELECT 1
                   FROM company_risk r
-                  WHERE r.company_id = c.company_id
+                  WHERE r.credit_code = c.credit_code
                     AND r.company_risk_category_name LIKE %s
                 )
                 """
             )
             query_params.append(like_value)
         else:
-            where_clauses.append(
-                "(c.company_name LIKE %s OR c.credit_code LIKE %s OR CAST(c.company_id AS CHAR) LIKE %s)"
-            )
-            query_params.extend([like_value, like_value, like_value])
+            where_clauses.append("(c.company_name LIKE %s OR c.credit_code LIKE %s)")
+            query_params.extend([like_value, like_value])
 
     _apply_exact_match(where_clauses, query_params, "company_type", params.get("entType"))
     _apply_exact_match(where_clauses, query_params, "org_type", params.get("orgType"))
@@ -715,13 +730,13 @@ def _industry_company_base_rows(params: dict) -> list[dict]:
                   OR EXISTS (
                     SELECT 1
                     FROM company_patent p
-                    WHERE p.company_id = c.company_id
+                    WHERE p.credit_code = c.credit_code
                       AND (p.company_patent_name LIKE %s OR p.tech_attribute_label LIKE %s)
                   )
                   OR EXISTS (
                     SELECT 1
                     FROM company_software_copyright s
-                    WHERE s.company_id = c.company_id
+                    WHERE s.credit_code = c.credit_code
                       AND (
                         s.company_software_copyright_name LIKE %s
                         OR s.company_software_copyright_for_short LIKE %s
@@ -735,18 +750,36 @@ def _industry_company_base_rows(params: dict) -> list[dict]:
 
     sort_key = _normalize_text(params.get("sort"))
     if sort_key == "capital_desc":
-        order_by = "COALESCE(c.register_capital, 0) DESC, COALESCE(sr.total_score, 0) DESC, c.company_id ASC"
+        order_by = "COALESCE(c.register_capital, 0) DESC, COALESCE(sr.total_score, 0) DESC, c.credit_code ASC"
     elif sort_key == "date_desc":
-        order_by = "COALESCE(c.establish_date, '1900-01-01') DESC, COALESCE(sr.total_score, 0) DESC, c.company_id ASC"
+        order_by = "COALESCE(c.establish_date, '1900-01-01') DESC, COALESCE(sr.total_score, 0) DESC, c.credit_code ASC"
     elif sort_key == "score_desc":
-        order_by = "COALESCE(sr.total_score, 0) DESC, c.company_id ASC"
+        order_by = "COALESCE(sr.total_score, 0) DESC, c.credit_code ASC"
     else:
-        order_by = "COALESCE(sr.total_score, 0) DESC, COALESCE(c.register_capital, 0) DESC, c.company_id ASC"
+        order_by = "COALESCE(sr.total_score, 0) DESC, COALESCE(c.register_capital, 0) DESC, c.credit_code ASC"
 
-    return _rows(
+    return where_clauses, query_params, order_by
+
+
+def _industry_company_base_rows(params: dict, *, page: int = 1, page_size: int = 20) -> dict:
+    where_clauses, query_params, order_by = _industry_company_query_parts(params)
+    page = max(int(page or 1), 1)
+    page_size = min(max(int(page_size or 20), 1), 100)
+    offset = (page - 1) * page_size
+    total_row = _rows(
+        f"""
+        SELECT COUNT(*) AS total
+        FROM company_basic c
+        LEFT JOIN scoring_scoreresult sr ON sr.enterprise_credit_code = c.credit_code
+        WHERE {" AND ".join(where_clauses)}
+        """,
+        query_params,
+    )[0]
+
+    rows = _rows(
         f"""
         SELECT
-          c.company_id,
+          c.credit_code,
           c.company_name,
           c.register_capital,
           c.legal_representative,
@@ -762,28 +795,35 @@ def _industry_company_base_rows(params: dict) -> list[dict]:
           c.is_high_tech_enterprise,
           COALESCE(sr.total_score, 0) AS total_score
         FROM company_basic c
-        LEFT JOIN scoring_scoreresult sr ON sr.enterprise_id = c.company_id
+        LEFT JOIN scoring_scoreresult sr ON sr.enterprise_credit_code = c.credit_code
         WHERE {" AND ".join(where_clauses)}
         ORDER BY {order_by}
-        LIMIT 100
+        LIMIT {page_size}
+        OFFSET {offset}
         """,
         query_params,
     )
+    return {
+        "rows": rows,
+        "total": int(total_row["total"] or 0),
+        "page": page,
+        "page_size": page_size,
+    }
 
 
 def _score_level(total_score: float) -> str:
-    if total_score >= 45:
+    if total_score >= MAX_TOTAL_SCORE * 0.45:
         return "AAA"
-    if total_score >= 35:
+    if total_score >= MAX_TOTAL_SCORE * 0.35:
         return "AA"
-    if total_score >= 25:
+    if total_score >= MAX_TOTAL_SCORE * 0.25:
         return "A"
-    if total_score >= 15:
+    if total_score >= MAX_TOTAL_SCORE * 0.15:
         return "BBB"
     return "BB"
 
 
-def _aggregate_risk_sections(company_ids: list[int]) -> dict:
+def _aggregate_risk_sections(company_ids: list[str]) -> dict:
     if not company_ids:
         return {"high": [], "medium": [], "low": []}
     in_clause, params = _in_clause(company_ids)
@@ -791,7 +831,7 @@ def _aggregate_risk_sections(company_ids: list[int]) -> dict:
         f"""
         SELECT company_risk_category_name, SUM(company_risk_category_count) AS total_count
         FROM company_risk
-        WHERE company_id IN {in_clause}
+        WHERE credit_code IN {in_clause}
         GROUP BY company_risk_category_name
         ORDER BY total_count DESC, company_risk_category_name
         """,
@@ -861,12 +901,12 @@ def _category_aggregate_scores(category_ids: list[int]) -> dict[str, float]:
     row = _rows(
         f"""
         SELECT
-          COUNT(DISTINCT m.company_id) AS company_count,
+          COUNT(DISTINCT m.credit_code) AS company_count,
           COALESCE(AVG(sr.total_score), 0) AS avg_total_score,
           COALESCE(AVG(sr.tech_score), 0) AS avg_tech_score,
           COALESCE(AVG(sr.professional_score), 0) AS avg_professional_score
         FROM category_industry_company_map m
-        LEFT JOIN scoring_scoreresult sr ON sr.enterprise_id = m.company_id
+        LEFT JOIN scoring_scoreresult sr ON sr.enterprise_credit_code = m.credit_code
         WHERE m.category_id IN {in_clause}
         """,
         params,
@@ -1013,16 +1053,16 @@ def _detail_rows(snapshot: dict, group: str) -> list[dict]:
     ]
 
 
-def _build_model_company_rows(company_ids: list[int], score_field: str, group: str, limit: int = 8) -> list[dict]:
+def _build_model_company_rows(company_ids: list[str], score_field: str, group: str, limit: int = 8) -> list[dict]:
     if not company_ids:
         return []
     in_clause, params = _in_clause(company_ids)
     rows = _rows(
         f"""
-        SELECT enterprise_id, company_name, {score_field} AS score
+        SELECT enterprise_credit_code, company_name, {score_field} AS score
         FROM scoring_scoreresult
-        WHERE enterprise_id IN {in_clause}
-        ORDER BY {score_field} DESC, total_score DESC, enterprise_id ASC
+        WHERE enterprise_credit_code IN {in_clause}
+        ORDER BY {score_field} DESC, total_score DESC, enterprise_credit_code ASC
         LIMIT {int(limit)}
         """,
         params,
@@ -1030,12 +1070,13 @@ def _build_model_company_rows(company_ids: list[int], score_field: str, group: s
 
     result = []
     for row in rows:
-        snapshot = get_company_scoring_snapshot(int(row["enterprise_id"]))
+        credit_code = _normalize_text(row["enterprise_credit_code"])
+        snapshot = get_company_scoring_snapshot(credit_code)
         if not snapshot:
             continue
         result.append(
             {
-                "id": int(row["enterprise_id"]),
+                "id": credit_code,
                 "name": _normalize_text(row["company_name"]),
                 "score": round(float(row["score"] or 0), 2),
                 "details": _detail_rows(snapshot, group),
@@ -1044,29 +1085,29 @@ def _build_model_company_rows(company_ids: list[int], score_field: str, group: s
     return result
 
 
-def _build_top_company_rows(company_ids: list[int], limit: int = 10) -> list[dict]:
+def _build_top_company_rows(company_ids: list[str], limit: int = 10) -> list[dict]:
     if not company_ids:
         return []
     in_clause, params = _in_clause(company_ids)
     rows = _rows(
         f"""
         SELECT
-          c.company_id,
+          c.credit_code,
           c.company_name,
           c.register_capital,
           COALESCE(sr.total_score, 0) AS total_score
         FROM company_basic c
-        LEFT JOIN scoring_scoreresult sr ON sr.enterprise_id = c.company_id
-        WHERE c.company_id IN {in_clause}
-        ORDER BY COALESCE(sr.total_score, 0) DESC, COALESCE(c.register_capital, 0) DESC, c.company_id ASC
+        LEFT JOIN scoring_scoreresult sr ON sr.enterprise_credit_code = c.credit_code
+        WHERE c.credit_code IN {in_clause}
+        ORDER BY COALESCE(sr.total_score, 0) DESC, COALESCE(c.register_capital, 0) DESC, c.credit_code ASC
         LIMIT {int(limit)}
         """,
         params,
     )
-    tags_map = _company_tags_map([int(row["company_id"]) for row in rows], limit=4)
+    tags_map = _company_tags_map([_normalize_text(row["credit_code"]) for row in rows], limit=4)
     result = []
     for row in rows:
-        company_id = int(row["company_id"])
+        company_id = _normalize_text(row["credit_code"])
         tags = tags_map.get(company_id, [])
         if not tags:
             snapshot = get_company_scoring_snapshot(company_id)
@@ -1085,7 +1126,7 @@ def _build_top_company_rows(company_ids: list[int], limit: int = 10) -> list[dic
     return result
 
 
-def _build_migration_risk_rows(company_ids: list[int], limit: int = 15) -> list[dict]:
+def _build_migration_risk_rows(company_ids: list[str], limit: int = 15) -> list[dict]:
     if not company_ids:
         return []
     in_clause, params = _in_clause(company_ids)
@@ -1111,8 +1152,8 @@ def _build_migration_risk_rows(company_ids: list[int], limit: int = 15) -> list[
             END
           ) AS low_count
         FROM company_basic cb
-        LEFT JOIN company_basic_count cc ON cc.company_id = cb.company_id
-        WHERE cb.company_id IN {in_clause}
+        LEFT JOIN company_basic_count cc ON cc.credit_code = cb.credit_code
+        WHERE cb.credit_code IN {in_clause}
         """,
         params,
     )[0]
@@ -1163,7 +1204,16 @@ def industry_companies(request):
         stage_key=request.GET.get("stageKey"),
         category_values=advanced_category_values,
     )
-    rows = _industry_company_base_rows(
+    try:
+        page = max(int(request.GET.get("page") or 1), 1)
+    except (TypeError, ValueError):
+        page = 1
+    try:
+        page_size = min(max(int(request.GET.get("pageSize") or 20), 1), 100)
+    except (TypeError, ValueError):
+        page_size = 20
+
+    result = _industry_company_base_rows(
         {
             "selected_company_ids": selection["company_ids"],
             "keyword": request.GET.get("keyword"),
@@ -1195,19 +1245,23 @@ def industry_companies(request):
             "riskExecutor": _request_values(request, "riskExecutor"),
             "riskLimit": _request_values(request, "riskLimit"),
             "sort": request.GET.get("sort"),
-        }
+        },
+        page=page,
+        page_size=page_size,
     )
+    rows = result["rows"]
 
-    company_ids = [int(row["company_id"]) for row in rows]
+    company_ids = [_normalize_text(row["credit_code"]) for row in rows]
     tag_map = _company_tags_map(company_ids)
     risk_map = _company_risk_map(company_ids)
     data = []
     for row in rows:
-        company_id = int(row["company_id"])
+        company_id = _normalize_text(row["credit_code"])
         risk_profile = _risk_profile(risk_map.get(company_id, {}))
         data.append(
             {
                 "company_id": company_id,
+                "credit_code": company_id,
                 "company_name": _normalize_text(row["company_name"]),
                 "registeredCapital": _format_amount(row["register_capital"]),
                 "legalPerson": _normalize_text(row["legal_representative"]) or "-",
@@ -1226,7 +1280,17 @@ def industry_companies(request):
                 "address": _normalize_text(row["register_address_detail"]) or _normalize_text(row["register_address"]) or "-",
             }
         )
-    return JsonResponse({"success": True, "data": data})
+    return JsonResponse(
+        {
+            "success": True,
+            "data": data,
+            "pagination": {
+                "page": result["page"],
+                "pageSize": result["page_size"],
+                "total": result["total"],
+            },
+        }
+    )
 
 
 @require_GET
@@ -1274,15 +1338,15 @@ def industry_profile(request):
     aggregate = _rows(
         f"""
         SELECT
-          COUNT(DISTINCT c.company_id) AS total_companies,
+          COUNT(DISTINCT c.credit_code) AS total_companies,
           COALESCE(SUM(c.register_capital), 0) AS total_capital,
           COALESCE(AVG(sr.total_score), 0) AS avg_total_score,
           COALESCE(AVG(sr.basic_score), 0) AS avg_basic_score,
           COALESCE(AVG(sr.tech_score), 0) AS avg_tech_score,
           COALESCE(AVG(sr.professional_score), 0) AS avg_professional_score
         FROM company_basic c
-        LEFT JOIN scoring_scoreresult sr ON sr.enterprise_id = c.company_id
-        WHERE c.company_id IN {in_clause}
+        LEFT JOIN scoring_scoreresult sr ON sr.enterprise_credit_code = c.credit_code
+        WHERE c.credit_code IN {in_clause}
         """,
         params,
     )[0]
@@ -1305,7 +1369,7 @@ def industry_profile(request):
     if total_companies:
         high_tech_count = int(
             _scalar(
-                f"SELECT COUNT(*) FROM company_basic WHERE company_id IN {in_clause} AND is_high_tech_enterprise = 1",
+                f"SELECT COUNT(*) FROM company_basic WHERE credit_code IN {in_clause} AND is_high_tech_enterprise = 1",
                 params,
             )
             or 0

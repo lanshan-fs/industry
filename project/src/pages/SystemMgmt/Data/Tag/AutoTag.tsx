@@ -84,7 +84,7 @@ interface ImportCandidate {
   industryBelong?: string;
   subdistrict?: string;
   reason?: string;
-  matchedCompanyId?: number;
+  matchedCompanyId?: string;
   matchedCompanyName?: string;
   matchedCreditCode?: string;
 }
@@ -132,8 +132,8 @@ interface TagBuckets {
 
 interface TagResultItem {
   batchItemId: number;
-  key: number;
-  companyId: number;
+  key: string;
+  companyId: string;
   name: string;
   code: string;
   updateTime?: string | null;
@@ -269,7 +269,7 @@ const AutoTag: React.FC = () => {
   const [editingCompanyId, setEditingCompanyId] = useState<number | null>(null);
   const [selectedAddDimensionKey, setSelectedAddDimensionKey] = useState<DimensionKey | undefined>(undefined);
   const [selectedAddTagId, setSelectedAddTagId] = useState<number | undefined>(undefined);
-  const [dirtyCompanyIds, setDirtyCompanyIds] = useState<Set<number>>(new Set());
+  const [dirtyCompanyIds, setDirtyCompanyIds] = useState<Set<string>>(new Set());
 
   const currentStep = useMemo(() => {
     if (resultItems.length > 0) {
@@ -533,7 +533,7 @@ const AutoTag: React.FC = () => {
     message.info("已恢复到最近一次保存结果");
   };
 
-  const updateCompanyTags = (companyId: number, nextTags: TagDetail[]) => {
+  const updateCompanyTags = (companyId: string, nextTags: TagDetail[]) => {
     setResultItems((prev) =>
       prev.map((item) =>
         item.companyId === companyId

@@ -44,10 +44,6 @@ class ScoreModelTechWeight(models.Model):
     tech_technology_enterprise = models.DecimalField(max_digits=5, decimal_places=2, default=0, db_column="tech_technology_enterprise")
     industry_university_research = models.DecimalField(max_digits=5, decimal_places=2, default=0, db_column="industry_university_research")
     national_provincial_award = models.DecimalField(max_digits=5, decimal_places=2, default=0, db_column="national_provincial_award")
-    national_tech_honor = models.DecimalField(max_digits=5, decimal_places=2, default=0, db_column="national_tech_honor")
-    provincial_tech_honor = models.DecimalField(max_digits=5, decimal_places=2, default=0, db_column="provincial_tech_honor")
-    medical_ai_model_filing = models.DecimalField(max_digits=5, decimal_places=2, default=0, db_column="medical_ai_model_filing")
-    high_quality_dataset = models.DecimalField(max_digits=5, decimal_places=2, default=0, db_column="high_quality_dataset")
 
     class Meta:
         managed = False

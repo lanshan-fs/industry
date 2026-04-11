@@ -9,6 +9,8 @@ from django.views.decorators.http import require_GET
 from .engine import get_company_scoring_snapshot
 from .models import ScoreIndustryPath
 
+MAX_TOTAL_SCORE = 355.0
+
 
 def _normalize_text(value) -> str:
     if value is None:
@@ -30,49 +32,49 @@ def _rows(query: str, params: list | tuple | None = None) -> list[dict]:
         return [dict(zip(columns, row)) for row in cursor.fetchall()]
 
 
-def _resolve_company_id(identifier: str | None, company_keyword: str | None) -> int | None:
+def _resolve_credit_code(identifier: str | None, company_keyword: str | None) -> str | None:
     with connection.cursor() as cursor:
         if identifier:
             normalized = _normalize_text(identifier)
-            if normalized.isdigit():
-                cursor.execute("SELECT company_id FROM company_basic WHERE company_id = %s LIMIT 1", [int(normalized)])
-                row = cursor.fetchone()
-                if row:
-                    return int(row[0])
             cursor.execute(
                 """
-                SELECT company_id
+                SELECT credit_code
                 FROM company_basic
                 WHERE credit_code = %s OR company_name = %s
-                ORDER BY company_id
+                ORDER BY credit_code
                 LIMIT 1
                 """,
                 [normalized, normalized],
             )
             row = cursor.fetchone()
             if row:
-                return int(row[0])
+                return _normalize_text(row[0])
 
         if company_keyword:
             normalized = _normalize_text(company_keyword)
-            cursor.execute("SELECT company_id FROM company_basic WHERE company_name = %s LIMIT 1", [normalized])
+            cursor.execute("SELECT credit_code FROM company_basic WHERE company_name = %s LIMIT 1", [normalized])
             row = cursor.fetchone()
             if row:
-                return int(row[0])
+                return _normalize_text(row[0])
             cursor.execute(
                 """
-                SELECT company_id
+                SELECT credit_code
                 FROM company_basic
-                WHERE company_name LIKE %s
-                ORDER BY company_id
+                WHERE company_name LIKE %s OR credit_code LIKE %s
+                ORDER BY credit_code
                 LIMIT 1
                 """,
-                [f"%{normalized}%"],
+                [f"%{normalized}%", f"%{normalized}%"],
             )
             row = cursor.fetchone()
             if row:
-                return int(row[0])
+                return _normalize_text(row[0])
     return None
+
+
+def _resolve_company_id(identifier: str | None, company_keyword: str | None) -> str | None:
+    # Backward-compatible shim for modules not yet migrated off legacy helper naming.
+    return _resolve_credit_code(identifier, company_keyword)
 
 
 def _build_tree(rows: list[ScoreIndustryPath]) -> list[dict]:
@@ -118,13 +120,13 @@ def _build_tree(rows: list[ScoreIndustryPath]) -> list[dict]:
 
 
 def _score_level(total_score: float) -> str:
-    if total_score >= 45:
+    if total_score >= MAX_TOTAL_SCORE * 0.45:
         return "AAA"
-    if total_score >= 35:
+    if total_score >= MAX_TOTAL_SCORE * 0.35:
         return "AA"
-    if total_score >= 25:
+    if total_score >= MAX_TOTAL_SCORE * 0.25:
         return "A"
-    if total_score >= 15:
+    if total_score >= MAX_TOTAL_SCORE * 0.15:
         return "BBB"
     return "BB"
 
@@ -183,7 +185,7 @@ def _date_text(value) -> str:
     return value.isoformat() if value else "-"
 
 
-def _risk_table_data(company_id: int) -> list[dict]:
+def _risk_table_data(credit_code: str) -> list[dict]:
     rows = _rows(
         """
         SELECT
@@ -209,11 +211,11 @@ def _risk_table_data(company_id: int) -> list[dict]:
           COALESCE(c.liquidation_info_count, 0) AS liquidation_info_count,
           COALESCE(c.executed_person_count, 0) AS executed_person_count
         FROM company_basic b
-        LEFT JOIN company_basic_count c ON b.company_id = c.company_id
-        WHERE b.company_id = %s
+        LEFT JOIN company_basic_count c ON b.credit_code = c.credit_code
+        WHERE b.credit_code = %s
         LIMIT 1
         """,
-        [company_id],
+        [credit_code],
     )
     if not rows:
         return []
@@ -243,7 +245,7 @@ def _risk_table_data(company_id: int) -> list[dict]:
     ]
 
 
-def _qualification_table_data(company_id: int) -> list[dict]:
+def _qualification_table_data(credit_code: str) -> list[dict]:
     rows = _rows(
         """
         SELECT
@@ -263,11 +265,11 @@ def _qualification_table_data(company_id: int) -> list[dict]:
           COALESCE(c.patent_count, 0) AS patent_count,
           COALESCE(c.trademark_count, 0) AS trademark_count
         FROM company_basic b
-        LEFT JOIN company_basic_count c ON b.company_id = c.company_id
-        WHERE b.company_id = %s
+        LEFT JOIN company_basic_count c ON b.credit_code = c.credit_code
+        WHERE b.credit_code = %s
         LIMIT 1
         """,
-        [company_id],
+        [credit_code],
     )
     if not rows:
         return []
@@ -300,7 +302,7 @@ def _qualification_table_data(company_id: int) -> list[dict]:
     ]
 
 
-def _ip_detail_payload(company_id: int) -> dict[str, list[dict]]:
+def _ip_detail_payload(credit_code: str) -> dict[str, list[dict]]:
     patent_rows = _rows(
         """
         SELECT
@@ -311,11 +313,11 @@ def _ip_detail_payload(company_id: int) -> dict[str, list[dict]]:
           publication_date,
           tech_attribute_label
         FROM company_patent
-        WHERE company_id = %s
+        WHERE credit_code = %s
         ORDER BY COALESCE(auth_date, publication_date, application_date) DESC, company_patent_id DESC
         LIMIT 100
         """,
-        [company_id],
+        [credit_code],
     )
     software_rows = _rows(
         """
@@ -326,11 +328,11 @@ def _ip_detail_payload(company_id: int) -> dict[str, list[dict]]:
           company_software_copyright_status,
           company_software_copyright_for_short
         FROM company_software_copyright
-        WHERE company_id = %s
+        WHERE credit_code = %s
         ORDER BY COALESCE(company_software_copyright_register_date, '1900-01-01') DESC, company_software_copyright_id DESC
         LIMIT 100
         """,
-        [company_id],
+        [credit_code],
     )
     work_rows = _rows(
         """
@@ -342,11 +344,11 @@ def _ip_detail_payload(company_id: int) -> dict[str, list[dict]]:
           company_work_copyright_register_date,
           company_work_copyright_status
         FROM company_work_copyright
-        WHERE company_id = %s
+        WHERE credit_code = %s
         ORDER BY COALESCE(company_work_copyright_register_date, company_work_copyright_publish_date, '1900-01-01') DESC, company_work_copyright_id DESC
         LIMIT 100
         """,
-        [company_id],
+        [credit_code],
     )
     trademark_rows = _rows(
         """
@@ -355,11 +357,11 @@ def _ip_detail_payload(company_id: int) -> dict[str, list[dict]]:
           company_trademark_register_number,
           company_trademark_application_date
         FROM company_trademark
-        WHERE company_id = %s
+        WHERE credit_code = %s
         ORDER BY COALESCE(company_trademark_application_date, '1900-01-01') DESC, company_trademark_id DESC
         LIMIT 100
         """,
-        [company_id],
+        [credit_code],
     )
     return {
         "专利数量": [
@@ -409,16 +411,16 @@ def _ip_detail_payload(company_id: int) -> dict[str, list[dict]]:
     }
 
 
-def _migration_risk_from_recruitment(company_id: int) -> dict:
+def _migration_risk_from_recruitment(credit_code: str) -> dict:
     row = _rows(
         """
         SELECT
           COUNT(*) AS recruit_count,
           SUM(CASE WHEN company_recruit_work_place LIKE %s THEN 1 ELSE 0 END) AS beijing_recruit_count
         FROM company_recruit
-        WHERE company_id = %s
+        WHERE credit_code = %s
         """,
-        ["%北京%", company_id],
+        ["%北京%", credit_code],
     )[0]
     recruit_count = int(row["recruit_count"] or 0)
     beijing_recruit_count = int(row["beijing_recruit_count"] or 0)
@@ -474,7 +476,7 @@ def _migration_risk_from_recruitment(company_id: int) -> dict:
     }
 
 
-def _operation_table_data(company_id: int) -> list[dict]:
+def _operation_table_data(credit_code: str) -> list[dict]:
     rows = _rows(
         """
         SELECT
@@ -494,11 +496,11 @@ def _operation_table_data(company_id: int) -> list[dict]:
           COALESCE(c.customer_count, 0) AS customer_count,
           COALESCE(c.ranking_count, 0) AS ranking_count
         FROM company_basic b
-        LEFT JOIN company_basic_count c ON b.company_id = c.company_id
-        WHERE b.company_id = %s
+        LEFT JOIN company_basic_count c ON b.credit_code = c.credit_code
+        WHERE b.credit_code = %s
         LIMIT 1
         """,
-        [company_id],
+        [credit_code],
     )
     if not rows:
         return []
@@ -533,17 +535,17 @@ def _operation_table_data(company_id: int) -> list[dict]:
     ]
 
 
-def _company_tags(company_id: int, fallback_industries: list[str], qualification_label: str) -> list[str]:
+def _company_tags(credit_code: str, fallback_industries: list[str], qualification_label: str) -> list[str]:
     rows = _rows(
         """
         SELECT l.company_tag_name
         FROM company_tag_map m
         JOIN company_tag_library l ON l.company_tag_id = m.company_tag_id
-        WHERE m.company_id = %s
+        WHERE m.credit_code = %s
         ORDER BY COALESCE(m.confidence, 0) DESC, m.company_tag_map_id DESC
         LIMIT 12
         """,
-        [company_id],
+        [credit_code],
     )
     tags = [_normalize_text(row["company_tag_name"]) for row in rows if _normalize_text(row["company_tag_name"])]
     if not tags:
@@ -553,9 +555,9 @@ def _company_tags(company_id: int, fallback_industries: list[str], qualification
     return list(dict.fromkeys([tag for tag in tags if tag]))
 
 
-def _company_rank(company_id: int, total_score: float) -> int | None:
+def _company_rank(credit_code: str, total_score: float) -> int | None:
     with connection.cursor() as cursor:
-        cursor.execute("SELECT total_score FROM scoring_scoreresult WHERE enterprise_id = %s LIMIT 1", [company_id])
+        cursor.execute("SELECT total_score FROM scoring_scoreresult WHERE enterprise_credit_code = %s LIMIT 1", [credit_code])
         row = cursor.fetchone()
         compare_score = float(row[0]) if row else float(total_score)
         cursor.execute("SELECT COUNT(*) + 1 FROM scoring_scoreresult WHERE total_score > %s", [compare_score])
@@ -574,71 +576,72 @@ def _profile_payload(snapshot: dict) -> dict:
         """
         SELECT shareholder_name, holding_ratio, subscribed_amount
         FROM company_shareholder
-        WHERE company_id = %s
+        WHERE credit_code = %s
         ORDER BY is_latest DESC, holding_ratio DESC, company_shareholder_id
         LIMIT 20
         """,
-        [company.company_id],
+        [company.credit_code],
     )
     branch_rows = _rows(
         """
         SELECT company_branch_name, company_branch_legal_representative, company_branch_establish_date
         FROM company_branch
-        WHERE company_id = %s
+        WHERE credit_code = %s
         ORDER BY company_branch_establish_date DESC, company_branch_id DESC
         LIMIT 20
         """,
-        [company.company_id],
+        [company.credit_code],
     )
     change_rows = _rows(
         """
         SELECT change_date, change_item, before_change, after_change
         FROM company_change
-        WHERE company_id = %s
+        WHERE credit_code = %s
         ORDER BY change_date DESC, company_change_id DESC
         LIMIT 20
         """,
-        [company.company_id],
+        [company.credit_code],
     )
     social_rows = _rows(
         """
         SELECT stat_year, employee_count
         FROM company_employee_count
-        WHERE company_id = %s
+        WHERE credit_code = %s
         ORDER BY stat_year DESC
         LIMIT 5
         """,
-        [company.company_id],
+        [company.credit_code],
     )
     qualification_rows = _rows(
         """
         SELECT qualification_name, issued_at
         FROM company_qualification
-        WHERE company_id = %s
+        WHERE credit_code = %s
         ORDER BY COALESCE(issued_at, '1900-01-01') DESC, company_qualification_id DESC
         LIMIT 10
         """,
-        [company.company_id],
+        [company.credit_code],
     )
     ranking_rows = _rows(
         """
         SELECT company_ranking_name, company_ranking_publish_year
         FROM company_ranking
-        WHERE company_id = %s
+        WHERE credit_code = %s
         ORDER BY COALESCE(company_ranking_publish_year, 0) DESC, company_ranking_id DESC
         LIMIT 10
         """,
-        [company.company_id],
+        [company.credit_code],
     )
 
-    tags = _company_tags(company.company_id, score["industry_paths"], company.qualification_label)
+    tags = _company_tags(company.credit_code, score["industry_paths"], company.qualification_label)
     compliance_risk = _risk_profile(company.risk_map)
-    migration_risk = _migration_risk_from_recruitment(company.company_id)
+    migration_risk = _migration_risk_from_recruitment(company.credit_code)
     innovation_dimension = next((item for item in score["breakdown"]["professional"] if item["key"] == "innovation"), None)
     overall_radar = [
         {"item": "基础评分", "score": float(score["basic_score"])},
         {"item": "科技属性", "score": float(score["tech_score"])},
         {"item": "专业能力", "score": float(score["professional_score"])},
+        {"item": "附加分", "score": float(score.get("bonus_score", 0))},
         {"item": "创新活力", "score": float(innovation_dimension["score"]) if innovation_dimension else 0},
         {"item": "合规风险", "score": max(0, 100 - int(compliance_risk["score"]))},
     ]
@@ -659,14 +662,14 @@ def _profile_payload(snapshot: dict) -> dict:
             }
         )
 
-    risk_table_data = _risk_table_data(company.company_id)
-    qual_table_data = _qualification_table_data(company.company_id)
-    operate_table_data = _operation_table_data(company.company_id)
-    ip_details = _ip_detail_payload(company.company_id)
+    risk_table_data = _risk_table_data(company.credit_code)
+    qual_table_data = _qualification_table_data(company.credit_code)
+    operate_table_data = _operation_table_data(company.credit_code)
+    ip_details = _ip_detail_payload(company.credit_code)
 
     return {
         "baseInfo": {
-            "id": company.company_id,
+            "id": company.credit_code,
             "name": company.company_name,
             "type": company.company_type or "-",
             "legalPerson": company.legal_representative or "-",
@@ -743,7 +746,9 @@ def _profile_payload(snapshot: dict) -> dict:
         "tags": tags,
         "metrics": {
             "totalScore": float(score["total_score"]),
-            "rank": _company_rank(company.company_id, float(score["total_score"])),
+            "maxScore": MAX_TOTAL_SCORE,
+            "extraScore": float(score.get("bonus_score", 0)),
+            "rank": _company_rank(company.credit_code, float(score["total_score"])),
         },
         "migrationRisk": migration_risk,
         "overallRadar": overall_radar,
@@ -755,6 +760,7 @@ def _profile_payload(snapshot: dict) -> dict:
             "basic": {"score": float(score["basic_score"]), "dimensions": score["breakdown"]["basic"]},
             "tech": {"score": float(score["tech_score"]), "dimensions": score["breakdown"]["tech"]},
             "ability": {"score": float(score["professional_score"]), "dimensions": score["breakdown"]["professional"]},
+            "bonus": {"score": float(score.get("bonus_score", 0)), "dimensions": score["breakdown"].get("bonus", [])},
         },
         "honors": honors[:12],
     }
@@ -782,7 +788,7 @@ def _score_payload(snapshot: dict) -> dict:
             ],
         },
         "科技属性": {
-            "formula": "科技属性 = 专利、软著、科技企业资质、产学研和奖励分项按权重缩放后汇总",
+            "formula": "科技属性 = 专利、软著、科技企业资质、产学研和奖励分项按权重缩放后汇总，不含附加分",
             "desc": "评估企业技术创新、研发积累与科技属性。",
             "tableData": [
                 {
@@ -793,6 +799,20 @@ def _score_payload(snapshot: dict) -> dict:
                     "time": "-",
                 }
                 for item in score["breakdown"]["tech"]
+            ],
+        },
+        "附加分": {
+            "formula": "附加分 = 科技荣誉（国家级）+ 科技荣誉（省级）+ 算法备案的医疗大模型 + 高质量数据集，满分 55 分",
+            "desc": "单独累计高价值科技荣誉与数据资产，不参与 TOTAL 二次加权，直接并入总分。",
+            "tableData": [
+                {
+                    "key": item["key"],
+                    "item": item["name"],
+                    "value": item["description"],
+                    "rawScore": item["score"],
+                    "time": "-",
+                }
+                for item in score["breakdown"].get("bonus", [])
             ],
         },
         "专业能力": {
@@ -828,6 +848,7 @@ def _score_payload(snapshot: dict) -> dict:
     radar_data = [
         {"item": "基础评分", "score": float(score["basic_score"])},
         {"item": "科技属性", "score": float(score["tech_score"])},
+        {"item": "附加分", "score": float(score.get("bonus_score", 0))},
         {"item": "专业能力", "score": float(score["professional_score"])},
         {
             "item": "风险画像",
@@ -837,7 +858,7 @@ def _score_payload(snapshot: dict) -> dict:
 
     return {
         "enterprise": {
-            "id": company.company_id,
+            "id": company.credit_code,
             "name": company.company_name,
             "creditCode": company.credit_code or "-",
             "industry": primary_industry_path.split("/")[-1] if primary_industry_path else "-",
@@ -847,8 +868,10 @@ def _score_payload(snapshot: dict) -> dict:
         },
         "overview": {
             "totalScore": float(score["total_score"]),
+            "maxScore": MAX_TOTAL_SCORE,
+            "extraScore": float(score.get("bonus_score", 0)),
             "level": _score_level(float(score["total_score"])),
-            "rank": _company_rank(company.company_id, float(score["total_score"])),
+            "rank": _company_rank(company.credit_code, float(score["total_score"])),
         },
         "radarData": radar_data,
         "dimensionDetails": dimension_details,
@@ -863,10 +886,10 @@ def industry_tree(_request):
 
 @require_GET
 def enterprise_profile(request):
-    company_id = _resolve_company_id(request.GET.get("id"), request.GET.get("company"))
-    if not company_id:
+    credit_code = _resolve_credit_code(request.GET.get("id"), request.GET.get("company"))
+    if not credit_code:
         return JsonResponse({"success": False, "message": "未找到匹配企业"}, status=404)
-    snapshot = get_company_scoring_snapshot(company_id)
+    snapshot = get_company_scoring_snapshot(credit_code)
     if not snapshot:
         return JsonResponse({"success": False, "message": "未找到评分数据"}, status=404)
     return JsonResponse({"success": True, "data": _profile_payload(snapshot)})
@@ -874,10 +897,10 @@ def enterprise_profile(request):
 
 @require_GET
 def enterprise_score(request):
-    company_id = _resolve_company_id(request.GET.get("id"), request.GET.get("keyword") or request.GET.get("company"))
-    if not company_id:
+    credit_code = _resolve_credit_code(request.GET.get("id"), request.GET.get("keyword") or request.GET.get("company"))
+    if not credit_code:
         return JsonResponse({"success": False, "message": "未找到匹配企业"}, status=404)
-    snapshot = get_company_scoring_snapshot(company_id)
+    snapshot = get_company_scoring_snapshot(credit_code)
     if not snapshot:
         return JsonResponse({"success": False, "message": "未找到评分数据"}, status=404)
     return JsonResponse({"success": True, "data": _score_payload(snapshot)})

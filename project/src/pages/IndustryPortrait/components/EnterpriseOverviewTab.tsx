@@ -111,6 +111,11 @@ const MAIN_RADAR_CONFIG = (data: any[]) => ({
 const EnterpriseOverviewTab: React.FC<EnterpriseOverviewTabProps> = ({ profile }) => {
   const screens = useBreakpoint();
   const isMobile = !screens.md;
+  const maxScore = Number(profile.metrics?.maxScore || 100);
+  const totalScore = Number(profile.metrics?.totalScore || 0);
+  const extraScore = Number(profile.metrics?.extraScore || 0);
+  const totalScorePercent = maxScore > 0 ? Math.min(100, Math.max(0, (totalScore / maxScore) * 100)) : 0;
+  const scoreHealthy = totalScore >= maxScore * 0.6;
   const [activeTabKey, setActiveTabKey] = useState("basic");
   const [expandedTabs, setExpandedTabs] = useState<Record<string, boolean>>({});
   const [ipDetailModal, setIpDetailModal] = useState<{
@@ -244,6 +249,12 @@ const EnterpriseOverviewTab: React.FC<EnterpriseOverviewTabProps> = ({ profile }
   const summaryCards = useMemo(
     () => [
       {
+        key: "extra",
+        label: "附加分",
+        value: `${extraScore} / 55`,
+        icon: <ExperimentOutlined style={{ color: "#722ed1" }} />,
+      },
+      {
         key: "capital",
         label: "注册资本",
         value: profile.baseInfo.regCapital || "-",
@@ -268,7 +279,7 @@ const EnterpriseOverviewTab: React.FC<EnterpriseOverviewTabProps> = ({ profile }
         icon: <ProfileOutlined style={{ color: "#722ed1" }} />,
       },
     ],
-    [profile.baseInfo.insuredCount, profile.baseInfo.regCapital, profile.honors, profile.metrics.rank],
+    [extraScore, profile.baseInfo.insuredCount, profile.baseInfo.regCapital, profile.honors, profile.metrics.rank],
   );
 
   const renderExpandableTable = (
@@ -607,7 +618,7 @@ const EnterpriseOverviewTab: React.FC<EnterpriseOverviewTabProps> = ({ profile }
                 textAlign: "center",
               }}
             >
-              <Text type="secondary">综合健康分</Text>
+              <Text type="secondary">综合健康分 / {maxScore}</Text>
               <div
                 style={{
                   fontSize: 52,
@@ -617,8 +628,11 @@ const EnterpriseOverviewTab: React.FC<EnterpriseOverviewTabProps> = ({ profile }
                   marginTop: 8,
                 }}
               >
-                {profile.metrics.totalScore}
+                {totalScore}
               </div>
+              <Text type="secondary" style={{ fontSize: 12, display: "block", marginTop: 8 }}>
+                其中附加分 {extraScore} / 55
+              </Text>
               <Text type="secondary" style={{ fontSize: 12 }}>
                 更新于：{profile.baseInfo.updateTime}
               </Text>
@@ -832,20 +846,20 @@ const EnterpriseOverviewTab: React.FC<EnterpriseOverviewTabProps> = ({ profile }
               <Col xs={24} md={10} style={{ textAlign: "center" }}>
                 <Progress
                   type="dashboard"
-                  percent={profile.metrics.totalScore}
+                  percent={totalScorePercent}
                   strokeColor={COLORS.primary}
                   width={180}
                   format={(percent) => (
                     <div style={{ color: COLORS.primary }}>
-                      <div style={{ fontSize: 32 }}>{percent}</div>
-                      <div style={{ fontSize: 14, color: "#999" }}>综合得分</div>
+                      <div style={{ fontSize: 32 }}>{totalScore}</div>
+                      <div style={{ fontSize: 14, color: "#999" }}>{`${Math.round(percent || 0)}% / ${maxScore}`}</div>
                     </div>
                   )}
                 />
                 <div style={{ marginTop: 16 }}>
                   <Alert
-                    message={profile.metrics.totalScore > 60 ? "经营稳健，潜力较强" : "仍需持续观察"}
-                    type={profile.metrics.totalScore > 60 ? "success" : "warning"}
+                    message={scoreHealthy ? "经营稳健，潜力较强" : "仍需持续观察"}
+                    type={scoreHealthy ? "success" : "warning"}
                     showIcon
                     style={{ display: "inline-flex", fontSize: 12, padding: "4px 12px" }}
                   />
@@ -956,7 +970,7 @@ const EnterpriseOverviewTab: React.FC<EnterpriseOverviewTabProps> = ({ profile }
                     风险记录补充观察
                   </Text>
                   <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 8 }}>
-                    {riskOverview.map((item) => (
+                    {riskOverview.map((item: { name: string; count: number }) => (
                       <Tag key={item.name} color="default" style={{ marginRight: 0 }}>
                         {item.name} {item.count}条
                       </Tag>

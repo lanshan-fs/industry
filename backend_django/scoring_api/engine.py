@@ -48,10 +48,6 @@ BASE_MAX = {
     "tech_technology_enterprise": 15.0,
     "industry_university_research": 15.0,
     "national_provincial_award": 10.0,
-    "national_tech_honor": 20.0,
-    "provincial_tech_honor": 15.0,
-    "medical_ai_model_filing": 10.0,
-    "high_quality_dataset": 10.0,
     "industry_market_size": 10.0,
     "industry_heat": 10.0,
     "industry_profit_margin": 10.0,
@@ -86,10 +82,6 @@ GROUP_FIELD_KEYS = {
         "tech_technology_enterprise",
         "industry_university_research",
         "national_provincial_award",
-        "national_tech_honor",
-        "provincial_tech_honor",
-        "medical_ai_model_filing",
-        "high_quality_dataset",
     ],
     "pro": [
         "industry_market_size",
@@ -114,15 +106,14 @@ TECH_KEYWORDS = [
     "人工智能",
     "人机交互",
     "基因",
+    "基因技术",
     "生物",
+    "生物技术",
     "诊断",
     "体外诊断",
     "IVD",
     "可穿戴",
     "医学影像",
-    "数字疗法",
-    "智慧医疗",
-    "互联网医疗",
 ]
 MEDICAL_DEVICE_SCOPE_RULES = [
     (["第三类", "Ⅲ类", "III类", "3类"], ["生产"], 5.0, "经营范围：命中第三类生产"),
@@ -265,10 +256,6 @@ TECH_DEFAULT_VALUES = {
     "tech_technology_enterprise": Decimal("15.0"),
     "industry_university_research": Decimal("15.0"),
     "national_provincial_award": Decimal("10.0"),
-    "national_tech_honor": Decimal("20.0"),
-    "provincial_tech_honor": Decimal("15.0"),
-    "medical_ai_model_filing": Decimal("10.0"),
-    "high_quality_dataset": Decimal("10.0"),
 }
 PRO_DEFAULT_VALUES = {
     "industry_market_size": Decimal("10.0"),
@@ -280,6 +267,7 @@ PRO_DEFAULT_VALUES = {
     "partnership_score": Decimal("10.0"),
     "ranking": Decimal("10.0"),
 }
+TECH_WEIGHT_MODEL_FIELDS = {field.name for field in ScoreModelTechWeight._meta.local_fields}
 
 
 @dataclass
@@ -292,9 +280,8 @@ class PatentRecord:
 
 @dataclass
 class CompanySnapshot:
-    company_id: int
-    company_name: str
     credit_code: str
+    company_name: str
     legal_representative: str
     establish_date: date | None
     approved_date: date | None
@@ -360,6 +347,20 @@ def _split_text_tokens(value: str) -> list[str]:
     return [item.strip() for item in re.split(r"[\n,，;；、]+", _normalize_text(value)) if item.strip()]
 
 
+def _contains_all(text: str, keywords: list[str]) -> bool:
+    normalized = _normalize_text(text).upper()
+    return all(keyword.upper() in normalized for keyword in keywords)
+
+
+def _parse_amount_to_wan(value) -> float | None:
+    if value is None or value == "":
+        return None
+    match = re.search(r"(\d+\.?\d*)", str(value))
+    if not match:
+        return None
+    return float(match.group(1))
+
+
 def _fetch_rows(query: str, params: list | tuple | None = None) -> list[dict]:
     with connection.cursor() as cursor:
         cursor.execute(query, params or [])
@@ -399,16 +400,21 @@ def _ensure_weight_rows():
 
     tech_row = ScoreModelTechWeight.objects.order_by("model_id").first()
     if not tech_row:
-        ScoreModelTechWeight.objects.create(model_name="科技指标模型", **TECH_DEFAULT_VALUES)
-    elif all(float(getattr(tech_row, field) or 0) == 0 for field in TECH_DEFAULT_VALUES):
-        for field, value in TECH_DEFAULT_VALUES.items():
+        ScoreModelTechWeight.objects.create(
+            model_name="科技指标模型",
+            **{field: value for field, value in TECH_DEFAULT_VALUES.items() if field in TECH_WEIGHT_MODEL_FIELDS},
+        )
+    elif all(float(getattr(tech_row, field, 0) or 0) == 0 for field in TECH_DEFAULT_VALUES):
+        supported_fields = [field for field in TECH_DEFAULT_VALUES if field in TECH_WEIGHT_MODEL_FIELDS]
+        for field in supported_fields:
+            value = TECH_DEFAULT_VALUES[field]
             setattr(tech_row, field, value)
-        tech_row.save(update_fields=list(TECH_DEFAULT_VALUES.keys()))
+        tech_row.save(update_fields=supported_fields)
     else:
         missing_fields = [
             field
             for field, value in TECH_DEFAULT_VALUES.items()
-            if float(getattr(tech_row, field) or 0) == 0 and value > 0
+            if field in TECH_WEIGHT_MODEL_FIELDS and float(getattr(tech_row, field, 0) or 0) == 0 and value > 0
         ]
         if missing_fields:
             for field in missing_fields:
@@ -451,7 +457,7 @@ def _years_since(establish_date: date | None) -> int | None:
     return max(years, 0)
 
 
-def _in_clause(ids: list[int]) -> tuple[str, list[int]]:
+def _in_clause(ids: list[str]) -> tuple[str, list[str]]:
     placeholders = ", ".join(["%s"] * len(ids))
     return f"({placeholders})", ids
 
@@ -466,16 +472,15 @@ def _load_weights() -> dict:
     }
 
 
-def _load_company_data(company_ids: list[int] | None = None) -> dict[int, CompanySnapshot]:
+def _load_company_data(credit_codes: list[str] | None = None) -> dict[str, CompanySnapshot]:
     where_clause = ""
-    params: list[int] = []
-    if company_ids:
-        in_clause, params = _in_clause(company_ids)
-        where_clause = f"WHERE company_id IN {in_clause}"
+    params: list[str] = []
+    if credit_codes:
+        in_clause, params = _in_clause(credit_codes)
+        where_clause = f"WHERE credit_code IN {in_clause}"
     company_rows = _fetch_rows(
         f"""
         SELECT
-          company_id,
           company_name,
           credit_code,
           legal_representative,
@@ -512,16 +517,16 @@ def _load_company_data(company_ids: list[int] | None = None) -> dict[int, Compan
           consumption_restriction_count
         FROM company_basic
         {where_clause}
-        ORDER BY company_id
+        ORDER BY credit_code
         """,
         params,
     )
-    companies: dict[int, CompanySnapshot] = {}
+    companies: dict[str, CompanySnapshot] = {}
     for row in company_rows:
-        companies[row["company_id"]] = CompanySnapshot(
-            company_id=row["company_id"],
+        credit_code = _normalize_text(row["credit_code"])
+        companies[credit_code] = CompanySnapshot(
+            credit_code=credit_code,
             company_name=_normalize_text(row["company_name"]),
-            credit_code=_normalize_text(row["credit_code"]),
             legal_representative=_normalize_text(row["legal_representative"]),
             establish_date=row["establish_date"],
             approved_date=row["approved_date"],
@@ -565,7 +570,7 @@ def _load_company_data(company_ids: list[int] | None = None) -> dict[int, Compan
     patent_rows = _fetch_rows(
         f"""
         SELECT
-          p.company_id,
+          p.credit_code,
           p.company_patent_number,
           p.company_patent_name,
           COALESCE(p.tech_attribute_label, '') AS tech_attribute_label,
@@ -573,13 +578,13 @@ def _load_company_data(company_ids: list[int] | None = None) -> dict[int, Compan
         FROM company_patent p
         LEFT JOIN company_patent_patent_type_map m ON m.company_patent_id = p.company_patent_id
         LEFT JOIN company_patent_type t ON t.company_patent_type_id = m.company_patent_type_id
-        WHERE p.company_id IN {in_clause}
-        GROUP BY p.company_patent_id, p.company_id, p.company_patent_number, p.company_patent_name, p.tech_attribute_label
+        WHERE p.credit_code IN {in_clause}
+        GROUP BY p.company_patent_id, p.credit_code, p.company_patent_number, p.company_patent_name, p.tech_attribute_label
         """,
         in_params,
     )
     for row in patent_rows:
-        company = companies.get(row["company_id"])
+        company = companies.get(_normalize_text(row["credit_code"]))
         if not company:
             continue
         patent_types = [item for item in _normalize_text(row["patent_types"]).split("|") if item]
@@ -594,14 +599,14 @@ def _load_company_data(company_ids: list[int] | None = None) -> dict[int, Compan
 
     software_rows = _fetch_rows(
         f"""
-        SELECT company_id, company_software_copyright_name, company_software_copyright_for_short
+        SELECT credit_code, company_software_copyright_name, company_software_copyright_for_short
         FROM company_software_copyright
-        WHERE company_id IN {in_clause}
+        WHERE credit_code IN {in_clause}
         """,
         in_params,
     )
     for row in software_rows:
-        company = companies.get(row["company_id"])
+        company = companies.get(_normalize_text(row["credit_code"]))
         if not company:
             continue
         texts = [
@@ -612,14 +617,14 @@ def _load_company_data(company_ids: list[int] | None = None) -> dict[int, Compan
 
     qualification_rows = _fetch_rows(
         f"""
-        SELECT company_id, qualification_name, qualification_type
+        SELECT credit_code, qualification_name, qualification_type
         FROM company_qualification
-        WHERE company_id IN {in_clause}
+        WHERE credit_code IN {in_clause}
         """,
         in_params,
     )
     for row in qualification_rows:
-        company = companies.get(row["company_id"])
+        company = companies.get(_normalize_text(row["credit_code"]))
         if not company:
             continue
         text = " ".join(
@@ -640,13 +645,13 @@ def _load_company_data(company_ids: list[int] | None = None) -> dict[int, Compan
     if _table_exists("company_ai_model_filing"):
         for row in _fetch_rows(
             f"""
-            SELECT company_id, model_name, filing_no, filing_type, territory
+            SELECT credit_code, model_name, filing_no, filing_type, territory
             FROM company_ai_model_filing
-            WHERE company_id IN {in_clause}
+            WHERE credit_code IN {in_clause}
             """,
             in_params,
         ):
-            company = companies.get(row["company_id"])
+            company = companies.get(_normalize_text(row["credit_code"]))
             if not company:
                 continue
             text = " ".join(
@@ -666,13 +671,13 @@ def _load_company_data(company_ids: list[int] | None = None) -> dict[int, Compan
     if _table_exists("company_high_quality_dataset"):
         for row in _fetch_rows(
             f"""
-            SELECT company_id, dataset_name, applicant_unit_raw, recommender_unit
+            SELECT credit_code, dataset_name, applicant_unit_raw, recommender_unit
             FROM company_high_quality_dataset
-            WHERE company_id IN {in_clause}
+            WHERE credit_code IN {in_clause}
             """,
             in_params,
         ):
-            company = companies.get(row["company_id"])
+            company = companies.get(_normalize_text(row["credit_code"]))
             if not company:
                 continue
             text = " ".join(
@@ -698,13 +703,13 @@ def _load_company_data(company_ids: list[int] | None = None) -> dict[int, Compan
         }
         for row in _fetch_rows(
             f"""
-            SELECT company_id, notice_type, notice_title, notice_category, product_name, reg_no, acceptance_no, owner_name
+            SELECT credit_code, notice_type, notice_title, notice_category, product_name, reg_no, acceptance_no, owner_name
             FROM company_innovation_notice
-            WHERE company_id IN {in_clause}
+            WHERE credit_code IN {in_clause}
             """,
             in_params,
         ):
-            company = companies.get(row["company_id"])
+            company = companies.get(_normalize_text(row["credit_code"]))
             if not company:
                 continue
             notice_type = _normalize_text(row["notice_type"])
@@ -725,34 +730,34 @@ def _load_company_data(company_ids: list[int] | None = None) -> dict[int, Compan
                 company.innovation_texts.append(text)
 
     for row in _fetch_rows(
-        f"SELECT company_id, company_customer_name FROM company_customer WHERE company_customer_name IS NOT NULL AND company_id IN {in_clause}",
+        f"SELECT credit_code, company_customer_name FROM company_customer WHERE company_customer_name IS NOT NULL AND credit_code IN {in_clause}",
         in_params,
     ):
-        company = companies.get(row["company_id"])
+        company = companies.get(_normalize_text(row["credit_code"]))
         if company:
             company.customers.append(_normalize_text(row["company_customer_name"]))
 
     for row in _fetch_rows(
-        f"SELECT company_id, company_supplier_name FROM company_supplier WHERE company_supplier_name IS NOT NULL AND company_id IN {in_clause}",
+        f"SELECT credit_code, company_supplier_name FROM company_supplier WHERE company_supplier_name IS NOT NULL AND credit_code IN {in_clause}",
         in_params,
     ):
-        company = companies.get(row["company_id"])
+        company = companies.get(_normalize_text(row["credit_code"]))
         if company:
             company.suppliers.append(_normalize_text(row["company_supplier_name"]))
 
     for row in _fetch_rows(
-        f"SELECT company_id, company_ranking_name FROM company_ranking WHERE company_ranking_name IS NOT NULL AND company_id IN {in_clause}",
+        f"SELECT credit_code, company_ranking_name FROM company_ranking WHERE company_ranking_name IS NOT NULL AND credit_code IN {in_clause}",
         in_params,
     ):
-        company = companies.get(row["company_id"])
+        company = companies.get(_normalize_text(row["credit_code"]))
         if company:
             company.rankings.append(_normalize_text(row["company_ranking_name"]))
 
     for row in _fetch_rows(
-        f"SELECT company_id, company_risk_category_name, company_risk_category_count FROM company_risk WHERE company_id IN {in_clause}",
+        f"SELECT credit_code, company_risk_category_name, company_risk_category_count FROM company_risk WHERE credit_code IN {in_clause}",
         in_params,
     ):
-        company = companies.get(row["company_id"])
+        company = companies.get(_normalize_text(row["credit_code"]))
         if company:
             company.risk_map[_normalize_text(row["company_risk_category_name"])] = int(row["company_risk_category_count"] or 0)
 
@@ -781,10 +786,10 @@ def _load_company_data(company_ids: list[int] | None = None) -> dict[int, Compan
         return path
 
     for row in _fetch_rows(
-        f"SELECT company_id, category_id FROM category_industry_company_map WHERE company_id IN {in_clause}",
+        f"SELECT credit_code, category_id FROM category_industry_company_map WHERE credit_code IN {in_clause}",
         in_params,
     ):
-        company = companies.get(row["company_id"])
+        company = companies.get(_normalize_text(row["credit_code"]))
         if company and row["category_id"] in category_by_id:
             company.industries.append(build_path(row["category_id"]))
 
@@ -797,10 +802,10 @@ def _load_company_data(company_ids: list[int] | None = None) -> dict[int, Compan
     return companies
 
 
-def get_company_scoring_snapshot(company_id: int) -> dict | None:
+def get_company_scoring_snapshot(credit_code: str) -> dict | None:
     weights = _load_weights()
-    companies = _load_company_data([company_id])
-    company = companies.get(company_id)
+    companies = _load_company_data([credit_code])
+    company = companies.get(credit_code)
     if not company:
         return None
     scorer = CompanyScorer(company, weights)
@@ -813,7 +818,7 @@ class CompanyScorer:
         self.company = company
         self.weights = weights
         self.logs: list[dict] = []
-        self.breakdown = {"basic": [], "tech": [], "professional": []}
+        self.breakdown = {"basic": [], "tech": [], "professional": [], "bonus": []}
 
     def _scale(self, level: str, field_key: str, raw_score: float) -> float:
         config = self.weights[level]
@@ -899,35 +904,122 @@ class CompanyScorer:
             result.append(normalized)
         return result
 
-    def _score_from_rules(self, score_type: str, label: str, industry: str, rules: list[tuple[list[str], int, str]], default_score: int, plus_one: bool = False) -> float:
-        if not industry:
-            self._add_log(score_type, default_score, f"{label}：无行业分类数据，{default_score}分")
-            return float(default_score)
-        for keywords, score, reason in rules:
-            if any(keyword in industry for keyword in keywords):
-                actual = score + 1 if plus_one else score
-                self._add_log(score_type, actual, f"{label}：{industry} -> {reason}，{actual}分")
-                return float(actual)
-        self._add_log(score_type, default_score, f"{label}：{industry} -> 其他，{default_score}分")
-        return float(default_score)
+    def _fym_industry_categories(self) -> list[str]:
+        categories: list[str] = []
+        for industry in self.company.industries:
+            normalized = _normalize_text(industry)
+            if not normalized:
+                continue
+            if any(keyword in normalized for keyword in ["医药商业 / 流通", "医疗零售"]):
+                categories.append("医药流通/零售")
+            if any(keyword in normalized for keyword in ["高值医用耗材", "植入器械/材料"]):
+                categories.append("医疗器械（高值耗材）")
+            if any(
+                keyword in normalized
+                for keyword in ["影像设备", "治疗设备", "生命信息支持设备", "康复设备", "辅助设备", "家用医疗设备", "装备制造"]
+            ):
+                categories.append("医疗器械（设备）")
+            if any(keyword in normalized for keyword in ["智慧医疗", "互联网+健康", "数字疗法", "互联网医疗"]):
+                categories.append("数字医疗/医疗信息化")
+            if any(keyword in normalized for keyword in ["前沿技术融合", "AI 药物研发平台", "AI CRO / 技术服务商", "AI 自研管线企业", "AI 软件 / 工具平台"]):
+                categories.append("医疗AI")
+            if "中药" in normalized:
+                categories.append("中药")
+            if "化学制药" in normalized:
+                categories.append("创新药/生物技术")
+            if "生物制品" in normalized:
+                categories.append("创新药/生物技术")
+            if any(keyword in normalized for keyword in ["严肃医疗", "消费医疗"]):
+                categories.append("医疗服务（民营医院）")
+            if "第三方中心" in normalized:
+                categories.append("医疗服务（第三方医学检验）")
+        deduped: list[str] = []
+        seen: set[str] = set()
+        for item in categories or ["其他"]:
+            if item in seen:
+                continue
+            seen.add(item)
+            deduped.append(item)
+        return deduped
+
+    def _qualification_label(self, text: str) -> str:
+        upper_text = _normalize_text(text).upper()
+        if not upper_text:
+            return "其他"
+        rules = [
+            (["药品", "生产", "许可"], "药品生产许可证"),
+            (["器械", "生产", "许可"], "医疗器械生产许可证"),
+            (["GMP"], "GMP认证"),
+            (["深度合成", "算法"], "深度合成服务算法备案"),
+            (["实验动物"], "实验动物许可"),
+            (["病原微生物"], "病原微生物实验室备案"),
+            (["互联网药品信息服务"], "互联网药品信息服务资格证书"),
+            (["药品医疗器械网络信息服务"], "药品医疗器械网络信息服务备案"),
+            (["网络信息服务", "备案"], "药品医疗器械网络信息服务备案"),
+            (["辐射安全"], "辐射安全许可证"),
+            (["核辐射"], "核辐射利用安全许可证"),
+            (["器械", "经营", "许可"], "医疗器械经营许可证"),
+            (["电信", "许可"], "电信许可"),
+            (["监控化学品"], "第二类监控化学品使用许可证"),
+            (["中药提取物"], "中药提取物备案公示"),
+            (["器械", "生产", "备案"], "医疗器械生产备案凭证"),
+            (["出口证书"], "出口证书"),
+            (["质量管理"], "质量管理体系认证"),
+            (["ISO9001"], "质量管理体系认证"),
+            (["环境管理"], "环境管理体系认证"),
+            (["ISO14001"], "环境管理体系认证"),
+            (["职业健康"], "职业健康安全管理体系认证"),
+            (["ISO45001"], "职业健康安全管理体系认证"),
+        ]
+        for keywords, label in rules:
+            if _contains_all(upper_text, keywords):
+                return label
+        return "其他"
+
+    def _certificate_label(self, text: str) -> str:
+        upper_text = _normalize_text(text).upper()
+        if not upper_text:
+            return "其他"
+        if "药品" in upper_text and "注册" in upper_text:
+            return "药品注册证"
+        if "器械" in upper_text and "注册" in upper_text:
+            return "器械注册证"
+        if "临床" in upper_text:
+            return "临床批件"
+        if "受理公示" in upper_text:
+            return "受理公示"
+        if "在审公示" in upper_text:
+            return "在审公示"
+        if "受理" in upper_text and "品种" in upper_text:
+            return "受理品种"
+        if "在审" in upper_text and "品种" in upper_text:
+            return "在审品种"
+        if "原辅包" in upper_text and "登记" in upper_text:
+            return "原辅包登记"
+        if "原料" in upper_text:
+            return "原料"
+        if "辅料" in upper_text:
+            return "辅料"
+        if "包材" in upper_text:
+            return "包材"
+        if "医疗器械产品备案" in upper_text or ("器械" in upper_text and "产品" in upper_text and "备案" in upper_text):
+            return "医疗器械产品备案"
+        return "其他"
 
     def calculate_all(self) -> dict:
         basic_score = self.calculate_basic_score()
         tech_score = self.calculate_tech_score()
         professional_score = self.calculate_professional_score()
-
-        total_weights = self.weights["total"]
-        basic_ratio = _resolve_total_weight(total_weights, ["基础指标", "基础评分模型", "基础指标模型", "企业基础标准评分模型"], 33.34) / 100.0
-        tech_ratio = _resolve_total_weight(total_weights, ["科技指标", "科技属性评分模型", "科技指标模型", "科技属性标准评分模型"], 33.33) / 100.0
-        professional_ratio = _resolve_total_weight(total_weights, ["专业指标", "专业能力评分模型", "专业指标模型", "专业能力标准评分模型"], 33.33) / 100.0
-        total_score = (basic_score * basic_ratio) + (tech_score * tech_ratio) + (professional_score * professional_ratio)
+        bonus_score = self.calculate_bonus_score()
+        total_score = basic_score + tech_score + professional_score + bonus_score
 
         return {
-            "enterprise_id": self.company.company_id,
+            "enterprise_credit_code": self.company.credit_code,
             "company_name": self.company.company_name,
             "basic_score": round(max(basic_score, 0), 2),
             "tech_score": round(max(tech_score, 0), 2),
             "professional_score": round(max(professional_score, 0), 2),
+            "bonus_score": round(max(bonus_score, 0), 2),
             "total_score": round(max(total_score, 0), 2),
             "logs": self.logs,
             "breakdown": self.breakdown,
@@ -935,8 +1027,7 @@ class CompanyScorer:
         }
 
     def calculate_basic_score(self) -> float:
-        scaled_score = 0.0
-        raw_score = 0.0
+        score = 0.0
         items = [
             ("established_year", "成立年限", self.calculate_established_year),
             ("registered_capital", "注册资本", self.calculate_registered_capital),
@@ -957,9 +1048,8 @@ class CompanyScorer:
             start_index = len(self.logs)
             raw = func()
             description = "；".join(log["description"] for log in self.logs[start_index:]) or f"{label}：{raw}分"
-            raw_score += raw
             scaled_value = self._scale("basic", field_key, raw)
-            scaled_score += scaled_value
+            score += scaled_value
             self._record_dimension(
                 group="basic",
                 field_key=field_key,
@@ -970,7 +1060,7 @@ class CompanyScorer:
             )
         risk_start = len(self.logs)
         risk_penalty = self.calculate_risk_penalties()
-        scaled_score += risk_penalty
+        score += risk_penalty
         risk_description = "；".join(log["description"] for log in self.logs[risk_start:]) or "风险扣分：0分"
         self._record_dimension(
             group="basic",
@@ -980,76 +1070,83 @@ class CompanyScorer:
             scaled_score=risk_penalty,
             description=risk_description,
         )
-        group_total = self._group_target_total("basic")
-        final_score = max(round((scaled_score / group_total) * 100, 2), 0) if group_total else 0
-        self._add_log("basic", final_score, f"基础模块：原始分 {round(raw_score, 2)}，加权分 {round(scaled_score, 2)} / {round(group_total, 2)}，归一后 {final_score} 分")
+        final_score = max(round(score, 2), 0)
+        self._add_log("basic", final_score, f"基础模块计算完毕：累加分 {final_score}")
         return final_score
 
     def calculate_website(self) -> float:
-        score = 2.0 if self.company.website else 0.0
-        self._add_log("basic", score, f"网址：{'存在官网地址' if self.company.website else '未提供官网'}，{score}分")
-        return score
+        if self.company.website:
+            self._add_log("basic", 2.0, "网址：有网址，2分")
+            return 2.0
+        self._add_log("basic", 0.0, "网址：无网址，0分")
+        return 0.0
 
     def calculate_established_year(self) -> float:
         years = _years_since(self.company.establish_date)
         if years is None:
             score = 1.0
-            self._add_log("basic", score, "成立年限：缺失，1分")
+            self._add_log("basic", score, "成立年限：未提供，基础分1分")
             return score
-        if years >= 10:
-            score = 5.0
-        elif years >= 5:
-            score = 4.0
-        elif years >= 1:
-            score = 3.0
-        else:
+        if years <= 1:
             score = 1.0
+        elif years <= 5:
+            score = 3.0
+        elif years <= 10:
+            score = 4.0
+        else:
+            score = 5.0
         self._add_log("basic", score, f"成立年限：{years}年，{score}分")
         return score
 
     def calculate_registered_capital(self) -> float:
-        capital = float(_safe_decimal(self.company.register_capital))
-        if capital > 1000:
-            score = 6.0
-        elif capital >= 500:
-            score = 5.0
-        elif capital >= 200:
-            score = 4.0
-        elif capital >= 100:
-            score = 3.0
-        elif capital >= 0:
+        capital = _parse_amount_to_wan(self.company.register_capital)
+        if capital is None:
             score = 2.0
+            self._add_log("basic", score, "注册资本：未提供，基础分2分")
+            return score
+        if capital <= 100:
+            score = 2.0
+        elif capital <= 200:
+            score = 3.0
+        elif capital <= 500:
+            score = 4.0
+        elif capital <= 1000:
+            score = 5.0
         else:
-            score = 0.0
+            score = 6.0
         self._add_log("basic", score, f"注册资本：{capital}万元，{score}分")
         return score
 
     def calculate_actual_paid_capital(self) -> float:
-        capital = float(_safe_decimal(self.company.paid_capital))
-        if capital > 500:
-            score = 8.0
-        elif capital >= 100:
-            score = 6.0
-        elif capital > 0:
-            score = 3.0
-        else:
+        capital = _parse_amount_to_wan(self.company.paid_capital)
+        if capital is None:
             score = 1.0
+            self._add_log("basic", score, "实缴资本：未提供，基础分1分")
+            return score
+        if capital == 0:
+            score = 1.0
+        elif capital <= 100:
+            score = 3.0
+        elif capital <= 500:
+            score = 6.0
+        else:
+            score = 8.0
         self._add_log("basic", score, f"实缴资本：{capital}万元，{score}分")
         return score
 
     def calculate_company_type(self) -> float:
         company_type = _normalize_text(self.company.company_type)
-        if self.company.listing_status == 1 or self.company.stock_code or _contains_any(company_type, ["上市", "央企"]):
+        if not company_type:
+            score = 1.0
+        elif any(keyword in company_type for keyword in ["央企", "上市", "国有控股"]):
             score = 7.0
-        elif _contains_any(company_type, ["自然人投资或控股", "股份合作制"]):
-            score = 3.0
-        elif _contains_any(company_type, ["个人独资", "自然人独资", "合伙"]):
-            score = 2.0
-        elif _contains_any(company_type, ["国有", "股份有限公司"]):
+        elif any(keyword in company_type for keyword in ["国有", "股份有限"]):
             score = 5.0
-        elif _contains_any(company_type, ["有限责任公司", "外商投资", "台港澳", "外国法人"]):
+        elif any(keyword in company_type for keyword in ["有限", "外商", "合资", "港澳台"]):
             score = 4.0
-        elif "个体工商户" in company_type:
+        elif any(keyword in company_type for keyword in ["自然人投资", "股份合作", "控股"]):
+            score = 3.0
+        elif any(keyword in company_type for keyword in ["个人独资", "自然人独资", "合伙", "个体工商户"]):
             score = 2.0
         else:
             score = 1.0
@@ -1072,7 +1169,13 @@ class CompanyScorer:
         return score
 
     def calculate_social_security_count(self) -> float:
+        if self.company.insured_count is None:
+            self._add_log("basic", 0.0, "社保人数：未提供，0分")
+            return 0.0
         count = int(self.company.insured_count or 0)
+        if count <= 0:
+            self._add_log("basic", 0.0, "社保人数：0人，0分")
+            return 0.0
         if count >= 500:
             score = 6.0
         elif count >= 100:
@@ -1081,24 +1184,43 @@ class CompanyScorer:
             score = 4.0
         elif count >= 30:
             score = 3.0
-        elif count > 0:
-            score = 2.0
         else:
-            score = 0.0
+            score = 2.0
         self._add_log("basic", score, f"社保人数：{count}人，{score}分")
         return score
 
     def calculate_business_scope(self) -> float:
         scope = _normalize_text(self.company.business_scope)
         if not scope:
-            self._add_log("basic", 0.0, "经营范围：缺失，0分")
-            return 0.0
-        for class_keywords, action_keywords, score, description in MEDICAL_DEVICE_SCOPE_RULES:
-            if any(keyword in scope for keyword in class_keywords) and any(keyword in scope for keyword in action_keywords):
-                self._add_log("basic", score, f"{description}，{score}分")
-                return score
-        self._add_log("basic", 0.0, "经营范围：未命中医疗器械分档关键词，0分")
-        return 0.0
+            self._add_log("basic", 1.0, "经营范围：未提供，基础分1分")
+            return 1.0
+
+        score_rules = [
+            (["第三类", "III类", "Ⅲ类", "三类"], ["生产", "制造", "加工"], 5.0, "3类生产"),
+            (["第二类", "II类", "Ⅱ类", "二类"], ["生产", "制造", "加工"], 4.0, "二类生产"),
+            (["第三类", "III类", "Ⅲ类", "三类"], ["销售", "经营"], 3.0, "3类销售/经营"),
+            (["第二类", "II类", "Ⅱ类", "二类"], ["销售", "经营"], 2.0, "二类销售/经营"),
+            (["第一类", "I类", "Ⅰ类", "一类"], ["销售", "经营"], 1.0, "一类销售/经营"),
+        ]
+        main_items = [item.strip() for item in scope.split("；") if item.strip()]
+        all_items: list[str] = []
+        for item in main_items:
+            item_clean = re.sub(r"（[^）]*）", "", item)
+            item_clean = re.sub(r"\([^)]*\)", "", item_clean)
+            all_items.extend([sub.strip() for sub in item_clean.split("、") if sub.strip()])
+
+        highest_score = 1.0
+        highest_desc = "无有效类别，1分"
+        for item in all_items:
+            for keywords, biz_types, item_score, desc in score_rules:
+                if any(keyword in item for keyword in keywords) and any(biz_type in item for biz_type in biz_types):
+                    if item_score > highest_score:
+                        highest_score = item_score
+                        highest_desc = f"{item}（{desc}），{item_score}分"
+                    break
+
+        self._add_log("basic", highest_score, f"经营范围：{highest_desc}")
+        return highest_score
 
     def calculate_tax_rating(self) -> float:
         rating = self.company.taxpayer_credit_rating
@@ -1112,61 +1234,47 @@ class CompanyScorer:
         return score
 
     def calculate_funding_round(self) -> float:
-        round_text = self.company.financing_round.upper()
-        if not round_text:
+        round_text = _normalize_text(self.company.financing_round)
+        if not round_text or round_text == "无投融资信息":
             score = 1.0
-        elif _contains_any(round_text, ["IPO", "上市"]):
-            score = 10.0
-        elif _contains_any(round_text, ["PRE-IPO"]):
-            score = 10.0
-        elif _contains_any(round_text, ["D轮", "E轮", "D ", "E "]):
-            score = 8.0
-        elif _contains_any(round_text, ["C轮", "战略投资", "战略融资"]):
-            score = 6.0
-        elif _contains_any(round_text, ["B轮", "股权融资"]):
-            score = 5.0
-        elif _contains_any(round_text, ["天使", "ANGEL", "A轮", "PREA", "PRE-A", "A "]):
+        elif any(keyword in round_text for keyword in ["天使轮", "A轮", "a轮", "PreA", "Pre-A", "prea", "种子轮"]):
             score = 4.0
+        elif any(keyword in round_text for keyword in ["B轮", "b轮", "股权融资", "并购融资", "战略融资", "融资"]):
+            score = 5.0
+        elif any(keyword in round_text for keyword in ["C轮", "c轮", "战略投资"]):
+            score = 6.0
+        elif any(keyword in round_text for keyword in ["D轮", "d轮", "E轮", "e轮"]):
+            score = 8.0
+        elif any(keyword in round_text for keyword in ["IPO", "ipo", "上市"]):
+            score = 10.0
         else:
             score = 1.0
-        self._add_log("basic", score, f"投融资轮次：{self.company.financing_round or '未提供'}，{score}分")
+        self._add_log("basic", score, f"投融资轮次：{round_text or '未融资'}，{score}分")
         return score
 
     def calculate_patent_type(self) -> float:
         score = 0.0
-        pct_count = 0
-        invention_auth = 0
-        invention_public = 0
-        substantial_exam = 0
-        utility = 0
-        design = 0
+        patent_count = 0
         for patent in self.company.patents:
+            patent_count += 1
             patent_types = patent.patent_types
             patent_number = patent.patent_number.upper()
-            if "PCT" in patent_number or patent_number.startswith("WO"):
+            patent_text = "|".join(patent_types)
+            if "PCT" in patent_number or "PCT" in patent_text:
                 score += 4.0
-                pct_count += 1
             elif "发明授权" in patent_types:
                 score += 2.0
-                invention_auth += 1
             elif "发明公开" in patent_types:
                 score += 1.0
-                invention_public += 1
-            elif any("实质审查" in patent_type for patent_type in patent_types):
+            elif (
+                any("实质审查" in patent_type for patent_type in patent_types)
+                or "实用新型" in patent_types
+                or "外观设计" in patent_types
+                or any("商标" in patent_type for patent_type in patent_types)
+            ):
                 score += 0.5
-                substantial_exam += 1
-            elif "实用新型" in patent_types:
-                score += 0.5
-                utility += 1
-            elif "外观设计" in patent_types:
-                score += 0.5
-                design += 1
         score = min(score, 15.0)
-        self._add_log(
-            "basic",
-            score,
-            f"专利类型：PCT{pct_count}、发明授权{invention_auth}、发明公开{invention_public}、实质审查{substantial_exam}、实用新型{utility}、外观设计{design}，{score}分",
-        )
+        self._add_log("basic", score, f"专利类型：{patent_count}项专利，{score}分")
         return score
 
     def calculate_software_copyright(self) -> float:
@@ -1176,21 +1284,22 @@ class CompanyScorer:
         return score
 
     def calculate_technology_enterprise(self) -> float:
-        score = 1.0
-        descriptions: list[str] = ["无"]
+        score = 0.0
+        descriptions: list[str] = []
         if self.company.is_srdi_little_giant or self.company.is_srdi_sme:
             score += 8.0
-            descriptions = ["专精特新"]
+            descriptions.append("专精特新")
         if self.company.is_innovative_sme:
             score += 6.0
             descriptions.append("创新型企业")
         if self.company.is_high_tech_enterprise:
             score += 4.0
             descriptions.append("高新企业")
-        score = min(score, 10.0)
-        label = "、".join(descriptions)
-        self._add_log("basic", score, f"科技型企业：{label}，{score}分")
-        return score
+        final_score = min(score, 10.0) if score else 1.0
+        if not descriptions:
+            descriptions.append("无")
+        self._add_log("basic", final_score, f"科技型企业：{'、'.join(descriptions) if descriptions else '无'}，{final_score}分")
+        return final_score
 
     def calculate_risk_penalties(self) -> float:
         total_penalty = 0.0
@@ -1220,20 +1329,14 @@ class CompanyScorer:
             ("tech_technology_enterprise", "科技型企业", self.calculate_tech_technology_enterprise),
             ("industry_university_research", "产学研合作", self.calculate_industry_university_research),
             ("national_provincial_award", "国家/省级奖励", self.calculate_national_provincial_award),
-            ("national_tech_honor", "科技荣誉（国家级）", self.calculate_national_tech_honor),
-            ("provincial_tech_honor", "科技荣誉（省级）", self.calculate_provincial_tech_honor),
-            ("medical_ai_model_filing", "算法备案的医疗大模型", self.calculate_medical_ai_model_filing),
-            ("high_quality_dataset", "高质量数据集", self.calculate_high_quality_dataset),
         ]
-        raw_score = 0.0
-        scaled_score = 0.0
+        score = 0.0
         for field_key, label, func in items:
             start_index = len(self.logs)
             raw = func()
             description = "；".join(log["description"] for log in self.logs[start_index:]) or f"{label}：{raw}分"
-            raw_score += raw
             scaled_value = self._scale("tech", field_key, raw)
-            scaled_score += scaled_value
+            score += scaled_value
             self._record_dimension(
                 group="tech",
                 field_key=field_key,
@@ -1242,9 +1345,60 @@ class CompanyScorer:
                 scaled_score=scaled_value,
                 description=description,
             )
-        group_total = self._group_target_total("tech")
-        final_score = max(round((scaled_score / group_total) * 100, 2), 0) if group_total else 0
-        self._add_log("tech", final_score, f"科技模块：原始分 {round(raw_score, 2)}，加权分 {round(scaled_score, 2)} / {round(group_total, 2)}，归一后 {final_score} 分")
+        final_score = round(score, 2)
+        self._add_log("tech", final_score, f"科技模块计算完毕：累加分 {final_score}")
+        return final_score
+
+    def calculate_bonus_score(self) -> float:
+        score = 0.0
+        details: list[tuple[str, float, str]] = []
+        if self.company.ai_model_filings:
+            score += 10.0
+            details.append(("medical_ai_model_filing", 10.0, "附加分：有算法备案的医疗大模型，加10分"))
+        if self.company.high_quality_datasets:
+            score += 10.0
+            details.append(("high_quality_dataset", 10.0, "附加分：有高质量数据集，加10分"))
+        text_pool = self._honor_text_pool()
+        if any(keyword in text for text in text_pool for keyword in NATIONAL_TECH_HONOR_KEYWORDS):
+            score += 20.0
+            details.append(("national_tech_honor", 20.0, "附加分：科技荣誉（国家级），加20分"))
+        if any(keyword in text for text in text_pool for keyword in PROVINCIAL_TECH_HONOR_KEYWORDS):
+            score += 15.0
+            details.append(("provincial_tech_honor", 15.0, "附加分：科技荣誉（省级），加15分"))
+
+        label_map = {
+            "national_tech_honor": "科技荣誉（国家级）",
+            "provincial_tech_honor": "科技荣誉（省级）",
+            "medical_ai_model_filing": "算法备案的医疗大模型",
+            "high_quality_dataset": "高质量数据集",
+        }
+        recorded_keys = set()
+        for field_key, raw_score, description in details:
+            recorded_keys.add(field_key)
+            self._add_log("bonus", raw_score, description)
+            self._record_dimension(
+                group="bonus",
+                field_key=field_key,
+                name=label_map[field_key],
+                raw_score=raw_score,
+                scaled_score=raw_score,
+                description=description,
+            )
+        for field_key, name in label_map.items():
+            if field_key in recorded_keys:
+                continue
+            description = f"附加分：{name}未命中，0分"
+            self._add_log("bonus", 0.0, description)
+            self._record_dimension(
+                group="bonus",
+                field_key=field_key,
+                name=name,
+                raw_score=0.0,
+                scaled_score=0.0,
+                description=description,
+            )
+        final_score = round(score, 2)
+        self._add_log("bonus", final_score, f"附加分计算完毕：累加分 {final_score}")
         return final_score
 
     def calculate_tech_patent_type(self) -> float:
@@ -1331,58 +1485,12 @@ class CompanyScorer:
         return score
 
     def calculate_industry_university_research(self) -> float:
-        text_pool = self._honor_text_pool()
-        match_count = sum(1 for keyword in INDUSTRY_UNIVERSITY_RESEARCH_KEYWORDS if any(keyword in text for text in text_pool))
-        score = min(match_count * 3.0, 15.0)
-        self._add_log("tech", score, f"产学研合作：命中 {match_count} 类名单关键词，{score}分")
-        return score
+        self._add_log("tech", 15.0, "产学研合作，先赋予15分")
+        return 15.0
 
     def calculate_national_provincial_award(self) -> float:
-        text_pool = self._honor_text_pool()
-        if any("国家科学技术进步奖" in text and "特等奖" in text for text in text_pool):
-            score = 10.0
-        elif any("国家科学技术进步奖" in text and "一等奖" in text for text in text_pool):
-            score = 8.0
-        elif any("国家科学技术进步奖" in text and "二等奖" in text for text in text_pool):
-            score = 7.0
-        elif any("国家科学技术进步奖" in text and "三等奖" in text for text in text_pool):
-            score = 6.0
-        else:
-            score = 0.0
-        self._add_log("tech", score, f"国家/省级奖励：{'命中科技进步奖等级' if score else '未命中'}，{score}分")
-        return score
-
-    def calculate_national_tech_honor(self) -> float:
-        text_pool = self._honor_text_pool()
-        matched = next((keyword for keyword in NATIONAL_TECH_HONOR_KEYWORDS if any(keyword in text for text in text_pool)), "")
-        score = 20.0 if matched else 0.0
-        self._add_log("tech", score, f"科技荣誉（国家级）：{matched or '未命中'}，{score}分")
-        return score
-
-    def calculate_provincial_tech_honor(self) -> float:
-        text_pool = self._honor_text_pool()
-        matched = next((keyword for keyword in PROVINCIAL_TECH_HONOR_KEYWORDS if any(keyword in text for text in text_pool)), "")
-        score = 15.0 if matched else 0.0
-        self._add_log("tech", score, f"科技荣誉（省级）：{matched or '未命中'}，{score}分")
-        return score
-
-    def calculate_medical_ai_model_filing(self) -> float:
-        matched = self.company.ai_model_filings[0] if self.company.ai_model_filings else ""
-        text_pool = self._honor_text_pool() if not matched else []
-        if not matched:
-            matched = next((text for text in text_pool if _contains_any(text, MEDICAL_AI_MODEL_FILING_KEYWORDS)), "")
-        score = 10.0 if matched else 0.0
-        self._add_log("tech", score, f"算法备案的医疗大模型：{'命中' if matched else '未命中'}，{score}分")
-        return score
-
-    def calculate_high_quality_dataset(self) -> float:
-        matched = self.company.high_quality_datasets[0] if self.company.high_quality_datasets else ""
-        text_pool = self._honor_text_pool() if not matched else []
-        if not matched:
-            matched = next((text for text in text_pool if _contains_any(text, HIGH_QUALITY_DATASET_KEYWORDS)), "")
-        score = 10.0 if matched else 0.0
-        self._add_log("tech", score, f"高质量数据集：{'命中' if matched else '未命中'}，{score}分")
-        return score
+        self._add_log("tech", 10.0, "国家/省级奖励，先赋予10分")
+        return 10.0
 
     def calculate_professional_score(self) -> float:
         items = [
@@ -1395,15 +1503,13 @@ class CompanyScorer:
             ("partnership_score", "合作上下游", self.calculate_partnership_score),
             ("ranking", "专业榜单入选", self.calculate_ranking_score),
         ]
-        raw_score = 0.0
-        scaled_score = 0.0
+        score = 0.0
         for field_key, label, func in items:
             start_index = len(self.logs)
             raw = func()
             description = "；".join(log["description"] for log in self.logs[start_index:]) or f"{label}：{raw}分"
-            raw_score += raw
             scaled_value = self._scale("pro", field_key, raw)
-            scaled_score += scaled_value
+            score += scaled_value
             self._record_dimension(
                 group="professional",
                 field_key=field_key,
@@ -1412,83 +1518,172 @@ class CompanyScorer:
                 scaled_score=scaled_value,
                 description=description,
             )
-        group_total = self._group_target_total("pro")
-        final_score = max(round((scaled_score / group_total) * 100, 2), 0) if group_total else 0
-        self._add_log("professional", final_score, f"专业模块：原始分 {round(raw_score, 2)}，加权分 {round(scaled_score, 2)} / {round(group_total, 2)}，归一后 {final_score} 分")
+        final_score = max(score, 0)
+        self._add_log("professional", final_score, f"专业能力模块计算完毕：累加分 {round(final_score, 2)}")
         return final_score
 
     def calculate_industry_market_size(self) -> float:
-        return self._score_from_rules("professional", "行业市场规模", self._primary_industry(), INDUSTRY_MARKET_RULES, 3)
+        categories = self._fym_industry_categories()
+        scoring_rules = [
+            (["医药流通/零售"], 10.0, "医药流通/零售"),
+            (["CXO", "医疗器械（高值耗材）"], 8.0, "CXO、医疗器械（高值耗材）"),
+            (["创新药/生物技术", "医疗器械（设备）", "医疗服务（民营医院）"], 7.0, "创新药/生物技术、医疗器械（设备）、医疗服务（民营医院）"),
+            (["数字医疗/医疗信息化", "中药", "生物制品（疫苗）", "医疗服务（第三方医学检验）"], 6.0, "数字医疗/医疗信息化、中药、生物制品（疫苗）、医疗服务（第三方医学检验）"),
+            (["化学原料药", "生物制品（血制品）"], 5.0, "化学原料药、生物制品（血制品）"),
+            (["医疗AI"], 4.0, "医疗AI"),
+            (["其他"], 3.0, "其他"),
+        ]
+        max_score = 3.0
+        best_category = "其他"
+        best_reason = "其他"
+        matched_details: list[str] = []
+        for category in categories:
+            matched = False
+            for rule_categories, item_score, reason in scoring_rules:
+                if category in rule_categories:
+                    matched = True
+                    matched_details.append(f"{category} -> {item_score}分")
+                    if item_score > max_score:
+                        max_score = item_score
+                        best_category = category
+                        best_reason = reason
+                    break
+            if not matched:
+                matched_details.append(f"{category} -> 未匹配规则")
+        self._add_log("professional", max_score, f"行业市场规模：分类={categories} -> 匹配详情={matched_details} -> 最终：{best_category} -> {best_reason}，{max_score}分")
+        return max_score
 
     def calculate_industry_heat(self) -> float:
-        return self._score_from_rules("professional", "行业热度", self._primary_industry(), INDUSTRY_HEAT_RULES, 3)
+        categories = self._fym_industry_categories()
+        scoring_rules = [
+            (["创新药/生物技术", "医疗AI"], 9.0, "创新药/生物技术、医疗AI"),
+            (["数字医疗/医疗信息化"], 8.0, "数字医疗/医疗信息化"),
+            (["医疗器械（高值耗材）"], 7.0, "医疗器械（高值耗材）"),
+            (["CXO", "医疗器械（设备）"], 6.0, "CXO、医疗器械（设备）"),
+            (["中药", "生物制品（疫苗）", "医疗服务（民营医院）"], 5.0, "中药、生物制品（疫苗）、医疗服务（民营医院）"),
+            (["化学原料药", "生物制品（血制品）", "医疗服务（第三方医学检验）", "医药流通/零售"], 4.0, "化学原料药、生物制品（血制品）、医疗服务（第三方医学检验）、医药流通/零售"),
+            (["其他"], 3.0, "其他"),
+        ]
+        max_score = 3.0
+        best_category = "其他"
+        best_reason = "其他"
+        matched_details: list[str] = []
+        for category in categories:
+            matched = False
+            for rule_categories, item_score, reason in scoring_rules:
+                if category in rule_categories:
+                    matched = True
+                    adjusted_score = item_score + 1.0
+                    matched_details.append(f"{category} -> {adjusted_score}分")
+                    if adjusted_score > max_score:
+                        max_score = adjusted_score
+                        best_category = category
+                        best_reason = reason
+                    break
+            if not matched:
+                matched_details.append(f"{category} -> 未匹配规则")
+        self._add_log("professional", max_score, f"行业热度：分类={categories} -> 匹配详情={matched_details} -> 最终：{best_category} -> {best_reason}，{max_score}分")
+        return max_score
 
     def calculate_industry_profit_margin(self) -> float:
-        return self._score_from_rules("professional", "行业利润率", self._primary_industry(), INDUSTRY_PROFIT_RULES, 2)
+        categories = self._fym_industry_categories()
+        scoring_rules = [
+            (["生物制品（血制品）"], 9.0, "生物制品（血制品）"),
+            (["医疗器械（高值耗材）", "生物制品（疫苗）", "中药"], 8.0, "医疗器械（高值耗材）、生物制品（疫苗）、中药"),
+            (["CXO", "医疗器械（设备）"], 7.0, "CXO、医疗器械（设备）"),
+            (["医疗服务（民营医院）"], 6.0, "医疗服务（民营医院）"),
+            (["创新药/生物技术", "化学原料药", "医疗服务（第三方医学检验）"], 5.0, "创新药/生物技术、化学原料药、医疗服务（第三方医学检验）"),
+            (["数字医疗/医疗信息化"], 4.0, "数字医疗/医疗信息化"),
+            (["医疗AI", "医药流通/零售"], 3.0, "医疗AI、医药流通/零售"),
+            (["其他"], 2.0, "其他"),
+        ]
+        max_score = 2.0
+        best_category = "其他"
+        best_reason = "其他"
+        matched_details: list[str] = []
+        for category in categories:
+            matched = False
+            for rule_categories, item_score, reason in scoring_rules:
+                if category in rule_categories:
+                    matched = True
+                    adjusted_score = item_score + 1.0
+                    matched_details.append(f"{category} -> {adjusted_score}分")
+                    if adjusted_score > max_score:
+                        max_score = adjusted_score
+                        best_category = category
+                        best_reason = reason
+                    break
+            if not matched:
+                matched_details.append(f"{category} -> 未匹配规则")
+        self._add_log("professional", max_score, f"行业利润率：分类={categories} -> 匹配详情={matched_details} -> 最终：{best_category} -> {best_reason}，{max_score}分")
+        return max_score
 
     def calculate_qualification(self) -> float:
         score = 0.0
-        for text in self.company.qualification_texts:
-            upper_text = text.upper()
-            is_certificate = (
-                ("药品" in upper_text and "注册" in upper_text)
-                or ("器械" in upper_text and "注册" in upper_text)
-                or ("临床" in upper_text)
-                or any(keyword in upper_text for keyword in ["受理", "在审", "原料", "辅料", "包材", "原辅包"])
-                or ("器械" in upper_text and "产品" in upper_text and "备案" in upper_text)
-            )
-            if is_certificate:
-                continue
-            if "药品" in upper_text and "生产" in upper_text and "许可" in upper_text:
-                score += 5.0
-            elif "器械" in upper_text and "生产" in upper_text and "许可" in upper_text:
-                score += 5.0
-            elif "GMP" in upper_text:
-                score += 5.0
-            elif "深度合成" in upper_text and "算法" in upper_text:
-                score += 5.0
-            elif "实验动物" in upper_text or "病原微生物" in upper_text or "互联网药品信息" in upper_text or "网络信息服务备案" in upper_text:
-                score += 3.0
-            elif "辐射安全" in upper_text or "核辐射" in upper_text or ("器械" in upper_text and "经营" in upper_text) or ("电信" in upper_text and "许可" in upper_text) or "监控化学品" in upper_text or "中药提取物" in upper_text:
-                score += 2.0
-            elif ("器械" in upper_text and "生产" in upper_text and "备案" in upper_text) or "出口证书" in upper_text or "质量管理" in upper_text or "ISO9001" in upper_text or "环境管理" in upper_text or "ISO14001" in upper_text or "职业健康" in upper_text or "ISO45001" in upper_text:
-                score += 1.0
-            else:
-                score += 0.5
+        label_scores = {
+            "药品生产许可证": 5.0,
+            "医疗器械生产许可证": 5.0,
+            "GMP认证": 5.0,
+            "深度合成服务算法备案": 5.0,
+            "实验动物许可": 3.0,
+            "病原微生物实验室备案": 3.0,
+            "互联网药品信息服务资格证书": 3.0,
+            "药品医疗器械网络信息服务备案": 3.0,
+            "辐射安全许可证": 2.0,
+            "核辐射利用安全许可证": 2.0,
+            "医疗器械经营许可证": 2.0,
+            "电信许可": 2.0,
+            "第二类监控化学品使用许可证": 2.0,
+            "中药提取物备案公示": 2.0,
+            "医疗器械生产备案凭证": 1.0,
+            "出口证书": 1.0,
+            "质量管理体系认证": 1.0,
+            "环境管理体系认证": 1.0,
+            "职业健康安全管理体系认证": 1.0,
+            "其他": 0.5,
+        }
+        for text in self._all_qualification_texts():
+            score += label_scores.get(self._qualification_label(text), 0.5)
         score = min(score, 20.0)
-        self._add_log("professional", score, f"资质：有效资质文本 {len(self.company.qualification_texts)} 条，{score}分")
+        self._add_log("professional", score, f"资质得分：{score}")
         return score
 
     def calculate_certificates(self) -> float:
         score = 0.0
-        for text in self.company.qualification_texts:
-            upper_text = text.upper()
-            if ("药品" in upper_text and "注册" in upper_text) or ("器械" in upper_text and "注册" in upper_text):
-                score += 10.0
-                continue
-            if "临床" in upper_text:
-                score += 5.0
-                continue
-            if any(keyword in upper_text for keyword in ["受理", "在审", "原料", "辅料", "包材", "原辅包"]):
-                score += 3.0
-                continue
-            if "器械" in upper_text and "产品" in upper_text and "备案" in upper_text:
-                score += 1.0
-                continue
+        label_scores = {
+            "药品注册证": 10.0,
+            "器械注册证": 10.0,
+            "临床批件": 5.0,
+            "受理品种": 3.0,
+            "在审品种": 3.0,
+            "在审公示": 3.0,
+            "受理公示": 3.0,
+            "原料": 3.0,
+            "辅料": 3.0,
+            "包材": 3.0,
+            "原辅包登记": 3.0,
+            "医疗器械产品备案": 1.0,
+            "其他": 0.0,
+        }
+        for text in self._all_qualification_texts():
+            score += label_scores.get(self._certificate_label(text), 0.0)
         score = min(score, 20.0)
-        self._add_log("professional", score, f"证书：有效证书文本 {len(self.company.qualification_texts)} 条，{score}分")
+        self._add_log("professional", score, f"证书得分：{score}")
         return score
 
     def calculate_innovation(self) -> float:
-        text_pool = self.company.innovation_texts or self._honor_text_pool()
         score = 0.0
-        description = "未命中"
-        for keywords, value, reason in INNOVATION_QUALIFICATION_RULES:
-            if any(_contains_any(text, keywords) for text in text_pool):
-                score = value
-                description = reason
-                break
-        self._add_log("professional", score, f"创新性：{description}，{score}分")
+        text_pool = self.company.innovation_texts or self._honor_text_pool()
+        if any(_contains_any(text, ["国家创新医疗器械", "国家级创新医疗器械"]) for text in text_pool):
+            score += 10.0
+        if any(_contains_any(text, ["北京市创新医疗器械", "北京创新医疗器械"]) for text in text_pool):
+            score += 7.0
+        if any(_contains_any(text, ["药物纳入优先审评品种名单", "药物拟纳入优先审评品种名单", "拟纳入优先审评"]) for text in text_pool):
+            score += 7.0
+        if any("主文档" in text for text in text_pool):
+            score += 5.0
+        score = min(score, 10.0)
+        self._add_log("professional", score, f"创新性得分：{score}")
         return score
 
     def calculate_partnership_score(self) -> float:
@@ -1529,7 +1724,7 @@ def run_full_scoring(status_callback=None) -> dict:
     companies = _load_company_data()
     result_rows: list[ScoreResult] = []
     log_rows: list[ScoreLog] = []
-    industry_stats: dict[str, dict] = defaultdict(lambda: {"sum": 0.0, "company_ids": set()})
+    industry_stats: dict[str, dict] = defaultdict(lambda: {"sum": 0.0, "credit_codes": set()})
     now = timezone.now()
 
     _set_status(status_callback, "running", f"正在计算 {len(companies)} 家企业评分")
@@ -1538,7 +1733,7 @@ def run_full_scoring(status_callback=None) -> dict:
         result = scorer.calculate_all()
         result_rows.append(
             ScoreResult(
-                enterprise_id=result["enterprise_id"],
+                enterprise_credit_code=result["enterprise_credit_code"],
                 company_name=result["company_name"],
                 total_score=result["total_score"],
                 basic_score=result["basic_score"],
@@ -1551,7 +1746,7 @@ def run_full_scoring(status_callback=None) -> dict:
         for log in result["logs"]:
             log_rows.append(
                 ScoreLog(
-                    enterprise_id=result["enterprise_id"],
+                    enterprise_credit_code=result["enterprise_credit_code"],
                     enterprise_name=result["company_name"],
                     score_type=log["score_type"],
                     score_value=log["score_value"],
@@ -1561,12 +1756,12 @@ def run_full_scoring(status_callback=None) -> dict:
             )
         for path in _expand_industry_paths(result["industry_paths"]):
             industry_stats[path]["sum"] += float(result["total_score"])
-            industry_stats[path]["company_ids"].add(result["enterprise_id"])
+            industry_stats[path]["credit_codes"].add(result["enterprise_credit_code"])
 
     _set_status(status_callback, "running", "正在回写评分结果与行业聚合")
     industry_rows = []
     for path, stats in industry_stats.items():
-        company_count = len(stats["company_ids"])
+        company_count = len(stats["credit_codes"])
         avg_score = round(stats["sum"] / company_count, 2) if company_count else 0
         industry_rows.append(
             ScoreIndustryPath(

@@ -14,7 +14,7 @@ import {
   message,
   Carousel,
   Input,
-  Tabs,
+  AutoComplete,
   Space,
   Divider,
   Modal,
@@ -59,6 +59,12 @@ import SuggestionList, {
   type SuggestionItem,
 } from "../../components/Home/SuggestionList";
 import StatsGrid, { type StatItem } from "../../components/Home/StatsGrid";
+import { type SearchScope } from "../../utils/searchRouting";
+import { useSmartSearch } from "../../components/search/useSmartSearch";
+import {
+  fetchDashboardOverview,
+  peekDashboardOverview,
+} from "../../utils/apiCache";
 
 const { Title, Text } = Typography;
 const { Panel } = Collapse;
@@ -213,7 +219,7 @@ const Overview: React.FC = () => {
   const carouselRef = useRef<any>(null);
 
   // 状态管理
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !peekDashboardOverview());
   const [chainData, setChainData] = useState<any[]>([]);
   const [searchInput, setSearchInput] = useState("");
   const [keyMetricsData, setKeyMetricsData] =
@@ -246,8 +252,9 @@ const Overview: React.FC = () => {
     RecommendEnterpriseDetail[]
   >([]);
 
-  const [searchScope, setSearchScope] = useState("industry");
+  const [searchScope, setSearchScope] = useState<SearchScope | "">("");
   const [activeNoticeIndex, setActiveNoticeIndex] = useState(0);
+  const { options: searchOptions, handleResolvedSearch } = useSmartSearch(searchInput, searchScope);
 
   // 弹窗控制
   const [isWeakLinksModalVisible, setIsWeakLinksModalVisible] = useState(false);
@@ -508,11 +515,18 @@ const Overview: React.FC = () => {
       );
     };
 
+    const cachedOverview = peekDashboardOverview<any>();
+    if (cachedOverview?.success && cachedOverview.data) {
+      applyDashboardData(cachedOverview.data);
+      setLoading(false);
+    }
+
     const fetchData = async () => {
-      setLoading(true);
+      if (!cachedOverview) {
+        setLoading(true);
+      }
       try {
-        const response = await fetch("/api/dashboard/overview");
-        const json = await response.json();
+        const json = await fetchDashboardOverview<any>();
         if (json.success && json.data) {
           applyDashboardData(json.data);
         } else {
@@ -617,20 +631,9 @@ const Overview: React.FC = () => {
       message.warning("请输入搜索关键词");
       return;
     }
-
-    if (searchScope === "industry") {
-      openIndustryProfile(trimmed);
-      return;
+    if (!handleResolvedSearch(trimmed)) {
+      message.warning("请输入搜索关键词");
     }
-
-    if (searchScope === "company") {
-      openEnterpriseProfile(trimmed);
-      return;
-    }
-
-    navigate(
-      `/industry-class?keyword=${encodeURIComponent(trimmed)}&searchScope=${encodeURIComponent(searchScope)}`,
-    );
   };
 
   // 弹窗表格列定义 (简化版)
@@ -719,39 +722,43 @@ const Overview: React.FC = () => {
             </div>
 
             <div style={{ maxWidth: 840, margin: "0 auto", textAlign: "left" }}>
-              <Tabs
-                activeKey={searchScope}
-                onChange={setSearchScope}
-                items={[
+              <Space size={12} wrap style={{ marginBottom: 12 }}>
+                {[
                   { key: "industry", label: "查行业" },
                   { key: "company", label: "查企业" },
                   { key: "person", label: "查负责人" },
                   { key: "risk", label: "查风险" },
                   { key: "qualification", label: "查资质" },
-                ]}
-                tabBarStyle={{
-                  marginBottom: 8,
-                  borderBottom: "none",
-                  color: "rgba(255,255,255,0.7)",
-                }}
-                className="home-search-tabs"
-              />
-              <style>{`
-                .home-search-tabs .ant-tabs-tab { 
-                    color: rgba(255,255,255,0.7); 
-                    font-size: 16px; 
-                    padding: 8px 0; 
-                    margin-right: 32px; 
-                    transition: color 0.3s;
-                }
-                .home-search-tabs .ant-tabs-tab-active .ant-tabs-tab-btn { 
-                    color: #fff !important; 
-                    font-weight: 600; 
-                    font-size: 16px;
-                    text-shadow: 0 0 0.25px currentColor;
-                }
-                .home-search-tabs .ant-tabs-ink-bar { background: #fff; height: 3px; }
-              `}</style>
+                ].map((item) => {
+                  const active = searchScope === item.key;
+                  return (
+                    <Button
+                      key={item.key}
+                      type={active ? "primary" : "default"}
+                      ghost={!active}
+                      onClick={() =>
+                        setSearchScope((current) =>
+                          current === item.key ? "" : (item.key as SearchScope),
+                        )
+                      }
+                      style={{
+                        borderRadius: 999,
+                        height: 38,
+                        padding: "0 18px",
+                        fontWeight: active ? 600 : 500,
+                        background: active ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.06)",
+                        borderColor: active ? "#ffffff" : "rgba(255,255,255,0.18)",
+                        color: "#fff",
+                      }}
+                    >
+                      {item.label}
+                    </Button>
+                  );
+                })}
+              </Space>
+              <div style={{ color: "rgba(255,255,255,0.72)", fontSize: 13, marginBottom: 10 }}>
+                {searchScope ? "已限定搜索类型，可再次点击标签取消限定。" : "未限定搜索类型，系统会根据输入内容智能识别。"}
+              </div>
 
               <div
                 style={{
@@ -760,44 +767,56 @@ const Overview: React.FC = () => {
                   borderRadius: 8,
                 }}
               >
-                <Input
-                  size="large"
-                  placeholder={`请输入${
-                    searchScope === "industry"
-                      ? "行业"
-                      : searchScope === "company"
-                        ? "企业"
-                        : searchScope === "person"
-                          ? "负责人"
-                          : searchScope === "risk"
-                            ? "风险"
-                            : "资质"
-                  }名称、关键词...`}
+                <AutoComplete
+                  style={{ flex: 1 }}
+                  options={searchOptions}
                   value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                  style={{
-                    height: 56,
-                    fontSize: 16,
-                    border: "none",
-                    borderRadius: "8px 0 0 8px",
-                    paddingLeft: 24,
-                  }}
-                  suffix={
-                    <span
-                      style={{
-                        cursor: "pointer",
-                        color: "#1890ff",
-                        fontWeight: 500,
-                        padding: "0 16px",
-                        borderLeft: "1px solid #f0f0f0",
-                      }}
-                      onClick={() => navigate("/advanced-search")}
-                    >
-                      高级搜索
-                    </span>
+                  onChange={setSearchInput}
+                  onSelect={(_value, option) =>
+                    handleResolvedSearch(String(option?.value || ""), option as { exactPath?: string; exactScope?: SearchScope })
                   }
-                  onPressEnter={(e) => handleSearch(e.currentTarget.value)}
-                />
+                >
+                  <Input
+                    size="large"
+                    placeholder={`请输入${
+                      searchScope === "industry"
+                        ? "行业"
+                        : searchScope === "company"
+                          ? "企业"
+                          : searchScope === "person"
+                            ? "负责人"
+                            : searchScope === "risk"
+                              ? "风险"
+                              : searchScope === "qualification"
+                                ? "资质"
+                                : "行业、企业、负责人、资质或风险"
+                    }名称、关键词...`}
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
+                    style={{
+                      height: 56,
+                      fontSize: 16,
+                      border: "none",
+                      borderRadius: "8px 0 0 8px",
+                      paddingLeft: 24,
+                    }}
+                    suffix={
+                      <span
+                        style={{
+                          cursor: "pointer",
+                          color: "#1890ff",
+                          fontWeight: 500,
+                          padding: "0 16px",
+                          borderLeft: "1px solid #f0f0f0",
+                        }}
+                        onClick={() => navigate("/advanced-search")}
+                      >
+                        高级搜索
+                      </span>
+                    }
+                    onPressEnter={(e) => handleSearch(e.currentTarget.value)}
+                  />
+                </AutoComplete>
                 <Button
                   type="primary"
                   size="large"

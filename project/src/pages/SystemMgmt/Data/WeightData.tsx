@@ -26,7 +26,6 @@ import {
   PartitionOutlined,
   PieChartOutlined,
   RocketOutlined,
-  SafetyCertificateOutlined,
   SaveOutlined,
   TrophyOutlined,
   UndoOutlined,
@@ -36,7 +35,7 @@ import { getAuthToken } from "../../../utils/auth";
 
 const { Title, Text } = Typography;
 
-type ConfigLevel = "TOTAL" | "BASIC" | "TECH" | "PROFESSIONAL";
+type ConfigLevel = "BASIC" | "TECH" | "PROFESSIONAL";
 
 interface WeightItem {
   key: string;
@@ -45,19 +44,17 @@ interface WeightItem {
 }
 
 const LEVEL_EXPECTED_TOTALS: Record<ConfigLevel, number> = {
-  TOTAL: 100,
   BASIC: 100,
-  TECH: 155,
+  TECH: 100,
   PROFESSIONAL: 100,
 };
 
 const WeightData: React.FC = () => {
-  const [level, setLevel] = useState<ConfigLevel>("TOTAL");
+  const [level, setLevel] = useState<ConfigLevel>("BASIC");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [scoring, setScoring] = useState(false);
   const [dataMap, setDataMap] = useState<Record<ConfigLevel, WeightItem[]>>({
-    TOTAL: [],
     BASIC: [],
     TECH: [],
     PROFESSIONAL: [],
@@ -69,7 +66,6 @@ const WeightData: React.FC = () => {
 
   const theme = useMemo(() => {
     const maps = {
-      TOTAL: { color: "#9270CA", icon: <SafetyCertificateOutlined />, label: "总权重" },
       BASIC: { color: "#5B8FF9", icon: <DatabaseOutlined />, label: "基础指标" },
       TECH: { color: "#5AD8A6", icon: <BulbOutlined />, label: "科技指标" },
       PROFESSIONAL: { color: "#F6BD16", icon: <TrophyOutlined />, label: "专业指标" },
@@ -90,7 +86,6 @@ const WeightData: React.FC = () => {
       const result = await res.json();
       if (result.success) {
         setDataMap({
-          TOTAL: result.data.total || [],
           BASIC: result.data.basic || [],
           TECH: result.data.tech || [],
           PROFESSIONAL: result.data.professional || [],
@@ -272,14 +267,14 @@ const WeightData: React.FC = () => {
   return (
     <div style={{ padding: 24, background: "#f0f2f5", minHeight: "100vh" }}>
       <Row gutter={16} style={{ marginBottom: 24 }}>
-        {(["TOTAL", "BASIC", "TECH", "PROFESSIONAL"] as ConfigLevel[]).map((itemLevel) => {
+        {(["BASIC", "TECH", "PROFESSIONAL"] as ConfigLevel[]).map((itemLevel) => {
           const items = dataMap[itemLevel] || [];
           const sum = items.reduce((acc, item) => acc + (Number(item.weight) || 0), 0);
           const expected = LEVEL_EXPECTED_TOTALS[itemLevel];
           const balanced = Math.abs(sum - expected) < 0.01;
           const active = level === itemLevel;
           return (
-            <Col span={6} key={itemLevel}>
+            <Col span={8} key={itemLevel}>
               <Card
                 size="small"
                 hoverable
@@ -310,11 +305,18 @@ const WeightData: React.FC = () => {
       <Row gutter={24}>
         <Col span={14}>
           <Card title={<Space>{theme.icon}<Text strong>{theme.label}详细配置</Text></Space>} styles={{ body: { padding: 20 } }}>
+            <Alert
+              type="info"
+              showIcon
+              style={{ marginBottom: 16 }}
+              message="当前总分规则"
+              description="总分 = 基础评分 + 科技评分 + 专业评分 + 附加分。TOTAL 总权重已停用；科技附加分 55 分不在本页配置。"
+            />
             <Segmented
               block
               value={level}
               onChange={(value) => setLevel(value as ConfigLevel)}
-              options={["TOTAL", "BASIC", "TECH", "PROFESSIONAL"]}
+              options={["BASIC", "TECH", "PROFESSIONAL"]}
               style={{ marginBottom: 20 }}
             />
 

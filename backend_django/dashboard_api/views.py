@@ -232,10 +232,16 @@ def _query_chain_counts() -> dict[str, int]:
         """
         SELECT
           ci.chain_name,
-          COUNT(DISTINCT cicm.company_id) AS company_count
+          COUNT(DISTINCT cicm.credit_code) AS company_count
         FROM chain_industry ci
-        LEFT JOIN chain_industry_category_industry_map cic ON cic.chain_id = ci.chain_id
-        LEFT JOIN category_industry_company_map cicm ON cicm.category_id = cic.category_id
+        LEFT JOIN chain_industry_category_industry_map cic
+          ON cic.chain_id = ci.chain_id
+        LEFT JOIN category_industry root
+          ON root.category_id = cic.category_id
+        LEFT JOIN category_industry descendant
+          ON descendant.category_level_code LIKE CONCAT(root.category_level_code, '%%')
+        LEFT JOIN category_industry_company_map cicm
+          ON cicm.category_id = descendant.category_id
         GROUP BY ci.chain_id, ci.chain_name
         ORDER BY ci.chain_id
         """
@@ -305,38 +311,40 @@ def _hotspot_streets() -> list[dict]:
 
 def _hot_tags(count_map: dict[str, int]) -> list[dict]:
     top_items = sorted(count_map.items(), key=lambda item: (-item[1], item[0]))[:10]
-    max_count = max([count for _, count in top_items], default=1)
+    max_count = max([int(count or 0) for _, count in top_items], default=0)
+    if max_count <= 0:
+        max_count = 1
     return [{"name": name, "count": int(count), "percent": round(int(count) / max_count * 100)} for name, count in top_items]
 
 
-def _company_tags(company_ids: list[int], limit: int = 3) -> dict[int, list[str]]:
-    if not company_ids:
+def _company_tags(credit_codes: list[str], limit: int = 3) -> dict[str, list[str]]:
+    if not credit_codes:
         return {}
-    placeholders = ", ".join(["%s"] * len(company_ids))
+    placeholders = ", ".join(["%s"] * len(credit_codes))
     rows = _rows(
         f"""
         SELECT
-          m.company_id,
+          m.credit_code,
           l.company_tag_name,
           COALESCE(m.confidence, 0) AS confidence,
           m.company_tag_map_id
         FROM company_tag_map m
         JOIN company_tag_library l ON l.company_tag_id = m.company_tag_id
-        WHERE m.company_id IN ({placeholders})
-        ORDER BY m.company_id, confidence DESC, m.company_tag_map_id DESC
+        WHERE m.credit_code IN ({placeholders})
+        ORDER BY m.credit_code, confidence DESC, m.company_tag_map_id DESC
         """,
-        company_ids,
+        credit_codes,
     )
-    result: dict[int, list[str]] = {}
+    result: dict[str, list[str]] = {}
     for row in rows:
-        company_id = int(row["company_id"])
+        credit_code = _normalize_text(row["credit_code"])
         tag_name = _normalize_text(row["company_tag_name"])
         if not tag_name:
             continue
-        result.setdefault(company_id, [])
-        if tag_name in result[company_id] or len(result[company_id]) >= limit:
+        result.setdefault(credit_code, [])
+        if tag_name in result[credit_code] or len(result[credit_code]) >= limit:
             continue
-        result[company_id].append(tag_name)
+        result[credit_code].append(tag_name)
     return result
 
 
@@ -344,25 +352,25 @@ def _recommended_enterprises() -> list[dict]:
     rows = _rows(
         """
         SELECT
-          sr.enterprise_id,
+          sr.enterprise_credit_code,
           sr.company_name,
           sr.total_score,
           cb.register_shi,
           cb.register_xian
         FROM scoring_scoreresult sr
-        JOIN company_basic cb ON cb.company_id = sr.enterprise_id
-        ORDER BY sr.total_score DESC, sr.enterprise_id ASC
+        JOIN company_basic cb ON cb.credit_code = sr.enterprise_credit_code
+        ORDER BY sr.total_score DESC, sr.enterprise_credit_code ASC
         LIMIT 5
         """
     )
-    tag_map = _company_tags([int(row["enterprise_id"]) for row in rows], limit=3)
+    tag_map = _company_tags([_normalize_text(row["enterprise_credit_code"]) for row in rows], limit=3)
     return [
         {
-            "id": int(row["enterprise_id"]),
+            "id": _normalize_text(row["enterprise_credit_code"]),
             "name": _normalize_text(row["company_name"]),
             "matchScore": round(float(row["total_score"] or 0)),
             "location": "·".join([part for part in [_normalize_text(row["register_shi"]), _normalize_text(row["register_xian"])] if part]) or "北京市",
-            "tags": tag_map.get(int(row["enterprise_id"]), []),
+            "tags": tag_map.get(_normalize_text(row["enterprise_credit_code"]), []),
         }
         for row in rows
     ]

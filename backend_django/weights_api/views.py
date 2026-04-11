@@ -51,10 +51,6 @@ TECH_DEFAULT_VALUES = {
     "tech_technology_enterprise": Decimal("15.0"),
     "industry_university_research": Decimal("15.0"),
     "national_provincial_award": Decimal("10.0"),
-    "national_tech_honor": Decimal("20.0"),
-    "provincial_tech_honor": Decimal("15.0"),
-    "medical_ai_model_filing": Decimal("10.0"),
-    "high_quality_dataset": Decimal("10.0"),
 }
 PRO_DEFAULT_VALUES = {
     "industry_market_size": Decimal("10.0"),
@@ -90,10 +86,6 @@ TECH_FIELDS = [
     ("tech_technology_enterprise", "科技型企业"),
     ("industry_university_research", "产学研合作"),
     ("national_provincial_award", "国家/省级奖励"),
-    ("national_tech_honor", "科技荣誉（国家级）"),
-    ("provincial_tech_honor", "科技荣誉（省级）"),
-    ("medical_ai_model_filing", "算法备案的医疗大模型"),
-    ("high_quality_dataset", "高质量数据集"),
 ]
 PROFESSIONAL_FIELDS = [
     ("industry_market_size", "行业市场规模"),
@@ -105,6 +97,7 @@ PROFESSIONAL_FIELDS = [
     ("partnership_score", "合作上下游"),
     ("ranking", "专业榜单入选"),
 ]
+TECH_WEIGHT_MODEL_FIELDS = {field.name for field in ScoreModelTechWeight._meta.local_fields}
 
 
 def _to_float(value) -> float:
@@ -131,16 +124,21 @@ def _ensure_seed_rows():
 
     tech_row = ScoreModelTechWeight.objects.order_by("model_id").first()
     if not tech_row:
-        ScoreModelTechWeight.objects.create(model_name="科技指标模型", **TECH_DEFAULT_VALUES)
-    elif all(float(getattr(tech_row, field) or 0) == 0 for field in TECH_DEFAULT_VALUES):
-        for field, value in TECH_DEFAULT_VALUES.items():
+        ScoreModelTechWeight.objects.create(
+            model_name="科技指标模型",
+            **{field: value for field, value in TECH_DEFAULT_VALUES.items() if field in TECH_WEIGHT_MODEL_FIELDS},
+        )
+    elif all(float(getattr(tech_row, field, 0) or 0) == 0 for field in TECH_DEFAULT_VALUES):
+        supported_fields = [field for field in TECH_DEFAULT_VALUES if field in TECH_WEIGHT_MODEL_FIELDS]
+        for field in supported_fields:
+            value = TECH_DEFAULT_VALUES[field]
             setattr(tech_row, field, value)
-        tech_row.save(update_fields=list(TECH_DEFAULT_VALUES.keys()))
+        tech_row.save(update_fields=supported_fields)
     else:
         missing_fields = [
             field
             for field, value in TECH_DEFAULT_VALUES.items()
-            if float(getattr(tech_row, field) or 0) == 0 and value > 0
+            if field in TECH_WEIGHT_MODEL_FIELDS and float(getattr(tech_row, field, 0) or 0) == 0 and value > 0
         ]
         if missing_fields:
             for field in missing_fields:
@@ -173,7 +171,7 @@ def _weights_payload():
             for field, label in BASIC_FIELDS
         ],
         "tech": [
-            {"key": field, "name": label, "weight": _to_float(getattr(tech_row, field))}
+            {"key": field, "name": label, "weight": _to_float(getattr(tech_row, field, TECH_DEFAULT_VALUES.get(field, 0)))}
             for field, label in TECH_FIELDS
         ],
         "professional": [
@@ -222,7 +220,7 @@ def update_weights(request):
                 update_fields = {}
                 allowed_fields = {
                     "BASIC": {field for field, _label in BASIC_FIELDS},
-                    "TECH": {field for field, _label in TECH_FIELDS},
+                    "TECH": {field for field, _label in TECH_FIELDS if field in TECH_WEIGHT_MODEL_FIELDS},
                     "PROFESSIONAL": {field for field, _label in PROFESSIONAL_FIELDS},
                 }[level]
                 for item in items:

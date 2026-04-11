@@ -27,12 +27,8 @@ import {
   ThunderboltOutlined,
   AppstoreOutlined,
   RiseOutlined,
-  BankOutlined,
-  WarningOutlined,
-  ContainerOutlined,
   EyeOutlined,
   ExportOutlined,
-  RightOutlined,
 } from "@ant-design/icons";
 import { Radar } from "@ant-design/plots";
 import type { DataNode } from "antd/es/tree";
@@ -781,14 +777,16 @@ const IndustryProfile: React.FC = () => {
                   dataSource={data.topCompanies}
                   size="middle"
                   pagination={false}
-                  rowKey="name"
+                  rowKey={(record: any) => record.id || record.name}
                   bordered={false}
                   style={{ margin: 0 }}
+                  tableLayout="fixed"
+                  scroll={{ x: 980 }}
                   locale={{ emptyText: "当前行业暂无重点企业数据" }}
                   columns={[
                     {
                       title: "排名",
-                      width: 80,
+                      width: 72,
                       align: "center",
                       render: (_, __, i) => (
                         <Badge
@@ -802,9 +800,19 @@ const IndustryProfile: React.FC = () => {
                     {
                       title: "企业名称",
                       dataIndex: "name",
+                      width: 280,
                       render: (t, record: any) => (
                         <a
-                          style={{ fontWeight: 500 }}
+                          style={{
+                            display: "inline-block",
+                            maxWidth: "100%",
+                            fontWeight: 500,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                            verticalAlign: "bottom",
+                          }}
+                          title={t}
                           onClick={() => handleEnterpriseClick(record.id || "")}
                         >
                           {t}
@@ -814,12 +822,14 @@ const IndustryProfile: React.FC = () => {
                     {
                       title: "注册资本",
                       dataIndex: "capital",
+                      width: 150,
                       align: "right",
-                        render: (t) => <Text>{Number(t || 0).toLocaleString()} 万</Text>,
+                      render: (t) => <Text>{Number(t || 0).toLocaleString()} 万</Text>,
                     },
                     {
                       title: "综合评分",
                       dataIndex: "score",
+                      width: 120,
                       align: "center",
                       render: (s) => (
                         <Text
@@ -833,19 +843,32 @@ const IndustryProfile: React.FC = () => {
                     {
                       title: "企业标签",
                       dataIndex: "tags",
-                      render: (tags) => (
-                        <Space size={4}>
-                          {tags.map((t: string) => (
-                            <Tag key={t} color="blue">
+                      width: 280,
+                      render: (tags = []) => (
+                        <Space size={[4, 4]} wrap style={{ maxWidth: "100%" }}>
+                          {tags.slice(0, 3).map((t: string) => (
+                            <Tag
+                              key={t}
+                              color="blue"
+                              style={{
+                                maxWidth: 120,
+                                marginInlineEnd: 0,
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                              }}
+                              title={t}
+                            >
                               {t}
                             </Tag>
                           ))}
+                          {tags.length > 3 && <Tag style={{ marginInlineEnd: 0 }}>+{tags.length - 3}</Tag>}
                         </Space>
                       ),
                     },
                     {
                       title: "操作",
-                      width: 100,
+                      width: 92,
                       align: "center",
                       render: (_, record: any) => (
                         <a

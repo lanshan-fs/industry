@@ -57,8 +57,8 @@ interface EnterpriseDimensions {
 }
 
 interface EnterpriseRow {
-  key: number;
-  companyId: number;
+  key: string;
+  companyId: string;
   name: string;
   code: string;
   updateTime?: string;
@@ -102,7 +102,7 @@ const EnterpriseTag: React.FC = () => {
   const [pageSize, setPageSize] = useState(10);
   const [tagLibrary, setTagLibrary] = useState<Record<DimensionKey, TagOption[]>>(EMPTY_LIBRARY);
   const [popoverOpenState, setPopoverOpenState] = useState<Record<string, boolean>>({});
-  const [editingKeys, setEditingKeys] = useState<Set<number>>(new Set());
+  const [editingKeys, setEditingKeys] = useState<Set<string>>(new Set());
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [currentRecord, setCurrentRecord] = useState<EnterpriseRow | null>(null);
   const [verificationOpen, setVerificationOpen] = useState(false);
@@ -164,7 +164,7 @@ const EnterpriseTag: React.FC = () => {
     fetchData(1, pageSize, value);
   };
 
-  const toggleEditMode = (key: number) => {
+  const toggleEditMode = (key: string) => {
     const next = new Set(editingKeys);
     if (next.has(key)) {
       next.delete(key);

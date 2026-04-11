@@ -2,7 +2,7 @@ from django.db import models
 
 
 class ScoreResult(models.Model):
-    enterprise_id = models.BigIntegerField(primary_key=True, db_column="enterprise_id")
+    enterprise_credit_code = models.CharField(max_length=18, primary_key=True, db_column="enterprise_credit_code")
     company_name = models.CharField(max_length=255, blank=True, null=True, db_column="company_name")
     total_score = models.DecimalField(max_digits=5, decimal_places=2, default=0, db_column="total_score")
     basic_score = models.DecimalField(max_digits=5, decimal_places=2, default=0, db_column="basic_score")
@@ -29,7 +29,7 @@ class ScoreIndustryPath(models.Model):
 
 class ScoreLog(models.Model):
     id = models.BigAutoField(primary_key=True, db_column="id")
-    enterprise_id = models.BigIntegerField(db_column="enterprise_id")
+    enterprise_credit_code = models.CharField(max_length=18, db_column="enterprise_credit_code")
     enterprise_name = models.CharField(max_length=255, blank=True, null=True, db_column="enterprise_name")
     score_type = models.CharField(max_length=20, blank=True, null=True, db_column="score_type")
     score_value = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True, db_column="score_value")

@@ -137,6 +137,82 @@ const ADVANCED_FILTER_KEY_MAP: Record<string, string> = {
   riskExecutor: "riskExecutor",
   riskLimit: "riskLimit",
 };
+const QUICK_FILTER_KEYS = [
+  "entType",
+  "techAttr",
+  "techField",
+  "scenario",
+  "financing",
+  "street",
+] as const;
+const FILTER_LABELS: Record<string, string> = {
+  entType: "企业类型",
+  techAttr: "科技属性",
+  techField: "技术领域",
+  scenario: "应用场景",
+  financing: "融资轮次",
+  street: "街道地区",
+  qualification: "企业资质",
+  ecology: "生态位",
+  riskAbnormal: "经营异常",
+  district: "所属地区",
+  taxRating: "税务评级",
+  patentType: "专利类型",
+  highTechStatus: "高新状态",
+  riskDishonest: "失信被执行",
+  riskMortgage: "动产抵押",
+  riskLegal: "法律文书",
+  riskPenalty: "行政处罚",
+  riskBankruptcy: "破产重叠",
+  riskLiquidation: "清算信息",
+  riskEnv: "环保处罚",
+  riskEquity: "股权冻结",
+  riskExecutor: "被执行人",
+  riskLimit: "限制高消费",
+  industryCategory: "产业分类",
+};
+const ADVANCED_FILTER_LABELS: Record<string, string> = {
+  industryCategory: "产业分类",
+  applicationScenario: "应用场景",
+  entType: "企业类型",
+  orgType: "组织类型",
+  scale: "企业规模",
+  bizStatus: "经营状态",
+  financing: "融资轮次",
+  street: "街道地区",
+  district: "所属地区",
+  taxRating: "税务评级",
+  patentType: "专利类型",
+  techAttr: "科技属性",
+  techField: "技术领域",
+  highTechStatus: "高新状态",
+  riskDishonest: "失信被执行",
+  riskMortgage: "动产抵押",
+  riskAbnormal: "经营异常",
+  riskLegal: "法律文书",
+  riskPenalty: "行政处罚",
+  riskBankruptcy: "破产重叠",
+  riskLiquidation: "清算信息",
+  riskEnv: "环保处罚",
+  riskEquity: "股权冻结",
+  riskExecutor: "被执行人",
+  riskLimit: "限制高消费",
+};
+const URL_FILTER_KEYS = Array.from(
+  new Set([
+    ...Object.keys(FILTER_LABELS),
+    ...QUICK_FILTER_KEYS,
+    ...Object.values(ADVANCED_FILTER_KEY_MAP),
+  ]),
+);
+const SEARCH_SCOPE_LABELS: Record<string, string> = {
+  industry: "行业搜索",
+  company: "企业搜索",
+  person: "负责人搜索",
+  risk: "风险搜索",
+  qualification: "资质搜索",
+  ecology: "生态搜索",
+};
 
 // --- 辅助组件：可折叠的筛选行 ---
 const FilterRow: React.FC<{
@@ -218,7 +294,6 @@ const IndustryClass: React.FC = () => {
   const [expandedKeys, setExpandedKeys] = useState<React.Key[]>([]);
   const [companyList, setCompanyList] = useState<any[]>([]);
   const [preciseList, setPreciseList] = useState<any[]>([]);
-  const [selectedKeys, setSelectedKeys] = useState<React.Key[]>([]);
 
   // 筛选元数据
   const [metaData, setMetaData] = useState<any>({
@@ -226,20 +301,20 @@ const IndustryClass: React.FC = () => {
     scenarios: [],
     regions: { street: [], area: [] },
   });
-  const [activeFilters, setActiveFilters] = useState<Record<string, string>>(
-    {},
-  );
 
   // Stats
   const [searchTime, setSearchTime] = useState(0.0);
   const [totalResult, setTotalResult] = useState(0);
   const [sortLabel, setSortLabel] = useState("默认排序");
   const [sortKey, setSortKey] = useState("default");
-  const [advancedFilterSummary, setAdvancedFilterSummary] = useState<
-    Record<string, string[]>
-  >({});
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const searchParams = useMemo(
+    () => new URLSearchParams(location.search),
+    [location.search],
+  );
 
   const stableTagColor = (value: string) => {
     const seed = Array.from(String(value || "")).reduce(
@@ -248,6 +323,109 @@ const IndustryClass: React.FC = () => {
     );
     return TAG_COLORS[seed % TAG_COLORS.length];
   };
+
+  const selectedKeys = useMemo<React.Key[]>(() => {
+    const tagId = searchParams.get("tagId");
+    if (tagId) {
+      return [/^\d+$/.test(tagId) ? Number(tagId) : tagId];
+    }
+
+    const stageKey = searchParams.get("stageKey");
+    if (stageKey) {
+      return [stageKey];
+    }
+
+    const directCategory = searchParams.getAll("industryCategory").find(Boolean);
+    if (directCategory) {
+      return [/^\d+$/.test(directCategory) ? Number(directCategory) : directCategory];
+    }
+
+    if (searchParams.get("advanced") === "true") {
+      const filterData = searchParams.get("filterData");
+      if (filterData) {
+        try {
+          const parsed = JSON.parse(filterData);
+          const categoryValues = Array.isArray(parsed?.industryCategory)
+            ? parsed.industryCategory
+            : [];
+          const firstValue = categoryValues
+            .map((item: unknown) => String(item || "").trim())
+            .find(Boolean);
+          if (firstValue) {
+            return [/^\d+$/.test(firstValue) ? Number(firstValue) : firstValue];
+          }
+        } catch (error) {
+          console.error("Failed to parse advanced category filters", error);
+        }
+      }
+    }
+
+    return [];
+  }, [searchParams]);
+
+  const activeFilters = useMemo(() => {
+    const nextState: Record<string, string> = {};
+    QUICK_FILTER_KEYS.forEach((key) => {
+      nextState[key] = searchParams.getAll(key).find(Boolean) || "";
+    });
+    return nextState;
+  }, [searchParams]);
+
+  const activeFilterSummary = useMemo(() => {
+    const summary: Array<{ paramKey: string; label: string; value: string }> = [];
+    const seen = new Set<string>();
+    const pushValues = (paramKey: string, label: string, values: string[]) => {
+      values
+        .map((item) => String(item || "").trim())
+        .filter(Boolean)
+        .forEach((value) => {
+          const token = `${paramKey}::${value}`;
+          if (!label || seen.has(token)) {
+            return;
+          }
+          seen.add(token);
+          summary.push({ paramKey, label, value });
+        });
+    };
+
+    Object.entries(FILTER_LABELS).forEach(([key, label]) => {
+      pushValues(key, label, searchParams.getAll(key));
+    });
+
+    if (searchParams.get("advanced") === "true") {
+      const filterData = searchParams.get("filterData");
+      if (filterData) {
+        try {
+          const parsed = JSON.parse(filterData);
+          Object.entries(parsed || {}).forEach(([key, value]) => {
+            if (!Array.isArray(value)) {
+              return;
+            }
+            const mappedKey = ADVANCED_FILTER_KEY_MAP[key] || key;
+            pushValues(mappedKey, ADVANCED_FILTER_LABELS[key] || key, value.map((item) => String(item || "")));
+          });
+        } catch (error) {
+          console.error("Failed to parse advanced filters", error);
+        }
+      }
+    }
+
+    return summary;
+  }, [searchParams]);
+
+  const searchContext = useMemo(() => {
+    const keyword = (searchParams.get("keyword") || searchParams.get("q") || "").trim();
+    const searchScope = (searchParams.get("searchScope") || "").trim();
+    const scopeLabel = SEARCH_SCOPE_LABELS[searchScope] || "智能识别";
+    if (!keyword && activeFilterSummary.length === 0) {
+      return null;
+    }
+    return {
+      keyword,
+      scope: searchScope,
+      scopeLabel,
+    };
+  }, [activeFilterSummary.length, searchParams]);
 
   const selectedNodeTitle = useMemo(() => {
     const targetKey = selectedKeys[0];
@@ -309,22 +487,15 @@ const IndustryClass: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const keyword = params.get("keyword") || params.get("q") || "";
-    const tagId = params.get("tagId");
-    const stageKey = params.get("stageKey");
-    const filterData = params.get("filterData");
-    const searchScope = params.get("searchScope") || "";
-    const directStreetFilters = params.getAll("street").filter(Boolean);
-    const directQualificationFilters = params
-      .getAll("qualification")
-      .filter(Boolean);
-    const directEcologyFilters = params.getAll("ecology").filter(Boolean);
-    const directRiskAbnormalFilters = params
-      .getAll("riskAbnormal")
-      .filter(Boolean);
+    setCurrentPage(1);
+  }, [location.search, sortKey]);
 
-    setSelectedKeys(tagId ? [tagId] : stageKey ? [stageKey] : []);
+  useEffect(() => {
+    const keyword = searchParams.get("keyword") || searchParams.get("q") || "";
+    const tagId = searchParams.get("tagId");
+    const stageKey = searchParams.get("stageKey");
+    const filterData = searchParams.get("filterData");
+    const searchScope = searchParams.get("searchScope") || "";
 
     const queryParams: any = {
       keyword,
@@ -332,24 +503,18 @@ const IndustryClass: React.FC = () => {
       stageKey,
       sort: sortKey,
       searchScope,
+      page: currentPage,
+      pageSize,
     };
-    if (directStreetFilters.length > 0) {
-      queryParams.street = directStreetFilters;
-    }
-    if (directQualificationFilters.length > 0) {
-      queryParams.qualification = directQualificationFilters;
-    }
-    if (directEcologyFilters.length > 0) {
-      queryParams.ecology = directEcologyFilters;
-    }
-    if (directRiskAbnormalFilters.length > 0) {
-      queryParams.riskAbnormal = directRiskAbnormalFilters;
-    }
-    Object.entries(activeFilters).forEach(([key, value]) => {
-      if (value) queryParams[key] = value;
+    URL_FILTER_KEYS.forEach((key) => {
+      const values = searchParams.getAll(key).filter(Boolean);
+      if (values.length === 1) {
+        queryParams[key] = values[0];
+      } else if (values.length > 1) {
+        queryParams[key] = values;
+      }
     });
-    const parsedAdvancedFilters: Record<string, string[]> = {};
-    if (params.get("advanced") === "true" && filterData) {
+    if (searchParams.get("advanced") === "true" && filterData) {
       try {
         const parsed = JSON.parse(filterData);
         Object.entries(parsed || {}).forEach(([key, value]) => {
@@ -358,7 +523,6 @@ const IndustryClass: React.FC = () => {
             .map((item) => String(item || "").trim())
             .filter(Boolean);
           if (cleaned.length > 0) {
-            parsedAdvancedFilters[key] = cleaned;
             queryParams[ADVANCED_FILTER_KEY_MAP[key]] = cleaned;
           }
         });
@@ -366,9 +530,8 @@ const IndustryClass: React.FC = () => {
         console.error("Failed to parse advanced filters", error);
       }
     }
-    setAdvancedFilterSummary(parsedAdvancedFilters);
     fetchCompanies(queryParams);
-  }, [location.search, activeFilters, sortKey]);
+  }, [activeFilters, currentPage, pageSize, searchParams, sortKey]);
 
   // 1. 获取树谱
   const fetchTree = async () => {
@@ -419,9 +582,10 @@ const IndustryClass: React.FC = () => {
       const json = await res.json();
 
       if (json.success) {
-        setCompanyList(json.data);
-        setPreciseList(json.data.slice(0, 10));
-        setTotalResult(json.data.length);
+        const nextList = Array.isArray(json.data) ? json.data : [];
+        setCompanyList(nextList);
+        setPreciseList(nextList.slice(0, 10));
+        setTotalResult(Number(json.pagination?.total || nextList.length || 0));
       } else {
         setCompanyList([]);
         setPreciseList([]);
@@ -533,8 +697,7 @@ const IndustryClass: React.FC = () => {
   };
 
   const onSelect = (keys: React.Key[]) => {
-    setSelectedKeys(keys);
-    const key = keys[0] as string;
+    const key = keys[0] == null ? "" : String(keys[0]);
     const params = new URLSearchParams(location.search);
     params.delete("tagId");
     params.delete("stageKey");
@@ -546,10 +709,25 @@ const IndustryClass: React.FC = () => {
   };
 
   const handleFilterClick = (groupKey: string, value: string) => {
-    setActiveFilters((prev) => ({
-      ...prev,
-      [groupKey]: prev[groupKey] === value ? "" : value,
-    }));
+    const params = new URLSearchParams(location.search);
+    const currentValue = params.get(groupKey) || "";
+    params.delete(groupKey);
+    if (value && currentValue !== value) {
+      params.append(groupKey, value);
+    }
+    navigate(`?${params.toString()}`);
+  };
+
+  const handleRemoveFilter = (paramKey: string, value: string) => {
+    const params = new URLSearchParams(location.search);
+    const currentValues = params.getAll(paramKey).filter((item) => item !== value);
+    params.delete(paramKey);
+    currentValues.forEach((item) => params.append(paramKey, item));
+    navigate(`?${params.toString()}`);
+  };
+
+  const handleClearSearchContext = () => {
+    navigate("/industry-class");
   };
 
   const scrollLeft = () =>
@@ -734,11 +912,11 @@ const IndustryClass: React.FC = () => {
           >
             {preciseList.map((item, idx) => (
               <Card
-                key={`p-${item.company_id}`}
+                key={`p-${item.credit_code || item.company_id}`}
                 hoverable
                 onClick={() =>
                   navigate(
-                    `/industry-portrait/enterprise-profile?id=${item.company_id}&from=industry-class`,
+                    `/industry-portrait/enterprise-profile?id=${item.credit_code || item.company_id}&from=industry-class`,
                   )
                 }
                 style={{
@@ -895,7 +1073,7 @@ const IndustryClass: React.FC = () => {
                     style={{ fontSize: 18, color: "#262626" }}
                     onClick={() =>
                       navigate(
-                        `/industry-portrait/enterprise-profile?id=${item.company_id}&from=industry-class`,
+                        `/industry-portrait/enterprise-profile?id=${item.credit_code || item.company_id}&from=industry-class`,
                       )
                     }
                   >
@@ -1054,7 +1232,7 @@ const IndustryClass: React.FC = () => {
                 iconPosition="end"
                 onClick={() =>
                   navigate(
-                    `/industry-portrait/enterprise-profile?id=${item.company_id}&from=industry-class`,
+                    `/industry-portrait/enterprise-profile?id=${item.credit_code || item.company_id}&from=industry-class`,
                   )
                 }
               >
@@ -1143,7 +1321,7 @@ const IndustryClass: React.FC = () => {
               <div style={{ marginTop: 20, background: "#f0f5ff", padding: "16px", borderRadius: 12, border: "1px solid #adc6ff" }}>
                 <Text strong style={{ fontSize: 13, display: "block", marginBottom: 8 }}>结果集热门标签</Text>
                 <Space wrap size={[0, 8]}>
-                  {(listInsights.topTags.length > 0 ? listInsights.topTags : MOCK_TECH_FIELDS.slice(0, 6).map((name, index) => [name, 0])).map((entry: any, idx) => (
+                  {(listInsights.topTags.length > 0 ? listInsights.topTags : MOCK_TECH_FIELDS.slice(0, 6).map((name) => [name, 0])).map((entry: any, idx) => (
                     <Tag 
                       key={entry[0]} 
                       color={idx < 3 ? "blue" : "default"} 
@@ -1202,7 +1380,36 @@ const IndustryClass: React.FC = () => {
         {renderFilterSection()}
 
         <div style={{ flex: 1, background: "#fff", padding: "0 24px" }}>
-          {Object.keys(advancedFilterSummary).length > 0 && (
+          {searchContext && (
+            <div
+              style={{
+                padding: "16px 0 8px",
+                borderBottom: "1px solid #f5f5f5",
+              }}
+            >
+              <Space wrap size={[8, 8]} style={{ width: "100%", justifyContent: "space-between" }}>
+                <Space wrap size={[8, 8]}>
+                  <Tag color="geekblue" bordered={false}>
+                    {searchContext.scopeLabel}
+                  </Tag>
+                  {searchContext.keyword ? (
+                    <Text>
+                      当前搜索词：
+                      <Text strong style={{ marginLeft: 6 }}>
+                        {searchContext.keyword}
+                      </Text>
+                    </Text>
+                  ) : (
+                    <Text type="secondary">当前结果由已选筛选条件生成</Text>
+                  )}
+                </Space>
+                <Button type="link" onClick={handleClearSearchContext} style={{ paddingInline: 0 }}>
+                  清空搜索与筛选
+                </Button>
+              </Space>
+            </div>
+          )}
+          {activeFilterSummary.length > 0 && (
             <div
               style={{
                 padding: "16px 0 8px",
@@ -1210,12 +1417,19 @@ const IndustryClass: React.FC = () => {
               }}
             >
               <Space wrap size={[8, 8]}>
-                <Text type="secondary">高级筛选已生效：</Text>
-                {Object.entries(advancedFilterSummary).map(([key, values]) => (
-                  <Tag key={key} color="blue" bordered={false}>
-                    {values.length > 2
-                      ? `${key}: ${values[0]} 等${values.length}项`
-                      : `${key}: ${values.join("、")}`}
+                <Text type="secondary">已生效筛选：</Text>
+                {activeFilterSummary.map((item) => (
+                  <Tag
+                    key={`${item.paramKey}-${item.value}`}
+                    color="blue"
+                    closable
+                    bordered={false}
+                    onClose={(event) => {
+                      event.preventDefault();
+                      handleRemoveFilter(item.paramKey, item.value);
+                    }}
+                  >
+                    {item.label}: {item.value}
                   </Tag>
                 ))}
               </Space>
@@ -1263,10 +1477,20 @@ const IndustryClass: React.FC = () => {
               renderItem={renderListItem}
               locale={{ emptyText: <Empty description="暂无符合条件的企业" /> }}
               pagination={{
-                pageSize: 10,
+                current: currentPage,
+                pageSize,
                 total: totalResult,
                 align: "center",
                 showSizeChanger: true,
+                showTotal: (total) => `共 ${total} 家`,
+                pageSizeOptions: [20, 50, 100],
+                onChange: (page, size) => {
+                  setCurrentPage(page);
+                  if (size !== pageSize) {
+                    setPageSize(size);
+                    setCurrentPage(1);
+                  }
+                },
               }}
             />
           )}

@@ -10,6 +10,7 @@ import {
   Input,
   Space,
   ConfigProvider,
+  message,
 } from "antd";
 import type { MenuProps } from "antd";
 import {
@@ -28,11 +29,12 @@ import {
   BuildOutlined,
   ControlOutlined,
   NotificationOutlined,
+  SearchOutlined,
 } from "@ant-design/icons";
 import { getStoredUser, isAdminUser, syncCurrentUserProfile } from "../utils/auth";
+import { useSmartSearch } from "../components/search/useSmartSearch";
 
 const { Header, Content, Sider } = Layout;
-const { Search } = Input;
 
 // 定义导航数据结构
 // 修改点：根据需求调整了导航项的顺序（产业评分提前至行业画像之前）
@@ -135,6 +137,9 @@ const MainLayout: React.FC = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [userData, setUserData] = useState(getStoredUser());
   const [isAdmin, setIsAdmin] = useState(isAdminUser(getStoredUser()));
+  const [globalSearchValue, setGlobalSearchValue] = useState("");
+  const [searchDropdownOpen, setSearchDropdownOpen] = useState(false);
+  const { options: globalSearchOptions, handleResolvedSearch } = useSmartSearch(globalSearchValue);
 
   useEffect(() => {
     let active = true;
@@ -204,6 +209,23 @@ const MainLayout: React.FC = () => {
       navigate("/system-mgmt");
     }
   };
+
+  const handleGlobalSearch = (value: string, option?: { exactPath?: string; exactScope?: any }) => {
+    if (!handleResolvedSearch(value, option)) {
+      message.warning("请输入搜索关键词");
+      return;
+    }
+    setSearchDropdownOpen(false);
+  };
+
+  const globalSearchMenuItems: MenuProps["items"] = globalSearchOptions.map((option) => ({
+    key: `${option.exactScope}:${option.value}`,
+    label: (
+      <div onMouseDown={(event) => event.preventDefault()}>
+        {option.label}
+      </div>
+    ),
+  }));
 
   const renderNavItems = () => {
     return BASE_TOP_NAV_ITEMS.map((item) => {
@@ -349,28 +371,102 @@ const MainLayout: React.FC = () => {
                 theme={{
                   components: {
                     Input: {
-                      colorBgContainer: "rgba(255, 255, 255, 0.1)",
+                      colorBgContainer: "transparent",
                       colorBorder: "transparent",
                       colorTextPlaceholder: "rgba(255, 255, 255, 0.5)",
                       colorText: "#fff",
                     },
                     Button: {
-                      colorBgContainer: "rgba(255, 255, 255, 0.2)",
+                      colorBgContainer: "transparent",
                       colorText: "#fff",
-                      colorPrimaryHover: "rgba(255, 255, 255, 0.3)",
+                      colorPrimaryHover: "rgba(255, 255, 255, 0.08)",
                       lineWidth: 0,
                     },
                   },
                 }}
               >
-                <Search
-                  placeholder="搜索企业、行业..."
-                  allowClear
-                  onSearch={(value) => console.log("Global search:", value)}
-                  style={{ verticalAlign: "middle" }}
-                  size="middle"
-                  variant="borderless"
-                />
+                <Dropdown
+                  open={searchDropdownOpen && globalSearchOptions.length > 0}
+                  trigger={[]}
+                  placement="bottom"
+                  menu={{
+                    items: globalSearchMenuItems,
+                    onClick: ({ key }) => {
+                      const option = globalSearchOptions.find(
+                        (item) => `${item.exactScope}:${item.value}` === key,
+                      );
+                      if (option) {
+                        handleGlobalSearch(option.value, option as { exactPath?: string; exactScope?: any });
+                      }
+                    },
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      width: "100%",
+                      height: 40,
+                      padding: "0 6px 0 12px",
+                      borderRadius: 999,
+                      background: "rgba(255, 255, 255, 0.1)",
+                      border: "1px solid rgba(255, 255, 255, 0.14)",
+                      boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)",
+                      backdropFilter: "blur(10px)",
+                    }}
+                  >
+                    <SearchOutlined
+                      style={{
+                        color: "rgba(255,255,255,0.55)",
+                        fontSize: 14,
+                        marginRight: 8,
+                        flexShrink: 0,
+                      }}
+                    />
+                    <Input
+                      placeholder="搜索企业、行业、负责人、资质或风险..."
+                      allowClear
+                      bordered={false}
+                      value={globalSearchValue}
+                      onFocus={() => setSearchDropdownOpen(true)}
+                      onBlur={() => window.setTimeout(() => setSearchDropdownOpen(false), 120)}
+                      onChange={(event) => {
+                        setGlobalSearchValue(event.target.value);
+                        setSearchDropdownOpen(true);
+                      }}
+                      onPressEnter={(event) => handleGlobalSearch(event.currentTarget.value)}
+                      style={{
+                        height: 36,
+                        lineHeight: "36px",
+                        paddingInline: 0,
+                        boxShadow: "none",
+                        background: "transparent",
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleGlobalSearch(globalSearchValue)}
+                      style={{
+                        height: 30,
+                        minWidth: 30,
+                        border: "none",
+                        borderRadius: 999,
+                        background: "rgba(255,255,255,0.12)",
+                        color: "#fff",
+                        cursor: "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: 0,
+                        marginLeft: 8,
+                        flexShrink: 0,
+                      }}
+                      aria-label="搜索"
+                    >
+                      <SearchOutlined />
+                    </button>
+                  </div>
+                </Dropdown>
               </ConfigProvider>
             </div>
           )}
